@@ -3,15 +3,20 @@ import javax.swing.JFrame;
 public class GameWindow extends JFrame {
 
     public GameWindow() {
-        super("Thin Ice"); 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // set the default close operation
+        setTitle("Thin Ice"); 
         setSize(960, 720); 
-        setLocationRelativeTo(null); // center the window on the screen
         setResizable(false); 
+
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // set the default close operation
+        
+        setLocationRelativeTo(null); // center the window on the screen
         setVisible(true); 
     }
 
     public static void main(String[] args) {
-        new GameWindow();
+        JFrame window = new GameWindow();
+
+        window.addKeyListener(new GameKeyListener());
+
     }
 }
