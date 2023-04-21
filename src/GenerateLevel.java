@@ -3,8 +3,8 @@ import java.util.Stack;
 
 public class GenerateLevel {
 
-    private static final int ROWS = 19;
-    private static final int COLS = 15;
+    private static final int ROWS = 15;
+    private static final int COLS = 19;
     private static final int WALL = 1;
     private static final int ICE = 0;
 
@@ -13,8 +13,8 @@ public class GenerateLevel {
 
     public GenerateLevel() {
         // Assign all blocks as ice
-        for(int i = 0; i < 19; i++) {
-            for(int j = 0; j < 15; j++) {
+        for(int i = 0; i < ROWS; i++) {
+            for(int j = 0; j < COLS; j++) {
                 board[i][j] = ICE;
             }
         }
@@ -36,6 +36,8 @@ public class GenerateLevel {
      */
     public int[][] recursiveBacktracking() {
         // TODO Implement maze algorithm 
+
+        return board;
     }
 
     public static void printRepresentation(int[][] level) {
