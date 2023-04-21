@@ -12,10 +12,10 @@ public class GenerateLevel {
     Random rand = new Random();
 
     public GenerateLevel() {
-        // Assign all blocks as ice
+        // Assign all blocks as walls
         for(int i = 0; i < ROWS; i++) {
             for(int j = 0; j < COLS; j++) {
-                board[i][j] = ICE;
+                board[i][j] = WALL;
             }
         }
     }
