@@ -1,6 +1,6 @@
 # DD1349 INDA project
 
-## Authors: Jonathan Skantz & Elias Hollstrand
+### Authors: Jonathan Skantz & Elias Hollstrand
 
 A clone of the Club Penguin game "Thin Ice", with the addition of a self-playing mode where the computer calculates the correct solution.
 
