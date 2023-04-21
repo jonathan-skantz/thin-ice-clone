@@ -3,7 +3,12 @@ import java.util.Stack;
 
 public class GenerateLevel {
 
-    private int[][] board = new int[19][15];
+    private static final int ROWS = 19;
+    private static final int COLS = 15;
+    private static final int WALL = 1;
+    private static final int ICE = 0;
+    
+    private int[][] board = new int[ROWS][COLS];
     Random rand = new Random();
 
     public GenerateLevel() {
@@ -31,6 +36,7 @@ public class GenerateLevel {
      */
     public int[][] recursiveBacktracking() {
         // TODO Implement maze algorithm 
+
     }
 
     public static void printRepresentation(int[][] level) {
