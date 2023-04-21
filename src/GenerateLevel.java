@@ -32,4 +32,14 @@ public class GenerateLevel {
     public int[][] recursiveBacktracking() {
         // TODO Implement maze algorithm 
     }
+
+    public static void printRepresentation(int[][] level) {
+        // TODO Print the matrix representation to terminal
+    }
+
+    public static void main(String[] args) {
+        GenerateLevel level = new GenerateLevel();
+        int[][] generatedLevel = level.generate();
+        printRepresentation(generatedLevel);
+    }
 }
