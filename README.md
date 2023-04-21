@@ -1,5 +1,7 @@
 # DD1349 INDA project
 
+## Authors: Jonathan Skantz & Elias Hollstrand
+
 A clone of the Club Penguin game "Thin Ice", with the addition of a self-playing mode where the computer calculates the correct solution.
 
 The course consists of ice blocks that the player walks on. The player should from point A to point B and cannot walk on a block they have already walked on. All blocks must not be walked on but the more blocks the more points. Courses are randomly generated.
