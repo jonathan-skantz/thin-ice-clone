@@ -26,7 +26,7 @@ public class GenerateLevel {
      * @return a matrix representation of the level
      */
     public int[][] generate() {
-        return recursiveBacktracking();
+        return randomLevelGeneration();
     }
 
     /**
@@ -34,7 +34,7 @@ public class GenerateLevel {
      * 
      * @return a matrix representation of the level
      */
-    public int[][] recursiveBacktracking() {
+    public int[][] randomLevelGeneration() {
         // TODO Implement maze algorithm 
 
         return board;
