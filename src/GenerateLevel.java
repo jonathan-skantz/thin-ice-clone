@@ -34,7 +34,12 @@ public class GenerateLevel {
     }
 
     public static void printRepresentation(int[][] level) {
-        // TODO Print the matrix representation to terminal
+        for (int i = 0; i < level.length; i++) {
+            for (int j = 0; j < level[0].length; j++) {
+                System.out.print(level[i][j] + " ");
+            }
+            System.out.println(); // Print a newline after each row
+        }
     }
 
     public static void main(String[] args) {
