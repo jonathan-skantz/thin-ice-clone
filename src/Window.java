@@ -1,5 +1,4 @@
-import java.util.ArrayList;
-
+import java.util.HashSet;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Insets;
@@ -13,10 +12,10 @@ public class Window extends JFrame {
     /*
      * The top, bottom, left, and right border of the window (like the title bar) is
      * for some reason included when setting the size.
-     * Therefore the actual "playable" size will be slightly smaller.
+     * Therefore the actual "playable" window size will be slightly smaller.
      */
-    private final int WIDTH_INCLUDING_BORDER = 960;
-    private final int HEIGHT_PLUS_BORDER = 720;
+    private final int WIDTH_INCLUDING_BORDER = 500;
+    private final int HEIGHT_PLUS_BORDER = 500;
 
     public static int width;        // actual size, excluding border
     public static int height;
@@ -24,9 +23,8 @@ public class Window extends JFrame {
     private static int offsetX;     // size of left border
     private static int offsetY;     // size of title bar
 
-    private static Sprite player;
-    
-    private static ArrayList<Sprite> sprites;   // where ALL sprites will be saved
+    private HashSet<Sprite> sprites;   // where all sprites will be saved
+    // TODO: reconsider saving as ArrayList to preserve order when drawing.
 
     public Window() {
 
@@ -45,20 +43,17 @@ public class Window extends JFrame {
         offsetY = border.top;
         width = WIDTH_INCLUDING_BORDER - border.left - border.right;
         height = HEIGHT_PLUS_BORDER - border.top - border.bottom;
+
+        sprites = new HashSet<>();
     }
 
-    public static void main(String[] args) {
-        Window window = new Window();
-        
-        sprites = new ArrayList<>();
-        
-        player = new Sprite("player.png", 50);
-        sprites.add(player);
-        
-        KeyListen listener = new KeyListen(window, player);
-        window.addKeyListener(listener);
+    public void addSprite(Sprite sprite) {
+        // NOTE: duplicates will not be added since `sprites` is a set.
+        sprites.add(sprite);
+    }
 
-        window.repaint();
+    public void removeSprite(Sprite sprite) {
+        sprites.remove(sprite);
     }
 
     /**
@@ -85,6 +80,9 @@ public class Window extends JFrame {
         return y + offsetY;
     }
 
+    /**
+     * Paints the background and renders all sprites.
+     */
     @Override
     public void paint(Graphics g) {
         g.setColor(BG_COLOR);
@@ -94,6 +92,5 @@ public class Window extends JFrame {
             sprite.draw(g);
         }
     }
-
 
 }

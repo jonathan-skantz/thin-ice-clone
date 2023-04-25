@@ -1,5 +1,7 @@
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -14,49 +16,114 @@ import javax.imageio.ImageIO;
  */
 public class Sprite {
     
+    public static Window window;
+
     private BufferedImage image;
+    private Rectangle rect;
+    private boolean visible;
+    
     private int velocity;
-    
-    public int x;
-    public int y;
-    
-    private int width;
-    private int height;
 
     public Sprite(String filename, int velocity) {
         this.velocity = velocity;
+        visible = true;
+        
+        int width;
+        int height;
+        
+        String relPath = "src/images/" + filename;
         
         try {
-            image = ImageIO.read(new File("src/images/" + filename));
+            
+            /*
+             * BUG:
+             * 
+             * This causes a NullPointerException because
+             * this.rect is apparently not defined:
+             * 
+             *      File f = new File(relPath);
+             *      window.addSprite(this);
+             *      image = ImageIO.read(f);
+             * 
+             * But this works:
+             * 
+             *      File f = new File(relPath);
+             *      image = ImageIO.read(f);
+             *      window.addSprite(this);
+             * 
+             * WORKAROUND:
+             * window.addSprite(this) is called after the try-catch.
+             */
+
+            image = ImageIO.read(new File(relPath));
+
             width = image.getWidth();
             height = image.getHeight();
-
+            
         } catch (IOException e) {
-            System.out.println("Error loading image: " + e.getMessage());
+            System.out.println("Error loading image \"" + relPath + "\": " + e.getMessage());
+            
+            // create default image
+            width = 100;
+            height = 100;
+            image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = image.createGraphics();
+         
+            g2d.setColor(Color.RED);
+            g2d.fillRect(0, 0, width, height);
+            g2d.dispose();
         }
+        
+        window.addSprite(this);
+        
+        rect = new Rectangle(0, 0, width, height);
+        
+        moveToCenter();
 
-        center();
     }
     
+    public void setVisible(boolean x) {
+        visible = x;
+        window.repaint();
+    }
+
     /**
      * Moves the sprite to the center of the window.
      */
-    public void center() {
-        x = (Window.width - width) / 2;
-        y = (Window.height - height) / 2;
+    public void moveToCenter() {
+        rect.x = (Window.width - rect.width) / 2;
+        rect.y = (Window.height - rect.height) / 2;
     }
 
     public void draw(Graphics g) {
-        // draw temporal bg, only for the purpose of visualing the hitbox
-        g.setColor(Color.GREEN);
-        g.fillRect(Window.exactX(x), Window.exactY(y), width, height);
         
-        g.drawImage(image, Window.exactX(x), Window.exactY(y), null);
+        if (!visible) {
+            return;
+        }
+
+        // draw temporary bg, only for the purpose of visualing the hitbox
+        g.setColor(Color.GREEN);
+        g.fillRect(Window.exactX(rect.x), Window.exactY(rect.y), rect.width, rect.height);
+        
+        g.drawImage(image, Window.exactX(rect.x), Window.exactY(rect.y), null);
+    }
+
+    /**
+     * Determines if this and other sprite collides.
+     * Collides in this case means that the sprites'
+     * rects are within each other, not only touching.
+     * 
+     * @param sprite The other sprite.
+     * @return true if colliding, false if not.
+     */
+    public boolean collidesWith(Sprite sprite) {
+        return sprite.rect.intersects(rect);
     }
 
     public void moveTo(int x, int y) {
-        this.x = x;
-        this.y = y;
+        rect.x = x;
+        rect.y = y;
+        window.repaint();
     }
 
     /**
@@ -64,28 +131,30 @@ public class Sprite {
      * 
      * @param key "up", "down", "left", or "right" currently implemented.
      */
-    public void move(String key) {
+    public void move(String action) {
 
-        // TODO: collision detection
-
-        switch (key) {
+        switch (action) {
 
             case "up":
-                y -= velocity;
+                rect.y -= velocity;
                 break;
 
             case "down":
-                y += velocity;
+                rect.y += velocity;
                 break;
 
             case "left":
-                x -= velocity;
+                rect.x -= velocity;
                 break;
 
             case "right":
-                x += velocity;
+                rect.x += velocity;
                 break;
         }
+
+        System.out.println("moved to (" + rect.x + ", " + rect.y + ")");
+
+        window.repaint();
         
     }
 
