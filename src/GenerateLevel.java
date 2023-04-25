@@ -56,7 +56,7 @@ public class GenerateLevel {
         for (int[] dir : directions) {
             int newRow = row + dir[0];
             int newCol = col + dir[1];
-            int width = rand.nextInt(20) + 1; // generate a random width between 1 and 3
+            int width = rand.nextInt(3) + 1; // generate a random width between 1 and 3
 
             // Check if new cell is within bounds and hasn't been visited yet
             if (newRow >= 0 && newRow < ROWS && newCol >= 0 && newCol < COLS && board[newRow][newCol] == 1) {
