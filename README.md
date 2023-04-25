@@ -13,6 +13,13 @@ Screenshot of "Thin Ice":
 
 Video of "Thin Ice": https://youtu.be/H8I29P8eiio
 
+
+### Language
+Java
+
+### Framework
+Swing
+
 ### MVP (minimum viable product)
 * One level
 * Level is represented by squares of different color
