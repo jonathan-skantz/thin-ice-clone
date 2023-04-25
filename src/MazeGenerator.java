@@ -51,8 +51,8 @@ class MazeGenerator {
      */
     public void generateMaze() {
         // Randomize starting position
-        int startX = rand.nextInt(dimension) - 1;
-        int startY = rand.nextInt(dimension) - 1;
+        int startX = rand.nextInt(dimension);
+        int startY = rand.nextInt(dimension);
         Node firstNode = new Node(startX, startY);
         stack.push(firstNode);
         startNode = firstNode; // Save the first node
