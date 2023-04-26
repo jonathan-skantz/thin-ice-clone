@@ -14,8 +14,8 @@ class MazeGenerator {
     private Random rand = new Random();
     protected int[][] maze;
     private int dimension;
-    private static Node startNode;
-    private static Node endNode;
+    private Node startNode;
+    private Node endNode;
 
     /**
      * Constructor for MazeGenerator class.
