@@ -1,11 +1,12 @@
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.ImageIO;
+
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-
-import javax.imageio.ImageIO;
 
 /**
  * Class for storing info about a sprite.
@@ -39,16 +40,24 @@ public class Sprite {
             height = image.getHeight();
             
         } catch (IOException e) {
-            System.out.println("Error loading image \"" + relPath + "\": " + e.getMessage());
+            System.out.println("IOException when loading \"" + relPath + "\": " + e.getMessage());
             
-            // create default image
+            // create default image (red square with border and cross)
             width = 100;
             height = 100;
-            image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g2d = image.createGraphics();
-         
-            g2d.setColor(Color.RED);
+
+            g2d.setColor(new Color(255, 0, 0, 100));
             g2d.fillRect(0, 0, width, height);
+
+            g2d.setColor(Color.BLACK);
+            g2d.setStroke(new BasicStroke(6));
+            g2d.drawRect(0, 0, width, height);
+            
+            g2d.drawLine(0, 0, width, height);
+            g2d.drawLine(0, height, width, 0);
+
             g2d.dispose();
         }
         
@@ -84,11 +93,6 @@ public class Sprite {
 
         // NOTE: Since this image is drawn on `g`, which is the `bufferedCanvasG` from `Window`,
         // `Window.exactX(x)` and `Window.exactY(y)` is not needed.
-        
-        // draw temporary bg, only for the purpose of visualing the hitbox
-        g.setColor(Color.GREEN);
-        g.fillRect(rect.x, rect.y, rect.width, rect.height);
-        
         g.drawImage(image, rect.x, rect.y, null);
     }
 
