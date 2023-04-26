@@ -1,3 +1,5 @@
+import java.util.*;
+
 public class GenerateAndCalculate {
     public static void main(String[] args) {
         MazeGenerator mazeGenerator = new MazeGenerator(10);
@@ -5,9 +7,17 @@ public class GenerateAndCalculate {
 
         Node startNode = mazeGenerator.getStartNode();
         Node endNode = mazeGenerator.getEndNode();
-        
+
         System.out.println(mazeGenerator.printRepresentation());
         System.out.println("Start node: (" + startNode.x + "," + startNode.y + ")");
         System.out.println("End node: (" + endNode.x + "," + endNode.y + ")");
+
+        CalculateSolution solution = new CalculateSolution(mazeGenerator.maze, startNode, endNode);
+
+        LinkedList<Node> path = solution.calculatePath();
+        System.out.println("\nCorrect path:");
+        for (Node node : path) {
+            System.out.print("(" + node.x + "," + node.y + ") ");
+        }
     }
 }
