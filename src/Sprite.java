@@ -109,6 +109,7 @@ public class Sprite {
         g.setColor(color);
         g.drawRect(0, 0, rect.width, rect.height);
 
+        window.repaint();
     }
 
     /**
@@ -121,8 +122,6 @@ public class Sprite {
         gOrig.dispose();
     }
 
-    
-
     public void setVisible(boolean x) {
         visible = x;
         window.repaint();
@@ -134,6 +133,7 @@ public class Sprite {
     public void moveToCenter() {
         rect.x = (Window.width - rect.width) / 2;
         rect.y = (Window.height - rect.height) / 2;
+        window.repaint();
     }
 
     /**
