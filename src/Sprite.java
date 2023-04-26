@@ -17,21 +17,36 @@ import java.awt.image.BufferedImage;
 public class Sprite {
     
     public static Window window;
-
-    private BufferedImage canvas;
+    public BufferedImage canvas;
+    private BufferedImage canvasOriginal;
+    private Graphics2D g;
+    
+    private final int DEFAULT_WIDTH = 100;
+    private final int DEFAULT_HEIGHT = 100;
+    
     private Rectangle rect;
-    private boolean visible;
+    private boolean visible = true;
     
     private int velocity;
 
-    private void setup(int w, int h, int vel) {
+    /**
+     * Should be called after the canvas is created.
+     * 
+     * @param vel Velocity.
+     */
+    private void setup(int vel) {
         velocity = vel;
-        visible = true;
         
         window.addSprite(this);
         
-        rect = new Rectangle(0, 0, w, h);
+        rect = new Rectangle(0, 0, canvas.getWidth(), canvas.getHeight());
         moveToCenter();
+        
+        g = canvas.createGraphics();
+        
+        // create a duplicate canvas, in order to revert adding a border
+        canvasOriginal = new BufferedImage(rect.width, rect.height, canvas.getType());
+        resetCanvas();
     }
 
     /**
@@ -42,43 +57,32 @@ public class Sprite {
      */
     public Sprite(String filename, int vel) {
         
-        int width;
-        int height;
-        
         String relPath = "src/images/" + filename;
         
         try {
             canvas = ImageIO.read(new File(relPath));
+            setup(vel);
 
-            width = canvas.getWidth();
-            height = canvas.getHeight();
             
         } catch (IOException e) {
             System.out.println("IOException when loading \"" + relPath + "\": " + e.getMessage());
             
             // create default image (red square with border and cross)
-            width = 100;
-            height = 100;
-            canvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g = canvas.createGraphics();
+            canvas = new BufferedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+            setup(vel);
 
             // draw bg
             g.setColor(new Color(255, 0, 0, 100));
-            g.fillRect(0, 0, width, height);
+            g.fillRect(0, 0, rect.width, rect.height);
 
             // draw border
-            g.setColor(Color.BLACK);
-            g.setStroke(new BasicStroke(6));
-            g.drawRect(0, 0, width, height);
+            addBorder(6, Color.BLACK);
             
             // draw cross
-            g.drawLine(0, 0, width, height);
-            g.drawLine(0, height, width, 0);
-
-            g.dispose();
+            g.drawLine(0, 0, rect.width, rect.height);
+            g.drawLine(0, rect.height, rect.width, 0);
         }
 
-        setup(width, height, vel);
     }
 
     /**
@@ -92,17 +96,33 @@ public class Sprite {
     public Sprite(int w, int h, Color color, int vel) {
 
         canvas = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-        
-        Graphics2D g = canvas.createGraphics();
+        setup(vel);
+
         g.setColor(color);
         g.fillRect(0, 0, w, h);
+    }
 
-        g.dispose();
 
-        setup(w, h, vel);
+    public void addBorder(int width, Color color) {
+
+        g.setStroke(new BasicStroke(width));
+        g.setColor(color);
+        g.drawRect(0, 0, rect.width, rect.height);
+
+    }
+
+    /**
+     * Removes the border.
+     * TODO: potentially implement, padding, margins etc.
+     */
+    public void resetCanvas() {
+        Graphics2D gOrig = canvasOriginal.createGraphics();
+        gOrig.drawImage(canvas, 0, 0, null);
+        gOrig.dispose();
     }
 
     
+
     public void setVisible(boolean x) {
         visible = x;
         window.repaint();
