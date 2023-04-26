@@ -1,5 +1,4 @@
 import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
@@ -34,27 +33,6 @@ public class Sprite {
         String relPath = "src/images/" + filename;
         
         try {
-            
-            /*
-             * BUG:
-             * 
-             * This causes a NullPointerException because
-             * this.rect is apparently not defined:
-             * 
-             *      File f = new File(relPath);
-             *      window.addSprite(this);
-             *      image = ImageIO.read(f);
-             * 
-             * But this works:
-             * 
-             *      File f = new File(relPath);
-             *      image = ImageIO.read(f);
-             *      window.addSprite(this);
-             * 
-             * WORKAROUND:
-             * window.addSprite(this) is called after the try-catch.
-             */
-
             image = ImageIO.read(new File(relPath));
 
             width = image.getWidth();
@@ -95,17 +73,23 @@ public class Sprite {
         rect.y = (Window.height - rect.height) / 2;
     }
 
-    public void draw(Graphics g) {
+    /**
+     * This is called only in `Window.paint()` or `Window.repaint()`.
+     */
+    public void draw(Graphics2D g) {
         
         if (!visible) {
             return;
         }
 
+        // NOTE: Since this image is drawn on `g`, which is the `bufferedCanvasG` from `Window`,
+        // `Window.exactX(x)` and `Window.exactY(y)` is not needed.
+        
         // draw temporary bg, only for the purpose of visualing the hitbox
         g.setColor(Color.GREEN);
-        g.fillRect(Window.exactX(rect.x), Window.exactY(rect.y), rect.width, rect.height);
+        g.fillRect(rect.x, rect.y, rect.width, rect.height);
         
-        g.drawImage(image, Window.exactX(rect.x), Window.exactY(rect.y), null);
+        g.drawImage(image, rect.x, rect.y, null);
     }
 
     /**
