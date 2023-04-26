@@ -1,4 +1,4 @@
-import java.util.HashSet;
+import java.util.ArrayList;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -27,15 +27,12 @@ public class Window extends JFrame {
     private static int offsetX;     // size of left border
     private static int offsetY;     // size of title bar
 
-    private HashSet<Sprite> sprites;   // where all sprites will be saved
-    // TODO: reconsider saving as ArrayList to preserve order when drawing.
+    private ArrayList<Sprite> sprites = new ArrayList<>();      // where all sprites will be saved
 
     private BufferedImage bufferedCanvas;       // actual canvas, excluding borders.
     private Graphics2D bufferedCanvasG;         // the drawable graphics of `bufferedCanvas`
 
     public Window() {
-
-        sprites = new HashSet<>();
 
         setTitle("Thin Ice"); 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // set the default close operation
@@ -71,10 +68,12 @@ public class Window extends JFrame {
     public void addSprite(Sprite sprite) {
         // NOTE: duplicates will not be added since `sprites` is a set.
         sprites.add(sprite);
+        repaint();
     }
-
+    
     public void removeSprite(Sprite sprite) {
         sprites.remove(sprite);
+        repaint();
     }
 
     /**
@@ -110,8 +109,10 @@ public class Window extends JFrame {
         // clear canvas
         bufferedCanvasG.clearRect(0, 0, width, height);
 
-        for (Sprite sprite : sprites) {
-            sprite.draw(bufferedCanvasG);
+        // loop through backwards to preserve drawing order
+        // (first elem should be drawn last)
+        for (int i=sprites.size()-1; i>=0; i--) {
+            sprites.get(i).draw(bufferedCanvasG);
         }
 
         // NOTE: This must be drawn using exactX and Y, because this is drawn
