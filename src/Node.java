@@ -5,7 +5,6 @@ public class Node {
    
     public final int x;
     public final int y;
-    public Node prev;
 
     /**
      * Constructor for Node class.
@@ -16,7 +15,6 @@ public class Node {
     Node(int x, int y) {
         this.x = x;
         this.y = y;
-        this.prev = null;
     }
     
 }
