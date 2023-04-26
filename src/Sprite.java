@@ -18,15 +18,29 @@ public class Sprite {
     
     public static Window window;
 
-    private BufferedImage image;
+    private BufferedImage canvas;
     private Rectangle rect;
     private boolean visible;
     
     private int velocity;
 
-    public Sprite(String filename, int velocity) {
-        this.velocity = velocity;
+    private void setup(int w, int h, int vel) {
+        velocity = vel;
         visible = true;
+        
+        window.addSprite(this);
+        
+        rect = new Rectangle(0, 0, w, h);
+        moveToCenter();
+    }
+
+    /**
+     * Create an image sprite.
+     * 
+     * @param filename Only the filename (located in "src/images/").
+     * @param vel Velocity.
+     */
+    public Sprite(String filename, int vel) {
         
         int width;
         int height;
@@ -34,10 +48,10 @@ public class Sprite {
         String relPath = "src/images/" + filename;
         
         try {
-            image = ImageIO.read(new File(relPath));
+            canvas = ImageIO.read(new File(relPath));
 
-            width = image.getWidth();
-            height = image.getHeight();
+            width = canvas.getWidth();
+            height = canvas.getHeight();
             
         } catch (IOException e) {
             System.out.println("IOException when loading \"" + relPath + "\": " + e.getMessage());
@@ -45,29 +59,49 @@ public class Sprite {
             // create default image (red square with border and cross)
             width = 100;
             height = 100;
-            image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2d = image.createGraphics();
+            canvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = canvas.createGraphics();
 
-            g2d.setColor(new Color(255, 0, 0, 100));
-            g2d.fillRect(0, 0, width, height);
+            // draw bg
+            g.setColor(new Color(255, 0, 0, 100));
+            g.fillRect(0, 0, width, height);
 
-            g2d.setColor(Color.BLACK);
-            g2d.setStroke(new BasicStroke(6));
-            g2d.drawRect(0, 0, width, height);
+            // draw border
+            g.setColor(Color.BLACK);
+            g.setStroke(new BasicStroke(6));
+            g.drawRect(0, 0, width, height);
             
-            g2d.drawLine(0, 0, width, height);
-            g2d.drawLine(0, height, width, 0);
+            // draw cross
+            g.drawLine(0, 0, width, height);
+            g.drawLine(0, height, width, 0);
 
-            g2d.dispose();
+            g.dispose();
         }
-        
-        window.addSprite(this);
-        
-        rect = new Rectangle(0, 0, width, height);
-        
-        moveToCenter();
 
+        setup(width, height, vel);
     }
+
+    /**
+     * Create a rectangle sprite.
+     * 
+     * @param w Width
+     * @param h Height
+     * @param color Color
+     * @param vel Velocity
+     */
+    public Sprite(int w, int h, Color color, int vel) {
+
+        canvas = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        
+        Graphics2D g = canvas.createGraphics();
+        g.setColor(color);
+        g.fillRect(0, 0, w, h);
+
+        g.dispose();
+
+        setup(w, h, vel);
+    }
+
     
     public void setVisible(boolean x) {
         visible = x;
@@ -93,7 +127,7 @@ public class Sprite {
 
         // NOTE: Since this image is drawn on `g`, which is the `bufferedCanvasG` from `Window`,
         // `Window.exactX(x)` and `Window.exactY(y)` is not needed.
-        g.drawImage(image, rect.x, rect.y, null);
+        g.drawImage(canvas, rect.x, rect.y, null);
     }
 
     /**
