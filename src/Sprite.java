@@ -18,8 +18,10 @@ public class Sprite {
     
     public static Window window;
     public BufferedImage canvas;
+    private Graphics2D canvasGraphics;
+    
+    // create a duplicate canvas, in order to revert adding a border
     private BufferedImage canvasOriginal;
-    private Graphics2D g;
     
     private final int DEFAULT_WIDTH = 100;
     private final int DEFAULT_HEIGHT = 100;
@@ -30,23 +32,26 @@ public class Sprite {
     private int velocity;
 
     /**
-     * Should be called after the canvas is created.
+     * Should be called internally after loading a canvas first time.
      * 
      * @param vel Velocity.
      */
-    private void setup(int vel) {
+    private void setupSprite(int vel) {
         velocity = vel;
         
         window.addSprite(this);
         
-        rect = new Rectangle(0, 0, canvas.getWidth(), canvas.getHeight());
+        newCanvas();
         moveToCenter();
-        
-        g = canvas.createGraphics();
-        
-        // create a duplicate canvas, in order to revert adding a border
+    }
+
+    /**
+     * Should be called after a new canvas is saved to `canvas`.
+     * Creates a new graphics reference, original canvas, and rect.
+     */
+    public void newCanvas() {
+        rect = new Rectangle(0, 0, canvas.getWidth(), canvas.getHeight());
         canvasOriginal = new BufferedImage(rect.width, rect.height, canvas.getType());
-        resetCanvas();
     }
 
     /**
@@ -61,28 +66,27 @@ public class Sprite {
         
         try {
             canvas = ImageIO.read(new File(relPath));
-            setup(vel);
-
             
         } catch (IOException e) {
             System.out.println("IOException when loading \"" + relPath + "\": " + e.getMessage());
             
             // create default image (red square with border and cross)
             canvas = new BufferedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, BufferedImage.TYPE_INT_ARGB);
-            setup(vel);
+            canvasGraphics = canvas.createGraphics();
 
             // draw bg
-            g.setColor(new Color(255, 0, 0, 100));
-            g.fillRect(0, 0, rect.width, rect.height);
-
+            canvasGraphics.setColor(new Color(255, 0, 0, 100));
+            canvasGraphics.fillRect(0, 0, rect.width, rect.height);
+            
             // draw border
             addBorder(6, Color.BLACK);
             
             // draw cross
-            g.drawLine(0, 0, rect.width, rect.height);
-            g.drawLine(0, rect.height, rect.width, 0);
+            canvasGraphics.drawLine(0, 0, rect.width, rect.height);
+            canvasGraphics.drawLine(0, rect.height, rect.width, 0);
         }
-
+        
+        setupSprite(vel);
     }
 
     /**
@@ -96,18 +100,20 @@ public class Sprite {
     public Sprite(int w, int h, Color color, int vel) {
 
         canvas = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-        setup(vel);
-
-        g.setColor(color);
-        g.fillRect(0, 0, w, h);
+        canvasGraphics = canvas.createGraphics();
+        
+        canvasGraphics.setColor(color);
+        canvasGraphics.fillRect(0, 0, w, h);
+        
+        setupSprite(vel);
     }
 
 
     public void addBorder(int width, Color color) {
 
-        g.setStroke(new BasicStroke(width));
-        g.setColor(color);
-        g.drawRect(0, 0, rect.width, rect.height);
+        canvasGraphics.setStroke(new BasicStroke(width));
+        canvasGraphics.setColor(color);
+        canvasGraphics.drawRect(0, 0, rect.width, rect.height);
 
         window.repaint();
     }
@@ -117,9 +123,15 @@ public class Sprite {
      * TODO: potentially implement, padding, margins etc.
      */
     public void resetCanvas() {
-        Graphics2D gOrig = canvasOriginal.createGraphics();
-        gOrig.drawImage(canvas, 0, 0, null);
-        gOrig.dispose();
+        
+        // set `canvas` to be copy of `canvasOriginal` (not just a reference)
+        canvas = new BufferedImage(canvasOriginal.getWidth(), canvasOriginal.getHeight(), canvasOriginal.getType());
+        canvasGraphics = canvas.createGraphics();
+        
+        // draw original canvas on copied (currently empty) canvas
+        canvasGraphics.drawImage(canvasOriginal, 0, 0, null);
+
+        window.repaint();
     }
 
     public void setVisible(boolean x) {
