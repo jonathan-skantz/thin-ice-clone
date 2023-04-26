@@ -66,6 +66,10 @@ class MazeGenerator {
                 addNodesToStack(neighbors);
             }
         }
+
+        // Distinguish start and end nodes
+        maze[startNode.y][startNode.x] = 2; 
+        maze[endNode.y][endNode.x] = 3; 
     }
 
     /**
@@ -154,6 +158,7 @@ class MazeGenerator {
 
     /**
      * Creates a string representation of the maze
+     * Ground is represented by 0, walls by 1, maze entrance by 2 and exit by 3
      * 
      * @return a string representation of the maze
      */
