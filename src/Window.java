@@ -1,7 +1,10 @@
 import java.util.HashSet;
+
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Insets;
+import java.awt.image.BufferedImage;
 
 import javax.swing.JFrame;
 
@@ -11,11 +14,12 @@ public class Window extends JFrame {
 
     /*
      * The top, bottom, left, and right border of the window (like the title bar) is
-     * for some reason included when setting the size.
+     * included when setting the size because `Window` extends `JFrame` and not `JWindow`.
      * Therefore the actual "playable" window size will be slightly smaller.
      */
+
     private final int WIDTH_INCLUDING_BORDER = 500;
-    private final int HEIGHT_PLUS_BORDER = 500;
+    private final int HEIGHT_INCLUDING_BORDER = 500;
 
     public static int width;        // actual size, excluding border
     public static int height;
@@ -26,25 +30,42 @@ public class Window extends JFrame {
     private HashSet<Sprite> sprites;   // where all sprites will be saved
     // TODO: reconsider saving as ArrayList to preserve order when drawing.
 
+    private BufferedImage bufferedCanvas;       // actual canvas, excluding borders.
+    private Graphics2D bufferedCanvasG;         // the drawable graphics of `bufferedCanvas`
+
     public Window() {
+
+        sprites = new HashSet<>();
 
         setTitle("Thin Ice"); 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // set the default close operation
         
-        setSize(WIDTH_INCLUDING_BORDER, HEIGHT_PLUS_BORDER);
+        setSize(WIDTH_INCLUDING_BORDER, HEIGHT_INCLUDING_BORDER);
         setResizable(false); 
-        setVisible(true); 
-        
+
         setLocationRelativeTo(null); // center the window on the screen
+
+        /*
+         * NOTE: setVisible(true) internally calls repaint(), which uses
+         * `Window.bufferedCanvasG`, but that has not yet been created.
+         * Hence, `setIgnoreRepaint` is set to true here, and false
+         * after getting the border sizes.
+         */
+        setIgnoreRepaint(true);
+        setVisible(true);
 
         // save border offsets
         Insets border = getInsets();
+        setIgnoreRepaint(false);
         offsetX = border.left;
         offsetY = border.top;
         width = WIDTH_INCLUDING_BORDER - border.left - border.right;
-        height = HEIGHT_PLUS_BORDER - border.top - border.bottom;
-
-        sprites = new HashSet<>();
+        height = HEIGHT_INCLUDING_BORDER - border.top - border.bottom;
+        
+        // NOTE: Only RGB (not ARGB), since this is the bottom layer that all other sprites are drawn on.
+        bufferedCanvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        bufferedCanvasG = bufferedCanvas.createGraphics();
+        bufferedCanvasG.setBackground(BG_COLOR);
     }
 
     public void addSprite(Sprite sprite) {
@@ -85,12 +106,17 @@ public class Window extends JFrame {
      */
     @Override
     public void paint(Graphics g) {
-        g.setColor(BG_COLOR);
-        g.fillRect(Window.exactX(0), Window.exactY(0), width, height);
+        
+        // clear canvas
+        bufferedCanvasG.clearRect(0, 0, width, height);
 
         for (Sprite sprite : sprites) {
-            sprite.draw(g);
+            sprite.draw(bufferedCanvasG);
         }
+
+        // NOTE: This must be drawn using exactX and Y, because this is drawn
+        // on the window, which includes invisible space underneath the borders.
+        g.drawImage(bufferedCanvas, Window.exactX(0), Window.exactY(0), null);
     }
 
 }
