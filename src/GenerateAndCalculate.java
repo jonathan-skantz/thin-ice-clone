@@ -1,3 +1,7 @@
+/**
+ * A main method for generating a maze and calculating the shortest path from 
+ * startNode to endNode 
+ */
 import java.util.*;
 
 public class GenerateAndCalculate {
