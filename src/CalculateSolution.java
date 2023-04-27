@@ -1,81 +1,114 @@
-import java.util.*;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class CalculateSolution {
+
     private int[][] maze;
-    private boolean[][] visited;
     private int dimension;
     private Node startNode;
     private Node endNode;
 
-    /**
-     * Constructor for CalculateSolution class.
-     *
-     * @param maze a 2D array representing the maze
-     */
     CalculateSolution(int[][] maze, Node startNode, Node endNode) {
         this.maze = maze;
         this.dimension = maze.length;
-        this.visited = new boolean[dimension][dimension];
         this.startNode = startNode;
         this.endNode = endNode;
     }
 
-    
-
     /**
-     * Calculates the path to solve the maze using depth-first search.
+     * Finds the shortest path from startNode to endNode in the maze.
      *
-     * @return a LinkedList representing the path to solve the maze
+     * @return an ArrayList of Nodes representing the shortest path from startNode to endNode
      */
-    public LinkedList<Node> calculatePath() {
-        Stack<Node> stack = new Stack<>();
-        LinkedList<Node> path = new LinkedList<>();
-        stack.push(startNode);
+    public LinkedList<Node> findShortestPath() {
+        // create a queue for BFS
+        Queue<Node> queue = new LinkedList<>();
+
+        // create an array to store the parent node of each node in the shortest path
+        Node[][] parent = new Node[dimension][dimension];
+
+        // initialize the parent array to null
+        for (int i = 0; i < dimension; i++) {
+            for (int j = 0; j < dimension; j++) {
+                parent[i][j] = null;
+            }
+        }
+
+        // mark the startNode as visited and add it to the queue
+        boolean[][] visited = new boolean[dimension][dimension];
         visited[startNode.y][startNode.x] = true;
+        queue.add(startNode);
 
-        while (!stack.empty()) {
-            Node currNode = stack.pop();
-            path.add(currNode);
+        // perform BFS
+        while (!queue.isEmpty()) {
+            Node currentNode = queue.poll();
 
-            if (currNode.x == endNode.x && currNode.y == endNode.y) {
-                return path;
+            // check if the current node is the endNode
+            if (currentNode.equals(endNode)) {
+                break;
             }
 
-            for (Node neighbor : getNeighbors(currNode)) {
-                if (!visited[neighbor.y][neighbor.x]) {
-                    stack.push(neighbor);
-                    visited[neighbor.y][neighbor.x] = true;
+            // explore the neighbors of the current node
+            for (int i = currentNode.y-1; i <= currentNode.y+1; i++) {
+                for (int j = currentNode.x-1; j <= currentNode.x+1; j++) {
+                    // skip if the neighbor is out of bounds, or is not walkable
+                    if (!pointOnGrid(j, i) || !pointNotCorner(currentNode, j, i) || !pointNotNode(currentNode, j, i) || maze[i][j] == 0 || visited[i][j]) {
+                        continue;
+                    }
+
+                    // mark the neighbor as visited, add it to the queue, and set its parent
+                    visited[i][j] = true;
+                    Node nextNode = new Node(j, i);
+                    queue.add(nextNode);
+                    parent[i][j] = currentNode;
                 }
             }
         }
 
-        return path;
+        // construct the shortest path from startNode to endNode
+        LinkedList<Node> shortestPath = new LinkedList<>();
+        Node currentNode = endNode;
+        while (currentNode != null) {
+            shortestPath.addFirst(currentNode);
+            currentNode = parent[currentNode.y][currentNode.x];
+        }
+
+        return shortestPath;
     }
 
     /**
-     * Returns an ArrayList of neighboring nodes that are valid next steps.
-     *
-     * @param node the current node
-     * @return an ArrayList of neighboring nodes
+     * Helper method that checks if a given point is on the grid
+     * 
+     * @param x x-coordinate
+     * @param y y-coordinate
+     * @return true if the point is on the grid, false otherwise
      */
-    private ArrayList<Node> getNeighbors(Node node) {
-        ArrayList<Node> neighbors = new ArrayList<>();
-        int x = node.x;
-        int y = node.y;
-
-        if (x > 0 && maze[y][x-1] == 1) {
-            neighbors.add(new Node(x-1, y));
-        }
-        if (x < dimension-1 && maze[y][x+1] == 1) {
-            neighbors.add(new Node(x+1, y));
-        }
-        if (y > 0 && maze[y-1][x] == 1) {
-            neighbors.add(new Node(x, y-1));
-        }
-        if (y < dimension-1 && maze[y+1][x] == 1) {
-            neighbors.add(new Node(x, y+1));
-        }
-
-        return neighbors;
+    private Boolean pointOnGrid(int x, int y) {
+        return x >= 0 && y >= 0 && x < dimension && y < dimension;
     }
+
+    /**
+     * Helper method that checks if a given point is not diagonally adjacent to a given node
+     * 
+     * @param node the node to compare against
+     * @param x x-coordinate
+     * @param y y-coordinate
+     * @return true if the point is not diagonally adjacent to the given node, false otherwise
+     */
+    private Boolean pointNotCorner(Node node, int x, int y) {
+        return (x == node.x || y == node.y);
+    }
+
+    /**
+     * Helper method that checks that a given node is not already part of the maze
+     * 
+     * @param node the node to compare against
+     * @param x x-coordinate
+     * @param y y-coordinate
+     * @return true if the point is not the same as the given node, false otherwise
+     */
+    private Boolean pointNotNode(Node node, int x, int y) {
+        return !(x == node.x && y == node.y);
+    }
+
 }

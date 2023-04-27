@@ -14,7 +14,7 @@ public class GenerateAndCalculate {
 
         CalculateSolution solution = new CalculateSolution(mazeGenerator.maze, startNode, endNode);
 
-        LinkedList<Node> path = solution.calculatePath();
+        LinkedList<Node> path = solution.findShortestPath();
         System.out.println("\nCorrect path:");
         for (Node node : path) {
             System.out.print("(" + node.x + "," + node.y + ") ");
