@@ -264,24 +264,27 @@ public class Sprite {
      * 
      * @param key "up", "down", "left", or "right" currently implemented.
      */
-    public void move(String action) {
+    public void move(KeyHandler.ActionKey actionKey) {
 
-        switch (action) {
+        switch (actionKey) {
 
-            case "up":
+            case UP:
                 rect.y -= velocity;
                 break;
 
-            case "down":
+            case DOWN:
                 rect.y += velocity;
                 break;
 
-            case "left":
+            case LEFT:
                 rect.x -= velocity;
                 break;
 
-            case "right":
+            case RIGHT:
                 rect.x += velocity;
+                break;
+            
+            default:
                 break;
         }
 

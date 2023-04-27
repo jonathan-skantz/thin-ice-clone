@@ -13,15 +13,14 @@ public class Main {
         Sprite player = new Sprite("player.png", 10);
 
         // setup key callbacks
-        KeyListen listener = new KeyListen();
+        KeyHandler listener = new KeyHandler();
         window.addKeyListener(listener);
+        
+        KeyHandler.ActionKey.UP.callback = () -> { player.move(KeyHandler.ActionKey.UP); };
+        KeyHandler.ActionKey.DOWN.callback = () -> { player.move(KeyHandler.ActionKey.DOWN); };
+        KeyHandler.ActionKey.LEFT.callback = () -> { player.move(KeyHandler.ActionKey.LEFT); };
+        KeyHandler.ActionKey.RIGHT.callback = () -> { player.move(KeyHandler.ActionKey.RIGHT); };
 
-        listener.addCallback("up", () -> {player.move("up");});
-        listener.addCallback("down", () -> {player.move("down");});
-        listener.addCallback("left", () -> {player.move("left");});
-        listener.addCallback("right", () -> {player.move("right");});
-
-        // listener.addCallback("test", () -> {window.repaint();});
 
         // MazeGenerator mg = new MazeGenerator(10);
         // mg.generateMaze();
