@@ -106,6 +106,17 @@ public class Sprite {
         setupSprite(vel);
     }
 
+    public void setSize(int w, int h) {
+
+        BufferedImage oldCanvas = canvas;
+
+        BufferedImage newCanvas = new BufferedImage(w, h, canvas.getType());
+
+        canvasStartDrawing(newCanvas);
+        canvasGraphics.drawImage(oldCanvas, 0, 0, w, h, null);
+        canvasStopDrawing();
+    }
+
 
     public void addBorder(int width, Color color) {
 
