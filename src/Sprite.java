@@ -139,16 +139,29 @@ public class Sprite {
      */
     private void canvasStartDrawing(BufferedImage newCanvas) {
         
+        int oldCenterX;
+        int oldCenterY;
 
-        if (canvasGraphics != null) {
-            canvasGraphics.dispose();       // NOTE: important to dispose the old graphics
-
+        if (canvasGraphics == null) {
+            oldCenterX = Window.width / 2;
+            oldCenterY = Window.height / 2;
+            
+        }
+        else {
             // the graphics may not have been created yet
             // because this may be the first call to this method
             // (which means the sprite has just been instantiated)
+
+            canvasGraphics.dispose();       // NOTE: important to dispose the old graphics
+            
+            oldCenterX = rect.x + rect.width / 2;
+            oldCenterY = rect.y + rect.height / 2;
         }
 
-        rect = new Rectangle(0, 0, newCanvas.getWidth(), newCanvas.getHeight());
+        // preserve center coordinates
+        int newX = oldCenterX - newCanvas.getWidth() / 2;
+        int newY = oldCenterY - newCanvas.getHeight() / 2;
+        rect = new Rectangle(newX, newY, newCanvas.getWidth(), newCanvas.getHeight());
 
         // set up empty canvas
         canvas = new BufferedImage(rect.width, rect.height, newCanvas.getType());
