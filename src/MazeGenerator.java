@@ -12,10 +12,10 @@ class MazeGenerator {
     
     private Stack<Node> stack = new Stack<>();
     private Random rand = new Random();
-    private int[][] maze;
+    public int[][] maze;
     private int dimension;
-    private static Node startNode;
-    private static Node endNode;
+    private Node startNode;
+    private Node endNode;
 
     /**
      * Constructor for MazeGenerator class.
@@ -25,6 +25,14 @@ class MazeGenerator {
     MazeGenerator(int dim) {
         maze = new int[dim][dim];
         dimension = dim;
+    }
+
+    public Node getStartNode() {
+        return this.startNode;
+    }
+
+    public Node getEndNode() {
+        return this.endNode;
     }
 
     /**
@@ -151,13 +159,5 @@ class MazeGenerator {
         return sb.toString();
     }
 
-    public static void main(String[] args) {
-        MazeGenerator mazeGenerator = new MazeGenerator(10);
-        mazeGenerator.generateMaze();
-
-        System.out.println(mazeGenerator.printRepresentation());
-        System.out.println("Start node: (" + startNode.x + "," + startNode.y + ")");
-        System.out.println("End node: (" + endNode.x + "," + endNode.y + ")");
-    }
 }
 
