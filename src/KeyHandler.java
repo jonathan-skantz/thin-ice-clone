@@ -24,7 +24,8 @@ public class KeyHandler extends KeyAdapter {
         }
         
         public int keyCode;
-        public Runnable callback = () -> { System.out.println("not implemented: action \"" + this + "\""); };;
+        private Runnable defaultCallback = () -> { System.out.println("not implemented: action \"" + this + "\""); };
+        private Runnable callback = defaultCallback;
         
         /**
          * Gets an ActionKey based on the key code.
@@ -39,6 +40,14 @@ public class KeyHandler extends KeyAdapter {
                 }
             }
             return null;
+        }
+
+        public void setCallback(Runnable callback) {
+            this.callback = callback;
+        }
+
+        public void removeCallback() {
+            this.callback = defaultCallback;
         }
 
     }

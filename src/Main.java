@@ -16,11 +16,10 @@ public class Main {
         KeyHandler listener = new KeyHandler();
         window.addKeyListener(listener);
         
-        KeyHandler.ActionKey.UP.callback = () -> { player.move(KeyHandler.ActionKey.UP); };
-        KeyHandler.ActionKey.DOWN.callback = () -> { player.move(KeyHandler.ActionKey.DOWN); };
-        KeyHandler.ActionKey.LEFT.callback = () -> { player.move(KeyHandler.ActionKey.LEFT); };
-        KeyHandler.ActionKey.RIGHT.callback = () -> { player.move(KeyHandler.ActionKey.RIGHT); };
-
+        KeyHandler.ActionKey.UP.setCallback(() -> { player.move(KeyHandler.ActionKey.UP); });
+        KeyHandler.ActionKey.DOWN.setCallback(() -> { player.move(KeyHandler.ActionKey.DOWN); });
+        KeyHandler.ActionKey.LEFT.setCallback(() -> { player.move(KeyHandler.ActionKey.LEFT); });
+        KeyHandler.ActionKey.RIGHT.setCallback(() -> { player.move(KeyHandler.ActionKey.RIGHT); });
 
         // MazeGenerator mg = new MazeGenerator(10);
         // mg.generateMaze();
