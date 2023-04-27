@@ -12,7 +12,7 @@ class MazeGenerator {
     
     private Stack<Node> stack = new Stack<>();
     private Random rand = new Random();
-    protected int[][] maze;
+    public int[][] maze;
     private int dimension;
     private Node startNode;
     private Node endNode;
