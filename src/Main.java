@@ -91,16 +91,13 @@ public class Main {
 
     public static void setupKeyCallbacks() {
 
-        KeyListen listener = new KeyListen();
+        KeyHandler listener = new KeyHandler();
         window.addKeyListener(listener);
         
-        listener.addCallback("up", () -> { tryMoveVertically("up"); });
-        listener.addCallback("down", () -> { tryMoveVertically("down"); });
-        listener.addCallback("left", () -> { tryMoveHorizontally("left"); });
-        listener.addCallback("right", () -> { tryMoveHorizontally("right"); });
-        
-        
-        listener.addCallback("test", () -> { drawNewMaze();} );
+        KeyHandler.ActionKey.UP.setCallback(() -> { player.move(KeyHandler.ActionKey.UP); });
+        KeyHandler.ActionKey.DOWN.setCallback(() -> { player.move(KeyHandler.ActionKey.DOWN); });
+        KeyHandler.ActionKey.LEFT.setCallback(() -> { player.move(KeyHandler.ActionKey.LEFT); });
+        KeyHandler.ActionKey.RIGHT.setCallback(() -> { player.move(KeyHandler.ActionKey.RIGHT); });
 
     }
 
