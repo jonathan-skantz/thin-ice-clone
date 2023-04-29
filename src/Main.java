@@ -4,7 +4,7 @@ import java.util.Hashtable;
 public class Main {
 
     public static final int BLOCK_SIZE = 35;
-    public static final int BORDER_WIDTH = 4;
+    public static final int BORDER_WIDTH = 2;
 
     public static final int BLOCK_WALL = 0;
     public static final int BLOCK_ICE = 1;
@@ -14,7 +14,7 @@ public class Main {
 
     public static final int DIMENSION = 10;
     
-    public static MazeGenerator mazeGenerator = new MazeGenerator(DIMENSION);
+    public static MazeGenerator mazeGenerator;
     
     public static int mazeStartX;
     public static int mazeStartY;
@@ -23,6 +23,8 @@ public class Main {
     public static Sprite player;
 
     public static Node currentNode;
+
+    public static boolean mazeCompleted = false;
     
     public static final Hashtable<Integer, Color> COLOR_TABLE = new Hashtable<>();
 
@@ -43,8 +45,8 @@ public class Main {
         Sprite.window = window;
         
         // coordinates of topleft of maze
-        mazeStartX = (Window.width - BLOCK_SIZE * mazeGenerator.maze[0].length) / 2;
-        mazeStartY = (Window.height - BLOCK_SIZE * mazeGenerator.maze.length) / 2;
+        mazeStartX = (Window.width - BLOCK_SIZE * DIMENSION) / 2;
+        mazeStartY = (Window.height - BLOCK_SIZE * DIMENSION) / 2;
         
         player = new Sprite(BLOCK_SIZE-2*BORDER_WIDTH, BLOCK_SIZE-2*BORDER_WIDTH, Color.ORANGE, BLOCK_SIZE);
         player.setBorder(2, Color.BLACK, true);
@@ -55,35 +57,58 @@ public class Main {
         
     }
 
-    public static void tryMoveToNode(Node newNode, KeyHandler.ActionKey action) {
+    public static void tryMoveToNode(KeyHandler.ActionKey action) {
+
+        if (mazeCompleted) {
+            return;
+        }
+
+        int dx = 0;
+        int dy = 0;
+
+        switch (action) {
+            case UP:
+                dy = -1;
+                break;
+            
+            case DOWN:
+                dy = 1;
+                break;
+            
+            case LEFT:
+                dx = -1;
+                break;
+            
+            case RIGHT:
+                dx = 1;
+                break;
+            
+            default:
+                break;
+        }
+
+        Node newNode = new Node(currentNode.x + dx, currentNode.y + dy);
 
         if (mazeGenerator.pointOnGrid(newNode.x, newNode.y)) {
             
             int blockType = mazeGenerator.maze[newNode.y][newNode.x];
             
             if (blockType != BLOCK_WALL && blockType != BLOCK_BLOCKED) {
+                // valid block to move to
                 player.move(action);
                 mazeGenerator.maze[currentNode.y][currentNode.x] = BLOCK_BLOCKED;
                 mazeSprites[currentNode.y][currentNode.x].setColor(COLOR_TABLE.get(BLOCK_BLOCKED));
                 
                 currentNode = newNode;
 
+                Node endNode = mazeGenerator.getEndNode();
+                if (currentNode.x == endNode.x && currentNode.y == endNode.y) {
+                    mazeCompleted = true;
+                    System.out.println("MAZE COMPLETE");
+                }
+                
             }
         }
-    }
-
-    public static void tryMoveHorizontally(KeyHandler.ActionKey action) {
-        int dx = action == KeyHandler.ActionKey.LEFT ? -1 : 1;
-
-        Node newNode = new Node(currentNode.x + dx, currentNode.y);
-        tryMoveToNode(newNode, action);
-    }
-    
-    public static void tryMoveVertically(KeyHandler.ActionKey action) {
-        int dy = action == KeyHandler.ActionKey.UP ? -1 : 1;
-        
-        Node newNode = new Node(currentNode.x, currentNode.y + dy);
-        tryMoveToNode(newNode, action);
     }
 
     public static void setupKeyCallbacks() {
@@ -91,28 +116,40 @@ public class Main {
         KeyHandler listener = new KeyHandler();
         window.addKeyListener(listener);
         
-        KeyHandler.ActionKey.UP.setCallback(() -> { tryMoveVertically(KeyHandler.ActionKey.UP); });
-        KeyHandler.ActionKey.DOWN.setCallback(() -> { tryMoveVertically(KeyHandler.ActionKey.DOWN); });
-        KeyHandler.ActionKey.LEFT.setCallback(() -> { tryMoveHorizontally(KeyHandler.ActionKey.LEFT); });
-        KeyHandler.ActionKey.RIGHT.setCallback(() -> { tryMoveHorizontally(KeyHandler.ActionKey.RIGHT); });
+        KeyHandler.ActionKey.UP.setCallback(() -> { tryMoveToNode(KeyHandler.ActionKey.UP); });
+        KeyHandler.ActionKey.DOWN.setCallback(() -> { tryMoveToNode(KeyHandler.ActionKey.DOWN); });
+        KeyHandler.ActionKey.LEFT.setCallback(() -> { tryMoveToNode(KeyHandler.ActionKey.LEFT); });
+        KeyHandler.ActionKey.RIGHT.setCallback(() -> { tryMoveToNode(KeyHandler.ActionKey.RIGHT); });
         
-        KeyHandler.ActionKey.MAZE_NEW.setCallback(() -> { makeNewMaze(); });
+        KeyHandler.ActionKey.MAZE_NEW.setCallback(() -> { 
+            
+            // prevent making new mazes unless the current is solved
+            if (mazeCompleted) {
+                makeNewMaze();
+            }
+        });
 
         KeyHandler.ActionKey.MAZE_RESET.setCallback(() -> { resetMaze(); });
-
+        
     }
-
-    public static void resetMaze() {
-
+    
+    public static void resetPlayer() {
+        
         Node startNode = mazeGenerator.getStartNode(); 
-
+        
         // move player to center of start node
         int centeredX = mazeStartX + startNode.x * BLOCK_SIZE + (BLOCK_SIZE - player.canvas.getWidth()) / 2;
         int centeredY = mazeStartY + startNode.y * BLOCK_SIZE + (BLOCK_SIZE - player.canvas.getHeight()) / 2;
         player.moveTo(centeredX, centeredY);
-
+        
         currentNode = startNode;
-
+    }
+    
+    public static void resetMaze() {
+        
+        mazeCompleted = false;
+        System.out.println("MAZE RESET");
+        
         // create a new sprite for every block in the maze
         for (int y=0; y<mazeGenerator.maze.length; y++) {
             for (int x=0; x<mazeGenerator.maze[y].length; x++) {
@@ -120,30 +157,27 @@ public class Main {
                 // reset color and node value
                 Color color = COLOR_TABLE.get(mazeGenerator.maze[y][x]);
 
-                if (x == startNode.x && y == startNode.y) {
-                    mazeGenerator.maze[y][x] = BLOCK_START;
-                    mazeSprites[y][x].setColor(COLOR_TABLE.get(BLOCK_START));
-
-                }
-                else if (color == COLOR_TABLE.get(BLOCK_BLOCKED)) {
+                if (color == COLOR_TABLE.get(BLOCK_BLOCKED)) {
                     mazeGenerator.maze[y][x] = BLOCK_ICE;
                     mazeSprites[y][x].setColor(COLOR_TABLE.get(BLOCK_ICE));
                 }
+
             }
         }
+        Node startNode = mazeGenerator.getStartNode();
+        mazeGenerator.maze[startNode.y][startNode.x] = BLOCK_START;
+        mazeSprites[startNode.y][startNode.x].setColor(COLOR_TABLE.get(BLOCK_START));
 
+        resetPlayer();
     }
 
     public static void makeNewMaze() {
 
-        // remove all old sprites
-        for (Sprite[] spriteRow : mazeSprites) {
-            for (Sprite sprite : spriteRow) {
-                window.removeSprite(sprite);
-            }
-        }
+        mazeCompleted = false;
+        System.out.println("NEW MAZE");
 
-        mazeGenerator = new MazeGenerator(10);
+        // new maze in 2D-array-form
+        mazeGenerator = new MazeGenerator(DIMENSION);
         mazeGenerator.generateMaze();
         System.out.println(mazeGenerator.printRepresentation());
 
@@ -157,31 +191,33 @@ public class Main {
             System.out.print("(" + node.x + "," + node.y + ") ");
         }
 
-        // move player to center of start node
-        int centeredX = mazeStartX + startNode.x * BLOCK_SIZE + (BLOCK_SIZE - player.canvas.getWidth()) / 2;
-        int centeredY = mazeStartY + startNode.y * BLOCK_SIZE + (BLOCK_SIZE - player.canvas.getHeight()) / 2;
-        player.moveTo(centeredX, centeredY);
-
-        currentNode = startNode;
-
+        boolean firstMaze = mazeSprites[0][0] == null;
+        
         // create a new sprite for every block in the maze
         for (int y=0; y<mazeGenerator.maze.length; y++) {
             for (int x=0; x<mazeGenerator.maze[y].length; x++) {
                 
                 Color color = COLOR_TABLE.get(mazeGenerator.maze[y][x]);
                 
-                // create block
-                Sprite block = new Sprite(BLOCK_SIZE, BLOCK_SIZE, color, 0);
-                block.setBorder(BORDER_WIDTH, Color.BLACK, true);
-                mazeSprites[y][x] = block;
-
-                // move block
-                int xPos = mazeStartX + x * BLOCK_SIZE;
-                int yPos = mazeStartY + y * BLOCK_SIZE;
-                block.moveTo(xPos, yPos);
-
+                if (firstMaze) {
+                    // create block
+                    Sprite block = new Sprite(BLOCK_SIZE, BLOCK_SIZE, color, 0);
+                    block.setBorder(BORDER_WIDTH, Color.BLACK, true);
+                    mazeSprites[y][x] = block;
+                    
+                    // move block
+                    int xPos = mazeStartX + x * BLOCK_SIZE;
+                    int yPos = mazeStartY + y * BLOCK_SIZE;
+                    block.moveTo(xPos, yPos);
+                }
+                else {
+                    mazeSprites[y][x].setColor(color);
+                }
+                
             }
         }
-    }
 
+        resetPlayer();
+    }
+    
 }
