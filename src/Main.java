@@ -1,22 +1,29 @@
 import java.util.Hashtable;
-
+import java.util.LinkedList;
 import java.awt.Color;
 import java.awt.Font;
 
 public class Main {
 
+    // maze config
     public static final int BLOCK_SIZE = 35;
+    public static final int DIMENSION = 10;
+
+    // border config
     public static final int BORDER_WIDTH = 2;
     public static final Color BORDER_COLOR = new Color(0, 0, 0, 50);
 
+    // hint config
+    public static final int HINT_MAX = 3;
+    public static final Color HINT_COLOR = new Color(150, 150, 255);
+
+    // block types
     public static final int BLOCK_WALL = 0;
     public static final int BLOCK_ICE = 1;
     public static final int BLOCK_START = 2;
     public static final int BLOCK_END = 3;
     public static final int BLOCK_BLOCKED = 4;
 
-    public static final int DIMENSION = 10;
-    
     public static MazeGenerator mazeGenerator;
     
     public static int mazeStartX;
@@ -67,6 +74,22 @@ public class Main {
 
         generateNewMaze();
         
+    }
+
+    public static void showHint() {
+
+        // get solution based on current node
+        Node startNode = currentNode;
+        Node endNode = mazeGenerator.getEndNode(); 
+        CalculateSolution sol = new CalculateSolution(mazeGenerator.maze, startNode, endNode);
+
+        LinkedList<Node> path = sol.findShortestPath();
+        
+        for (int hint=1; hint<=HINT_MAX && hint<path.size()-1; hint++) {
+            Node step = path.get(hint);
+            mazeSprites[step.y][step.x].setBackgroundColor(HINT_COLOR);
+        }
+
     }
 
     public static void testMazeCompleted() {
@@ -148,6 +171,8 @@ public class Main {
         });
 
         KeyHandler.ActionKey.MAZE_RESET.setCallback(() -> { resetMaze(); });
+
+        KeyHandler.ActionKey.MAZE_HINT.setCallback(() -> { showHint(); });
         
     }
     
@@ -208,18 +233,7 @@ public class Main {
         mazeGenerator.generateMaze();
         System.out.println(mazeGenerator.printRepresentation());
 
-        // get solution
-        // Node startNode = mazeGenerator.getStartNode(); 
-        // Node endNode = mazeGenerator.getEndNode(); 
-        // CalculateSolution sol = new CalculateSolution(mazeGenerator.maze, startNode, endNode);
-
-        // System.out.println("Shortest path:");
-        // for (Node node : sol.findShortestPath()) {
-        //     System.out.print("(" + node.x + "," + node.y + ") ");
-        // }
-
         resetMaze();
-
     }
 
     public static void makeBlock(int x, int y, Color color) {

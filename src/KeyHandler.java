@@ -9,13 +9,16 @@ public class KeyHandler extends KeyAdapter {
 
     // define actions and their corresponding key
     public enum ActionKey {
+        // TODO: set key code here instead of
+        // below within the static block (is it possible?).
         UP,
         DOWN,
         LEFT,
         RIGHT,
         
         MAZE_NEW,
-        MAZE_RESET;
+        MAZE_RESET,
+        MAZE_HINT;
         
         static {
             UP.keyCode = KeyEvent.VK_W;
@@ -25,6 +28,7 @@ public class KeyHandler extends KeyAdapter {
             
             MAZE_NEW.keyCode = KeyEvent.VK_SPACE;
             MAZE_RESET.keyCode = KeyEvent.VK_ESCAPE;
+            MAZE_HINT.keyCode = KeyEvent.VK_H;
         }
         
         public int keyCode;
