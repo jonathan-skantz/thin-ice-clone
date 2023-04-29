@@ -13,14 +13,18 @@ public class KeyHandler extends KeyAdapter {
         DOWN,
         LEFT,
         RIGHT,
-        SPACE;
+        
+        MAZE_NEW,
+        MAZE_RESET;
         
         static {
             UP.keyCode = KeyEvent.VK_W;
             DOWN.keyCode = KeyEvent.VK_S;
             LEFT.keyCode = KeyEvent.VK_A;
             RIGHT.keyCode = KeyEvent.VK_D;
-            SPACE.keyCode = KeyEvent.VK_SPACE;
+            
+            MAZE_NEW.keyCode = KeyEvent.VK_SPACE;
+            MAZE_RESET.keyCode = KeyEvent.VK_ESCAPE;
         }
         
         public int keyCode;

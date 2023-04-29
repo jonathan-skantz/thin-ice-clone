@@ -107,6 +107,10 @@ public class Window extends JFrame {
     public void paint(Graphics g) {
         
         // clear canvas
+        // bufferedCanvasG.dispose();
+        
+        // this.bufferedCanvasG = bufferedCanvas.createGraphics();
+        // bufferedCanvasG.setBackground(Color.PINK);
         bufferedCanvasG.clearRect(0, 0, width, height);
 
         // loop through backwards to preserve drawing order

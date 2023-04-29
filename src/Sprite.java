@@ -24,17 +24,23 @@ public class Sprite {
     
     // create a duplicate canvas, in order to revert adding a border
     private BufferedImage canvasOriginal;
-    
+
     private final int DEFAULT_WIDTH = 100;
     private final int DEFAULT_HEIGHT = 100;
+    private Color color = new Color(255, 0, 0, 100);
     
     private Rectangle rect;
     private boolean visible = true;
     
     private int velocity;
 
+    private boolean borderVisible = false;
+    private Color borderColor = Color.BLACK;
+    private int borderWidth = 4;
+
     /**
-     * Should be called internally after loading a canvas first time.
+     * Should be called internally after
+     * loading a sprite for the first time.
      * 
      * @param vel Velocity.
      */
@@ -63,15 +69,16 @@ public class Sprite {
             System.out.println("IOException when loading \"" + relPath + "\": " + e.getMessage());
             
             // create default image (red square with border and cross)
-            img = new BufferedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, BufferedImage.TYPE_INT_ARGB);
-            canvasStartDrawing(img);
+            canvasStartDrawing(DEFAULT_WIDTH, DEFAULT_HEIGHT);
 
             // draw bg
-            canvasGraphics.setColor(new Color(255, 0, 0, 100));
+            canvasGraphics.setColor(color);
             canvasGraphics.fillRect(0, 0, rect.width, rect.height);
             
             // draw border
-            addBorder(6, Color.BLACK);
+            // TODO: this causes window.repaint() once here in setBorder
+            // and once in canvasStopDrawing
+            setBorder(6, Color.BLACK, true);
             
             // draw cross
             canvasGraphics.drawLine(0, 0, rect.width, rect.height);
@@ -93,11 +100,11 @@ public class Sprite {
      */
     public Sprite(int w, int h, Color color, int vel) {
 
-        BufferedImage c = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-        canvasStartDrawing(c);
+        canvasStartDrawing(w, h);
 
         canvasGraphics = canvas.createGraphics();
         
+        this.color = color;
         canvasGraphics.setColor(color);
         canvasGraphics.fillRect(0, 0, w, h);
         
@@ -106,25 +113,44 @@ public class Sprite {
         setupSprite(vel);
     }
 
+    public void setColor(Color color) {
+        this.color = color;
+
+        canvasStartDrawing(rect.width, rect.height);
+        canvasGraphics.setColor(color);
+        canvasGraphics.fillRect(0, 0, rect.width, rect.height);
+        
+        canvasStopDrawing();
+
+        window.repaint();
+    }
+
+    private void applyBorder() {
+        if (borderVisible) {
+            canvasGraphics.setStroke(new BasicStroke(borderWidth));
+            canvasGraphics.setColor(borderColor);
+            canvasGraphics.drawRect(0, 0, rect.width, rect.height);
+    
+            window.repaint();
+        }
+    }
+
     public void setSize(int w, int h) {
 
         BufferedImage oldCanvas = canvas;
 
-        BufferedImage newCanvas = new BufferedImage(w, h, canvas.getType());
-
-        canvasStartDrawing(newCanvas);
+        canvasStartDrawing(w, h);
         canvasGraphics.drawImage(oldCanvas, 0, 0, w, h, null);
         canvasStopDrawing();
     }
 
+    public void setBorder(int width, Color color, boolean visible) {
 
-    public void addBorder(int width, Color color) {
+        borderWidth = width;
+        borderColor = color;
+        borderVisible = visible;
 
-        canvasGraphics.setStroke(new BasicStroke(width));
-        canvasGraphics.setColor(color);
-        canvasGraphics.drawRect(0, 0, rect.width, rect.height);
-
-        window.repaint();
+        applyBorder();
     }
 
     /**
@@ -146,17 +172,17 @@ public class Sprite {
     /**
      * Disposes the old graphics, creates a new empty canvas and a rect.
      * 
-     * @param newCanvas A new canvas of any size (used to create the empty canvas).
+     * @param newW (Potentially) new width.
+     * @param newH (Potentially) new height.
      */
-    private void canvasStartDrawing(BufferedImage newCanvas) {
+    private void canvasStartDrawing(int newW, int newH) {
         
         int oldCenterX;
         int oldCenterY;
-
+        
         if (canvasGraphics == null) {
             oldCenterX = Window.width / 2;
             oldCenterY = Window.height / 2;
-            
         }
         else {
             // the graphics may not have been created yet
@@ -170,12 +196,12 @@ public class Sprite {
         }
 
         // preserve center coordinates
-        int newX = oldCenterX - newCanvas.getWidth() / 2;
-        int newY = oldCenterY - newCanvas.getHeight() / 2;
-        rect = new Rectangle(newX, newY, newCanvas.getWidth(), newCanvas.getHeight());
+        int newX = oldCenterX - newW / 2;
+        int newY = oldCenterY - newH / 2;
+        rect = new Rectangle(newX, newY, newW, newH);
 
         // set up empty canvas
-        canvas = new BufferedImage(rect.width, rect.height, newCanvas.getType());
+        canvas = new BufferedImage(rect.width, rect.height, BufferedImage.TYPE_INT_ARGB);
         canvasGraphics = canvas.createGraphics();
     }
 
@@ -190,6 +216,7 @@ public class Sprite {
         g.drawImage(canvas, 0, 0, null);
         g.dispose();
     
+        applyBorder();
         window.repaint();
     }
 
@@ -202,7 +229,7 @@ public class Sprite {
      * @param newCanvas A new canvas of any size.
      */
     public void setCanvas(BufferedImage newCanvas) {
-        canvasStartDrawing(newCanvas);
+        canvasStartDrawing(newCanvas.getWidth(), newCanvas.getHeight());
         canvasGraphics.drawImage(newCanvas, 0, 0, null);        
         canvasStopDrawing();
     }
@@ -288,10 +315,7 @@ public class Sprite {
                 break;
         }
 
-        System.out.println("moved to (" + rect.x + ", " + rect.y + ")");
-
         window.repaint();
-        
     }
 
 }
