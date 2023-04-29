@@ -1,10 +1,13 @@
-import java.awt.Color;
 import java.util.Hashtable;
+
+import java.awt.Color;
+import java.awt.Font;
 
 public class Main {
 
     public static final int BLOCK_SIZE = 35;
     public static final int BORDER_WIDTH = 2;
+    public static final Color BORDER_COLOR = new Color(0, 0, 0, 50);
 
     public static final int BLOCK_WALL = 0;
     public static final int BLOCK_ICE = 1;
@@ -21,6 +24,7 @@ public class Main {
 
     public static Window window;
     public static Sprite player;
+    public static Sprite textNextLevel;
 
     public static Node currentNode;
 
@@ -48,9 +52,17 @@ public class Main {
         mazeStartX = (Window.width - BLOCK_SIZE * DIMENSION) / 2;
         mazeStartY = (Window.height - BLOCK_SIZE * DIMENSION) / 2;
         
-        player = new Sprite(BLOCK_SIZE-2*BORDER_WIDTH, BLOCK_SIZE-2*BORDER_WIDTH, Color.ORANGE, BLOCK_SIZE);
+        // create player
+        int size = BLOCK_SIZE - 2 * BORDER_WIDTH;
+        player = new Sprite(size, size, Color.ORANGE, BLOCK_SIZE);
         player.setBorder(2, Color.BLACK, true);
         
+        // create next-level-text
+        Font font = new Font("arial", Font.PLAIN, 20);
+        textNextLevel = new Sprite("Level complete", font, Color.BLACK);
+        textNextLevel.moveTo(textNextLevel.rect.x, Window.height - textNextLevel.rect.height - 25);
+        textNextLevel.setVisible(false);
+
         setupKeyCallbacks();
 
         makeNewMaze();
@@ -97,7 +109,7 @@ public class Main {
                 // valid block to move to
                 player.move(action);
                 mazeGenerator.maze[currentNode.y][currentNode.x] = BLOCK_BLOCKED;
-                mazeSprites[currentNode.y][currentNode.x].setColor(COLOR_TABLE.get(BLOCK_BLOCKED));
+                mazeSprites[currentNode.y][currentNode.x].setBackgroundColor(COLOR_TABLE.get(BLOCK_BLOCKED));
                 
                 currentNode = newNode;
 
@@ -159,14 +171,14 @@ public class Main {
 
                 if (color == COLOR_TABLE.get(BLOCK_BLOCKED)) {
                     mazeGenerator.maze[y][x] = BLOCK_ICE;
-                    mazeSprites[y][x].setColor(COLOR_TABLE.get(BLOCK_ICE));
+                    mazeSprites[y][x].setBackgroundColor(COLOR_TABLE.get(BLOCK_ICE));
                 }
 
             }
         }
         Node startNode = mazeGenerator.getStartNode();
         mazeGenerator.maze[startNode.y][startNode.x] = BLOCK_START;
-        mazeSprites[startNode.y][startNode.x].setColor(COLOR_TABLE.get(BLOCK_START));
+        mazeSprites[startNode.y][startNode.x].setBackgroundColor(COLOR_TABLE.get(BLOCK_START));
 
         resetPlayer();
     }
@@ -202,7 +214,7 @@ public class Main {
                 if (firstMaze) {
                     // create block
                     Sprite block = new Sprite(BLOCK_SIZE, BLOCK_SIZE, color, 0);
-                    block.setBorder(BORDER_WIDTH, Color.BLACK, true);
+                    block.setBorder(BORDER_WIDTH, BORDER_COLOR, true);
                     mazeSprites[y][x] = block;
                     
                     // move block
@@ -211,7 +223,7 @@ public class Main {
                     block.moveTo(xPos, yPos);
                 }
                 else {
-                    mazeSprites[y][x].setColor(color);
+                    mazeSprites[y][x].setBackgroundColor(color);
                 }
                 
             }

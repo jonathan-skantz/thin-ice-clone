@@ -4,6 +4,8 @@ import javax.imageio.ImageIO;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
@@ -18,6 +20,8 @@ import java.awt.image.BufferedImage;
  */
 public class Sprite {
     
+    private int velocity;
+
     public static Window window;
     public BufferedImage canvas;
     private Graphics2D canvasGraphics;
@@ -27,13 +31,17 @@ public class Sprite {
 
     private final int DEFAULT_WIDTH = 100;
     private final int DEFAULT_HEIGHT = 100;
-    private Color color = new Color(255, 0, 0, 100);
-    
-    private Rectangle rect;
-    private boolean visible = true;
-    
-    private int velocity;
+    private Color backgroundColor = new Color(255, 0, 0, 100);
 
+    public Rectangle rect;
+    private boolean visible = true;
+
+    // text config
+    private String textString;
+    private Font textFont;
+    private Color textColor;
+
+    // border config
     private boolean borderVisible = false;
     private Color borderColor = Color.BLACK;
     private int borderWidth = 4;
@@ -72,7 +80,7 @@ public class Sprite {
             canvasStartDrawing(DEFAULT_WIDTH, DEFAULT_HEIGHT);
 
             // draw bg
-            canvasGraphics.setColor(color);
+            canvasGraphics.setColor(backgroundColor);
             canvasGraphics.fillRect(0, 0, rect.width, rect.height);
             
             // draw border
@@ -98,14 +106,14 @@ public class Sprite {
      * @param color Color
      * @param vel Velocity
      */
-    public Sprite(int w, int h, Color color, int vel) {
+    public Sprite(int w, int h, Color backgroundColor, int vel) {
 
         canvasStartDrawing(w, h);
 
         canvasGraphics = canvas.createGraphics();
         
-        this.color = color;
-        canvasGraphics.setColor(color);
+        this.backgroundColor = backgroundColor;
+        canvasGraphics.setColor(backgroundColor);
         canvasGraphics.fillRect(0, 0, w, h);
         
         canvasStopDrawing();
@@ -113,8 +121,32 @@ public class Sprite {
         setupSprite(vel);
     }
 
-    public void setColor(Color color) {
-        this.color = color;
+    /**
+     * Create a text sprite.
+     * 
+     * @param text Text that should be rendered.
+     * @param font Font object.
+     * @param color Text color.
+     */
+    public Sprite(String text, Font font, Color color) {
+
+        // NOTE: uses `window` instead of `canvasGraphics` since
+        // the latter is not initialized yet.
+
+        FontMetrics fm = window.getFontMetrics(font);
+        canvasStartDrawing(fm.stringWidth(text), fm.getHeight());
+
+        textString = text;
+        textFont = font;
+        textColor = color;
+        applyText();
+
+        canvasStopDrawing();
+        setupSprite(0);
+    }
+
+    public void setBackgroundColor(Color color) {
+        this.backgroundColor = color;
 
         canvasStartDrawing(rect.width, rect.height);
         canvasGraphics.setColor(color);
@@ -125,14 +157,41 @@ public class Sprite {
         window.repaint();
     }
 
+    public void setText(String text) {
+        textString = text;
+        applyText();
+    }
+
+    private void applyText() {
+        if (textString != null) {
+            canvasGraphics.setFont(textFont);
+            canvasGraphics.setColor(textColor);
+
+            // NOTE: y-coordinate starts at bottom of text
+            canvasGraphics.drawString(textString, 0, textFont.getSize());
+
+            window.repaint();
+        }
+    }
+
+    // also repaints window
     private void applyBorder() {
         if (borderVisible) {
             canvasGraphics.setStroke(new BasicStroke(borderWidth));
             canvasGraphics.setColor(borderColor);
             canvasGraphics.drawRect(0, 0, rect.width, rect.height);
-    
+
             window.repaint();
         }
+    }
+    
+    public void setBorder(int width, Color color, boolean visible) {
+
+        borderWidth = width;
+        borderColor = color;
+        borderVisible = visible;
+        
+        applyBorder();
     }
 
     public void setSize(int w, int h) {
@@ -142,15 +201,6 @@ public class Sprite {
         canvasStartDrawing(w, h);
         canvasGraphics.drawImage(oldCanvas, 0, 0, w, h, null);
         canvasStopDrawing();
-    }
-
-    public void setBorder(int width, Color color, boolean visible) {
-
-        borderWidth = width;
-        borderColor = color;
-        borderVisible = visible;
-
-        applyBorder();
     }
 
     /**
@@ -217,7 +267,6 @@ public class Sprite {
         g.dispose();
     
         applyBorder();
-        window.repaint();
     }
 
     /**
@@ -254,6 +303,7 @@ public class Sprite {
     }
 
     /**
+     * --- CURRENTLY UNUSED ---
      * Determines if this and other sprite collides.
      * Collides in this case means that the sprites'
      * rects are within each other, not only touching.
@@ -261,9 +311,9 @@ public class Sprite {
      * @param sprite The other sprite.
      * @return true if colliding, false if not.
      */
-    public boolean collidesWith(Sprite sprite) {
-        return sprite.rect.intersects(rect);
-    }
+    // public boolean collidesWith(Sprite sprite) {
+    //     return sprite.rect.intersects(rect);
+    // }
 
     /**
      * Moves the sprite to the center of the window.
