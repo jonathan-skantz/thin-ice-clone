@@ -117,7 +117,7 @@ class MazeGenerator {
      * @param y y-coordinate
      * @return true if the point is on the grid, false otherwise
      */
-    private Boolean pointOnGrid(int x, int y) {
+    public Boolean pointOnGrid(int x, int y) {
         return x >= 0 && y >= 0 && x < dimension && y < dimension;
     }
 
