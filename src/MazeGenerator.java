@@ -152,7 +152,7 @@ class MazeGenerator {
      * 
      * @return a string representation of the maze
      */
-    public String printRepresentation() {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         for (int[] row : maze) {
             sb.append(Arrays.toString(row) + "\n");

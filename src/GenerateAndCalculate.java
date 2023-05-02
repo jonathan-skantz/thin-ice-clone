@@ -12,7 +12,7 @@ public class GenerateAndCalculate {
         Node startNode = mazeGenerator.getStartNode();
         Node endNode = mazeGenerator.getEndNode();
 
-        System.out.println(mazeGenerator.printRepresentation());
+        System.out.println(mazeGenerator.toString());
         System.out.println("Start node: (" + startNode.x + "," + startNode.y + ")");
         System.out.println("End node: (" + endNode.x + "," + endNode.y + ")");
 
