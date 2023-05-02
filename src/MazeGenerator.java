@@ -23,7 +23,6 @@ class MazeGenerator {
      * @param dim dimension of the maze
      */
     MazeGenerator(int dim) {
-        maze = new int[dim][dim];
         dimension = dim;
     }
 
@@ -39,6 +38,8 @@ class MazeGenerator {
      * Generates a random maze using a modified depth-first search algorithm.
      */
     public void generateMaze() {
+        maze = new int[dimension][dimension]; // Create new empty maze
+        
         // Randomize starting position
         int startX = rand.nextInt(dimension);
         int startY = rand.nextInt(dimension);
