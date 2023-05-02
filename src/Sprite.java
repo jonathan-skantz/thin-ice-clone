@@ -45,6 +45,8 @@ public class Sprite {
     private boolean borderVisible = false;
     private Color borderColor = Color.BLACK;
     private int borderWidth = 4;
+    private BasicStroke borderStroke;
+    
 
     /**
      * Should be called internally after
@@ -143,6 +145,13 @@ public class Sprite {
         setupSprite(0);
     }
 
+    /**
+     * Free up system resources by disposing this sprite.
+     */
+    public void dispose() {
+        canvasGraphics.dispose();
+    }
+
     public void setBackgroundColor(Color color) {
         this.backgroundColor = color;
 
@@ -160,6 +169,9 @@ public class Sprite {
         applyText();
     }
 
+    /**
+     * Draw string on canvas.
+     */
     private void applyText() {
         if (textString != null) {
             canvasGraphics.setFont(textFont);
@@ -172,24 +184,25 @@ public class Sprite {
         }
     }
 
-    // also repaints window
-    private void applyBorder() {
-        if (borderVisible) {
-            canvasGraphics.setStroke(new BasicStroke(borderWidth));
-            canvasGraphics.setColor(borderColor);
-            canvasGraphics.drawRect(0, 0, rect.width, rect.height);
-
-            window.repaint();
-        }
-    }
-    
     public void setBorder(int width, Color color, boolean visible) {
 
         borderWidth = width;
         borderColor = color;
         borderVisible = visible;
+        borderStroke = new BasicStroke(borderWidth);
         
         applyBorder();
+    }
+
+    // also repaints window
+    private void applyBorder() {
+        if (borderVisible) {
+            canvasGraphics.setStroke(borderStroke);
+            canvasGraphics.setColor(borderColor);
+            canvasGraphics.drawRect(0, 0, rect.width, rect.height);
+
+        }
+        window.repaint();
     }
 
     public void setSize(int w, int h) {
