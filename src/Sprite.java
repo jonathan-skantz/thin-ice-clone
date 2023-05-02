@@ -84,8 +84,6 @@ public class Sprite {
             canvasGraphics.fillRect(0, 0, rect.width, rect.height);
             
             // draw border
-            // TODO: this causes window.repaint() once here in setBorder
-            // and once in canvasStopDrawing
             setBorder(6, Color.BLACK, true);
             
             // draw cross
