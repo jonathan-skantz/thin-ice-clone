@@ -231,7 +231,7 @@ public class Main {
         // new maze in 2D-array-form
         mazeGenerator = new MazeGenerator(DIMENSION);
         mazeGenerator.generateMaze();
-        System.out.println(mazeGenerator.printRepresentation());
+        System.out.println(mazeGenerator.toString());
 
         resetMaze();
     }

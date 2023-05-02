@@ -23,7 +23,6 @@ class MazeGenerator {
      * @param dim dimension of the maze
      */
     MazeGenerator(int dim) {
-        maze = new int[dim][dim];
         dimension = dim;
     }
 
@@ -39,6 +38,8 @@ class MazeGenerator {
      * Generates a random maze using a modified depth-first search algorithm.
      */
     public void generateMaze() {
+        maze = new int[dimension][dimension]; // Create new empty maze
+        
         // Randomize starting position
         int startX = rand.nextInt(dimension);
         int startY = rand.nextInt(dimension);
@@ -117,7 +118,7 @@ class MazeGenerator {
      * @param y y-coordinate
      * @return true if the point is on the grid, false otherwise
      */
-    private Boolean pointOnGrid(int x, int y) {
+    public Boolean pointOnGrid(int x, int y) {
         return x >= 0 && y >= 0 && x < dimension && y < dimension;
     }
 
@@ -151,7 +152,7 @@ class MazeGenerator {
      * 
      * @return a string representation of the maze
      */
-    public String printRepresentation() {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         for (int[] row : maze) {
             sb.append(Arrays.toString(row) + "\n");
