@@ -1,4 +1,8 @@
 /**
+ * 
+ * -- CURRENTLY UNUSED --
+ * replaced by MazeGen.java
+ * 
  * A class that generates a maze using the depth-first search algorithm
  * @author Elias Hollstrand
  */
