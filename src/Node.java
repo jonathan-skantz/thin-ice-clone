@@ -25,8 +25,13 @@ public class Node {
         this.y = y;
     }
     
+    @Override
     public String toString() {
         return "Node(" + x + "," + y + ")";
+    }
+
+    public boolean same(Node node) {
+        return x == node.x && y == node.y;
     }
 
 }
