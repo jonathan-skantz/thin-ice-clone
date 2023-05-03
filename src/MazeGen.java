@@ -24,6 +24,9 @@ public class MazeGen {
     private final String STR_FORMAT = "%" + WALL_STR.length() + "s";
 
     public ArrayList<Node> path = new ArrayList<>();
+
+    // keep track of doubles, only to know where they were when resetting
+    private ArrayList<Node> doubles = new ArrayList<>();
     
     private Random rand = new Random();
     private Node.Type[][] maze;
@@ -51,6 +54,24 @@ public class MazeGen {
         height = h;
     }
 
+    // mark as walked
+    public Node.Type leaveNode(Node node) {
+        
+        Node.Type type;
+
+        if (get(node) == Node.Type.DOUBLE) {
+            type = Node.Type.GROUND;
+
+        }
+        else {
+            type = Node.Type.BLOCKED;
+        }
+        
+        set(node, type);
+        
+        return type;
+    }
+
     public void set(Node node, Node.Type type) {
         maze[node.y][node.x] = type;
     }
@@ -72,11 +93,43 @@ public class MazeGen {
         return x >= 0 && y >= 0 && x < width && y < height;
     }
 
+    // TODO: prevent creating double in corner
+    private Node.Type getWalkableBlock() {
+        double chance = rand.nextDouble();
+        if (chance < 0.10) {
+            doubles.add(currentNode);
+            return Node.Type.DOUBLE;
+        }
+        return Node.Type.GROUND;
+
+    }
+
+    public void reset() {
+        
+        Node.Type type;
+
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                
+                type = get(x, y);
+                
+                if (type == Node.Type.BLOCKED) {
+                    set(x, y, Node.Type.GROUND);
+                }
+            }
+        }
+
+        for (Node n : doubles) {
+            set(n, Node.Type.DOUBLE);
+        }
+    }
+
     public void generate() {
 
         // reset maze
         maze = new Node.Type[height][width];
         path.clear();
+        doubles.clear();
 
         // set random start
         int startX = rand.nextInt(width);
@@ -87,7 +140,8 @@ public class MazeGen {
 
         do {
             path.add(currentNode);
-            set(currentNode, Node.Type.GROUND);
+            set(currentNode, getWalkableBlock());
+            
         }
 
         while (getNextNode());

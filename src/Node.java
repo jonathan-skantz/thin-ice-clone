@@ -8,7 +8,8 @@ public class Node {
         GROUND,
         START,
         END,
-        BLOCKED
+        BLOCKED,
+        DOUBLE
     }
 
     public final int x;

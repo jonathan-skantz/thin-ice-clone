@@ -19,6 +19,7 @@ public class Main {
             put(Node.Type.START, Color.GREEN);
             put(Node.Type.END, Color.MAGENTA);
             put(Node.Type.BLOCKED, new Color(0, 50, 255));
+            put(Node.Type.DOUBLE, new Color(0, 255, 255));
         }
     };
 
@@ -145,9 +146,10 @@ public class Main {
                 // valid block to move to
 
                 player.move(action);
-                mazeGen.set(mazeGen.currentNode, Node.Type.BLOCKED);
 
-                Color color = COLOR_TABLE.get(Node.Type.BLOCKED);
+                Node.Type newType = mazeGen.leaveNode(mazeGen.currentNode);
+
+                Color color = COLOR_TABLE.get(newType);
                 mazeSprites[mazeGen.currentNode.y][mazeGen.currentNode.x].setBackgroundColor(color);
                 
                 mazeGen.currentNode = newNode;
@@ -175,7 +177,10 @@ public class Main {
             // }
         });
 
-        KeyHandler.ActionKey.MAZE_RESET.setCallback(() -> { resetMaze(); });
+        KeyHandler.ActionKey.MAZE_RESET.setCallback(() -> { 
+            mazeGen.reset();
+            resetGraphics();
+        });
 
         KeyHandler.ActionKey.MAZE_HINT.setCallback(() -> { showHint(); });
         
@@ -199,7 +204,7 @@ public class Main {
         // TODO: reset option in MazeGen
     }
     
-    public static void resetMaze() {
+    public static void resetGraphics() {
         
         mazeCompleted = false;
         textNextLevel.setVisible(false);
@@ -217,12 +222,6 @@ public class Main {
 
                 if (firstMaze) {
                     makeBlock(x, y, color);
-                }
-                
-                else if (color == COLOR_TABLE.get(Node.Type.BLOCKED)) {
-                    // reaches here when resetting
-                    mazeGen.set(x, y, Node.Type.GROUND);
-                    mazeSprites[y][x].setBackgroundColor(COLOR_TABLE.get(Node.Type.GROUND));
                 }
                 
                 else {
@@ -251,7 +250,8 @@ public class Main {
         // new maze in 2D-array-form
         mazeGen.generate();
         System.out.println(mazeGen);
-        resetMaze();
+
+        resetGraphics();
     }
 
     public static void makeBlock(int x, int y, Color color) {
