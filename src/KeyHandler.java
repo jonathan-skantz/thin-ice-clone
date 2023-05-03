@@ -9,28 +9,20 @@ public class KeyHandler extends KeyAdapter {
 
     // define actions and their corresponding key
     public enum ActionKey {
-        // TODO: set key code here instead of
-        // below within the static block (is it possible?).
-        UP,
-        DOWN,
-        LEFT,
-        RIGHT,
-        
-        MAZE_NEW,
-        MAZE_RESET,
-        MAZE_HINT;
-        
-        static {
-            UP.keyCode = KeyEvent.VK_W;
-            DOWN.keyCode = KeyEvent.VK_S;
-            LEFT.keyCode = KeyEvent.VK_A;
-            RIGHT.keyCode = KeyEvent.VK_D;
-            
-            MAZE_NEW.keyCode = KeyEvent.VK_SPACE;
-            MAZE_RESET.keyCode = KeyEvent.VK_ESCAPE;
-            MAZE_HINT.keyCode = KeyEvent.VK_H;
+
+        UP(KeyEvent.VK_W),
+        DOWN(KeyEvent.VK_S),
+        LEFT(KeyEvent.VK_A),
+        RIGHT(KeyEvent.VK_D),
+
+        MAZE_NEW(KeyEvent.VK_SPACE),
+        MAZE_RESET(KeyEvent.VK_ESCAPE),
+        MAZE_HINT(KeyEvent.VK_H);
+
+        private ActionKey(int keyCode) {
+            this.keyCode = keyCode;
         }
-        
+
         public int keyCode;
         private Runnable defaultCallback = () -> { System.out.println("not implemented: action \"" + this + "\""); };
         private Runnable callback = defaultCallback;
@@ -49,15 +41,15 @@ public class KeyHandler extends KeyAdapter {
             }
             return null;
         }
-
+        
         public void setCallback(Runnable callback) {
             this.callback = callback;
         }
-
+        
         public void removeCallback() {
             this.callback = defaultCallback;
         }
-
+        
     }
 
     @Override
