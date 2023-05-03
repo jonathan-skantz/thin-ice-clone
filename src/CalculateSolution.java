@@ -3,10 +3,16 @@ import java.util.Queue;
 
 public class CalculateSolution {
 
-    private MazeGen mazeGen;
+    private int[][] maze;
+    private int dimension;
+    private Node startNode;
+    private Node endNode;
 
-    CalculateSolution(MazeGen mazeGen) {
-        this.mazeGen = mazeGen;
+    CalculateSolution(int[][] maze, Node startNode, Node endNode) {
+        this.maze = maze;
+        this.dimension = maze.length;
+        this.startNode = startNode;
+        this.endNode = endNode;
     }
 
     /**
@@ -19,50 +25,49 @@ public class CalculateSolution {
         Queue<Node> queue = new LinkedList<>();
 
         // create an array to store the parent node of each node in the shortest path
-        Node[][] parent = new Node[mazeGen.height][mazeGen.width];
+        Node[][] parent = new Node[dimension][dimension];
 
         // initialize the parent array to null
-        for (int y=0; y<mazeGen.height; y++) {
-            for (int x=0; x<mazeGen.width; x++) {
-                parent[y][x] = null;
+        for (int i = 0; i < dimension; i++) {
+            for (int j = 0; j < dimension; j++) {
+                parent[i][j] = null;
             }
         }
 
         // mark the startNode as visited and add it to the queue
-        boolean[][] visited = new boolean[mazeGen.height][mazeGen.width];
-        visited[mazeGen.currentNode.y][mazeGen.startNode.x] = true;
-        queue.add(mazeGen.currentNode);
+        boolean[][] visited = new boolean[dimension][dimension];
+        visited[startNode.y][startNode.x] = true;
+        queue.add(startNode);
 
         // perform BFS
         while (!queue.isEmpty()) {
             Node currentNode = queue.poll();
 
             // check if the current node is the endNode
-            if (currentNode.equals(mazeGen.endNode)) {
+            if (currentNode.equals(endNode)) {
                 break;
             }
 
             // explore the neighbors of the current node
-            for (int y=currentNode.y-1; y<=currentNode.y+1; y++) {
-                for (int x=currentNode.x-1; x<=currentNode.x+1; x++) {
+            for (int i = currentNode.y-1; i <= currentNode.y+1; i++) {
+                for (int j = currentNode.x-1; j <= currentNode.x+1; j++) {
                     // skip if the neighbor is out of bounds, or is not walkable
-                    // TODO: here, check if blocked as well
-                    if (!pointOnGrid(x, y) || !pointNotCorner(currentNode, x, y) || !pointNotNode(currentNode, x, y) || mazeGen.get(x, y) == Node.Type.WALL || visited[y][x]) {
+                    if (!pointOnGrid(j, i) || !pointNotCorner(currentNode, j, i) || !pointNotNode(currentNode, j, i) || maze[i][j] == 0 || visited[i][j]) {
                         continue;
                     }
 
                     // mark the neighbor as visited, add it to the queue, and set its parent
-                    visited[y][x] = true;
-                    Node nextNode = new Node(x, y);
+                    visited[i][j] = true;
+                    Node nextNode = new Node(j, i);
                     queue.add(nextNode);
-                    parent[y][x] = currentNode;
+                    parent[i][j] = currentNode;
                 }
             }
         }
 
         // construct the shortest path from startNode to endNode
         LinkedList<Node> shortestPath = new LinkedList<>();
-        Node currentNode = mazeGen.endNode;
+        Node currentNode = endNode;
         while (currentNode != null) {
             shortestPath.addFirst(currentNode);
             currentNode = parent[currentNode.y][currentNode.x];
@@ -79,7 +84,7 @@ public class CalculateSolution {
      * @return true if the point is on the grid, false otherwise
      */
     private Boolean pointOnGrid(int x, int y) {
-        return x >= 0 && y >= 0 && x < mazeGen.width && y < mazeGen.height;
+        return x >= 0 && y >= 0 && x < dimension && y < dimension;
     }
 
     /**

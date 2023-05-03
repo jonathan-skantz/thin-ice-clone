@@ -2,15 +2,7 @@
  * Represents a node in the maze.
  */
 public class Node {
-
-    public enum Type {
-        WALL,
-        GROUND,
-        START,
-        END,
-        BLOCKED
-    }
-
+   
     public final int x;
     public final int y;
 
@@ -25,8 +17,4 @@ public class Node {
         this.y = y;
     }
     
-    public String toString() {
-        return "Node(" + x + "," + y + ")";
-    }
-
 }

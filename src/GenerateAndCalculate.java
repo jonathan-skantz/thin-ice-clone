@@ -6,12 +6,17 @@ import java.util.*;
 
 public class GenerateAndCalculate {
     public static void main(String[] args) {
-        MazeGen mazeGen = new MazeGen(10, 15);
-        mazeGen.generate();
+        MazeGenerator mazeGenerator = new MazeGenerator(10);
+        mazeGenerator.generateMaze();
 
-        System.out.println(mazeGen);
+        Node startNode = mazeGenerator.getStartNode();
+        Node endNode = mazeGenerator.getEndNode();
 
-        CalculateSolution solution = new CalculateSolution(mazeGen);
+        System.out.println(mazeGenerator.toString());
+        System.out.println("Start node: (" + startNode.x + "," + startNode.y + ")");
+        System.out.println("End node: (" + endNode.x + "," + endNode.y + ")");
+
+        CalculateSolution solution = new CalculateSolution(mazeGenerator.maze, startNode, endNode);
 
         LinkedList<Node> path = solution.findShortestPath();
         System.out.println("\nCorrect path:");
