@@ -20,7 +20,7 @@ import java.util.Random;
 
 public class MazeGen {
  
-    private final String WALL_STR = "||";
+    private final String WALL_STR = "--";
     private final String STR_FORMAT = "%" + WALL_STR.length() + "s";
 
     public ArrayList<Node> path = new ArrayList<>();
@@ -44,8 +44,6 @@ public class MazeGen {
         MazeGen mg = new MazeGen(10, 10);
         mg.generate();
         System.out.println(mg);
-        mg.printPath();
-        System.out.println(mg.startNode);
     }
 
     public MazeGen(int w, int h) {
@@ -70,7 +68,7 @@ public class MazeGen {
     }
 
     // TEMP
-    public Boolean pointOnGrid(int x, int y) {
+    public boolean pointOnGrid(int x, int y) {
         return x >= 0 && y >= 0 && x < width && y < height;
     }
 
@@ -86,16 +84,15 @@ public class MazeGen {
         startNode = new Node(startX, startY);
 
         currentNode = startNode;
-        
 
         do {
             path.add(currentNode);
-            maze[currentNode.y][currentNode.x] = Node.Type.GROUND;
+            set(currentNode, Node.Type.GROUND);
         }
 
         while (getNextNode());
 
-        // change default from null to Block.WALL
+        // change default from null to Node.Type.WALL
         for (int y=0; y<height; y++) {
             for (int x=0; x<width; x++) {
                 if (get(x, y) == null) {
@@ -112,54 +109,54 @@ public class MazeGen {
     }
     
     
-    private void printPath() {
-        // TODO: str builder
+    // private void printPath() {
+    //     // TODO: str builder
 
-        System.out.println("nodes: " + path.size());
+    //     System.out.println("nodes: " + path.size());
         
-        // int i = 0;
-        // for (Node n : path) {
-        //     System.out.print(i + ":(" + n.x + "," + n.y + ") ");
-        //     i++;
-        // }
+    //     // int i = 0;
+    //     // for (Node n : path) {
+    //     //     System.out.print(i + ":(" + n.x + "," + n.y + ") ");
+    //     //     i++;
+    //     // }
 
-        System.out.println();
-        int lastX = path.get(0).x;
-        int lastY = path.get(0).y;
-        int dx = 0;
-        int dy = 0;
+    //     System.out.println();
+    //     int lastX = path.get(0).x;
+    //     int lastY = path.get(0).y;
+    //     int dx = 0;
+    //     int dy = 0;
 
-        path.remove(0);
-        int i = 0;
+    //     path.remove(0);
+    //     int i = 0;
 
-        for (Node n : path) {
-            System.out.print(i + ":");
-            dx = n.x - lastX;
-            dy = n.y - lastY;
-            if (dx != 0) {
-                lastX = n.x;
+    //     for (Node n : path) {
+    //         System.out.print(i + ":");
+    //         dx = n.x - lastX;
+    //         dy = n.y - lastY;
+    //         if (dx != 0) {
+    //             lastX = n.x;
                 
-                if (dx == 1) {
-                    System.out.print("r ");
-                }
-                else {
-                    System.out.print("l ");
-                }
-            }
-            else if (dy != 0) {
-                lastY = n.y;
+    //             if (dx == 1) {
+    //                 System.out.print("r ");
+    //             }
+    //             else {
+    //                 System.out.print("l ");
+    //             }
+    //         }
+    //         else if (dy != 0) {
+    //             lastY = n.y;
 
-                if (dy == 1) {
-                    System.out.print("d ");
-                }
-                else {
-                    System.out.print("u ");
-                }
-            }
-            i++;
-        }
-        System.out.println();
-    }
+    //             if (dy == 1) {
+    //                 System.out.print("d ");
+    //             }
+    //             else {
+    //                 System.out.print("u ");
+    //             }
+    //         }
+    //         i++;
+    //     }
+    //     System.out.println();
+    // }
 
     private boolean getNextNode() {
 
@@ -194,7 +191,7 @@ public class MazeGen {
                 return false;
             }
         }
-        
+
         currentNode = new Node(currentNode.x + dx, currentNode.y);
         return true;
     }
@@ -212,6 +209,10 @@ public class MazeGen {
         
         currentNode = new Node(currentNode.x, currentNode.y + dy);
         return true;
+    }
+
+    public boolean nodeWalkable(int x, int y) {
+        return get(x, y) != Node.Type.WALL && get(x, y) != Node.Type.BLOCKED;
     }
 
     private boolean validMove(int dx, int dy) {

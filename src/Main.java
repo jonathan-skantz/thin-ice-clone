@@ -22,8 +22,6 @@ public class Main {
         }
     };
 
-    public static boolean mazeCompleted = false;
-
     // border config
     public static final int BORDER_WIDTH = 2;
     public static final Color BORDER_COLOR = new Color(0, 0, 0, 50);
@@ -32,15 +30,8 @@ public class Main {
     public static final int HINT_MAX = 3;
     public static final Color HINT_COLOR = new Color(150, 150, 255);
 
-    // block types
-    public static final int BLOCK_WALL = 0;
-    public static final int BLOCK_ICE = 1;
-    public static final int BLOCK_START = 2;
-    public static final int BLOCK_END = 3;
-    public static final int BLOCK_BLOCKED = 4;
-
-    // public static MazeGenerator mazeGenerator = new MazeGenerator(DIMENSION);
     public static MazeGen mazeGen = new MazeGen(DIMENSION_WIDTH, DIMENSION_HEIGHT);
+    public static boolean mazeCompleted = false;
     
     // coordinates of topleft of maze
     public static final int MAZE_START_X = (Window.width - BLOCK_SIZE * DIMENSION_WIDTH) / 2;
@@ -50,6 +41,9 @@ public class Main {
     public static Sprite player;
     public static Sprite textNextLevel;
     public static Sprite[][] mazeSprites = new Sprite[DIMENSION_HEIGHT][DIMENSION_WIDTH];
+
+    public static Node[] hintNodes = new Node[HINT_MAX];
+
 
     public static void main(String[] args) {
 
@@ -73,12 +67,24 @@ public class Main {
 
     public static void showHint() {
 
+        window.setAllowRepaint(false);
+
+        // reset old hint sprites
+        for (Node n : hintNodes) {
+            if (n != null) {
+
+                if (mazeGen.get(n) != Node.Type.BLOCKED && !n.same(mazeGen.currentNode)) {
+                    mazeSprites[n.y][n.x].setBackgroundColor(COLOR_TABLE.get(Node.Type.GROUND));
+                }
+            }
+        }
+
         // get solution based on current node
         CalculateSolution sol = new CalculateSolution(mazeGen);
 
         LinkedList<Node> path = sol.findShortestPath();
-        // ArrayList<Node> path = mazeGen.path;
         
+        int i = 0;
         for (int hint=1; hint<=HINT_MAX && hint<path.size()-1; hint++) {
             Node step = path.get(hint);
 
@@ -93,7 +99,11 @@ public class Main {
                 
             }
             mazeSprites[step.y][step.x].setBackgroundColor(HINT_COLOR);
+            hintNodes[i] = step;
+            i++;
         }
+
+        window.setAllowRepaint(true);
 
     }
 
@@ -238,6 +248,10 @@ public class Main {
         mazeGen.set(startNode, Node.Type.START);
         mazeSprites[startNode.y][startNode.x].setBackgroundColor(COLOR_TABLE.get(Node.Type.START));
 
+        // reset nodes (otherwise they refer to incorrect blocks)
+        for (int i=0; i<hintNodes.length; i++) {
+            hintNodes[i] = null;
+        }
         resetPlayer();
         
         window.setAllowRepaint(true);
