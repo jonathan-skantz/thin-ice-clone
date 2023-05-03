@@ -30,7 +30,7 @@ public class CalculateSolution {
 
         // mark the startNode as visited and add it to the queue
         boolean[][] visited = new boolean[mazeGen.height][mazeGen.width];
-        visited[mazeGen.currentNode.y][mazeGen.startNode.x] = true;
+        visited[mazeGen.currentNode.y][mazeGen.currentNode.x] = true;
         queue.add(mazeGen.currentNode);
 
         // perform BFS
