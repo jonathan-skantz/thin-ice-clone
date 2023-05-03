@@ -88,16 +88,6 @@ public class Main {
         for (int hint=1; hint<=HINT_MAX && hint<path.size()-1; hint++) {
             Node step = path.get(hint);
 
-            if (mazeGen.get(step.x, step.y) == Node.Type.BLOCKED) {
-                System.out.println("INVALID HINT");
-                break;
-                // TODO: find another path by setting this block
-                // to BLOCK_BLOCKED, then restart the solution.
-                // It isn't set yet since class MazeGenerator doesn't
-                // look for BLOCK_BLOCKED, only 0, 1, 2, 3.
-                
-                
-            }
             mazeSprites[step.y][step.x].setBackgroundColor(HINT_COLOR);
             hintNodes[i] = step;
             i++;
