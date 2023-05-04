@@ -22,7 +22,7 @@ public class CalculateSolution {
     /**
      * Finds the shortest path from startNode to endNode in the maze.
      *
-     * @return an ArrayList of Nodes representing the shortest path from startNode to endNode
+     * @return a LinkedList of Nodes representing the shortest path from startNode to endNode
      */
     public LinkedList<Node> findShortestPath() {
         // create a queue for BFS
