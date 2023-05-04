@@ -10,6 +10,16 @@ public class CalculateSolution {
     }
 
     /**
+     * Finds the one of the longest paths from the player's current position to the endNode
+     * (Multiple possible paths might have the same length, therefore only one of these is returned)
+     * 
+     * @return a LinkedList of Nodes representing a possible longest path to the endNode
+     */
+    public LinkedList<Node> findLongestPath() {
+
+    }
+
+    /**
      * Finds the shortest path from startNode to endNode in the maze.
      *
      * @return an ArrayList of Nodes representing the shortest path from startNode to endNode
