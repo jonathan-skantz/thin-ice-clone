@@ -35,4 +35,11 @@ public class Node {
         return x == node.x && y == node.y;
     }
 
+    public boolean nextTo(Node node) {
+        boolean vertically = node.x == x && (node.y == y+1 || node.y == y-1);
+        boolean horizontally = node.y == y && (node.x == x+1 || node.x == x-1);
+
+        return vertically || horizontally;
+    }
+
 }

@@ -23,7 +23,7 @@ public class MazeGen {
     private final String WALL_STR = "--";
     private final String STR_FORMAT = "%" + WALL_STR.length() + "s";
 
-    public ArrayList<Node> path = new ArrayList<>();
+    public Stack<Node> path = new Stack<>();
 
     // keep track of the user's path, in order to be able to backtrack
     private Stack<Node> userPath = new Stack<>();
@@ -41,14 +41,13 @@ public class MazeGen {
     public Node startNode;
     public Node endNode;
     
-    // used to generate the maze as well as 
-    // keep track of the player
+    // used to generate the maze as well as keep track of the player
     public Node currentNode;
 
     private final int[] DIR = new int[] {1, -1};
 
     public static void main(String[] args) {
-        MazeGen mg = new MazeGen(10, 10);
+        MazeGen mg = new MazeGen(3, 3);
         mg.generate();
         System.out.println(mg);
     }
@@ -156,10 +155,6 @@ public class MazeGen {
             currentNode = userUndos.pop();
             userPath.add(currentNode);
         }
-
-        // System.out.println("path: " + userPath);
-        // System.out.println("undos: " + userUndos);
-        // System.out.println();
     }
 
     public void generate() {
@@ -179,7 +174,6 @@ public class MazeGen {
         do {
             path.add(currentNode);
             set(currentNode, getWalkableBlock());
-            
         }
 
         while (getNextNode());
@@ -193,63 +187,19 @@ public class MazeGen {
             }
         }
 
+        // prevent endNode from ending up right next to startNode
+        if (currentNode.nextTo(startNode)) {
+            currentNode = path.pop();
+        }
+        
         endNode = currentNode;
 
         maze[startNode.y][startNode.x] = Node.Type.START;
         maze[endNode.y][endNode.x] = Node.Type.END;
 
+
     }
     
-    
-    // private void printPath() {
-    //     // TODO: str builder
-
-    //     System.out.println("nodes: " + path.size());
-        
-    //     // int i = 0;
-    //     // for (Node n : path) {
-    //     //     System.out.print(i + ":(" + n.x + "," + n.y + ") ");
-    //     //     i++;
-    //     // }
-
-    //     System.out.println();
-    //     int lastX = path.get(0).x;
-    //     int lastY = path.get(0).y;
-    //     int dx = 0;
-    //     int dy = 0;
-
-    //     path.remove(0);
-    //     int i = 0;
-
-    //     for (Node n : path) {
-    //         System.out.print(i + ":");
-    //         dx = n.x - lastX;
-    //         dy = n.y - lastY;
-    //         if (dx != 0) {
-    //             lastX = n.x;
-                
-    //             if (dx == 1) {
-    //                 System.out.print("r ");
-    //             }
-    //             else {
-    //                 System.out.print("l ");
-    //             }
-    //         }
-    //         else if (dy != 0) {
-    //             lastY = n.y;
-
-    //             if (dy == 1) {
-    //                 System.out.print("d ");
-    //             }
-    //             else {
-    //                 System.out.print("u ");
-    //             }
-    //         }
-    //         i++;
-    //     }
-    //     System.out.println();
-    // }
-
     private boolean getNextNode() {
 
         boolean tryDxFirst = getRandomDirection() == 1;
