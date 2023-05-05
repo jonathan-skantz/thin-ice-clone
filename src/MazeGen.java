@@ -20,9 +20,6 @@ import java.util.Stack;
 
 public class MazeGen {
  
-    private final String WALL_STR = "--";
-    private final String STR_FORMAT = "%" + WALL_STR.length() + "s";
-
     public Stack<Node> path = new Stack<>();
 
     // keep track of the user's path, in order to be able to backtrack
@@ -34,7 +31,7 @@ public class MazeGen {
     
     private Random rand = new Random();
     private Node.Type[][] maze;
-
+    
     public int width;
     public int height;
     
@@ -47,9 +44,10 @@ public class MazeGen {
     private final int[] DIR = new int[] {1, -1};
 
     public static void main(String[] args) {
-        MazeGen mg = new MazeGen(3, 3);
+        MazeGen mg = new MazeGen(5, 1);
         mg.generate();
-        System.out.println(mg);
+        mg.printMazeWithPath();
+        mg.printMazeWithTypes();
     }
 
     public MazeGen(int w, int h) {
@@ -95,17 +93,6 @@ public class MazeGen {
     // TEMP
     public boolean pointOnGrid(int x, int y) {
         return x >= 0 && y >= 0 && x < width && y < height;
-    }
-
-    // TODO: prevent creating double in corner
-    private Node.Type getWalkableBlock() {
-        double chance = rand.nextDouble();
-        if (chance < 0.10) {
-            doubles.add(currentNode);
-            return Node.Type.DOUBLE;
-        }
-        return Node.Type.GROUND;
-
     }
 
     public void reset() {
@@ -172,8 +159,27 @@ public class MazeGen {
         currentNode = startNode;
 
         do {
-            path.add(currentNode);
-            set(currentNode, getWalkableBlock());
+            Node.Type nextBlock = getNextBlock();
+            
+            set(currentNode, nextBlock);
+            
+            if (nextBlock != Node.Type.WALL) {
+                path.add(currentNode);
+            }
+            else {
+                if (path.isEmpty()) {
+                    continue;
+                }
+
+                String s = currentNode + " set to wall, backing to ";
+                
+                // take a step back (note that currentNode it never added to path here)
+                currentNode = path.lastElement();
+
+                s += currentNode;
+                System.out.println(s);
+
+            }
         }
 
         while (getNextNode());
@@ -200,6 +206,22 @@ public class MazeGen {
 
     }
     
+    // TODO: prevent creating double in corner
+    private Node.Type getNextBlock() {
+        
+        double chance = rand.nextDouble();
+        
+        // if (chance < 0.10) {
+            //     doubles.add(currentNode);
+            //     return Node.Type.DOUBLE;
+        // }
+        if (chance < 0.25) {
+            return Node.Type.WALL;
+        }
+
+        return Node.Type.GROUND;
+    }
+
     private boolean getNextNode() {
 
         boolean tryDxFirst = getRandomDirection() == 1;
@@ -285,55 +307,56 @@ public class MazeGen {
         return maze;
     }
 
-    public String toString() {
-        
-        ArrayList<Node.Type> vals = new ArrayList<>();
-
-        for (Node.Type b : Node.Type.values()) {
-            vals.add(b);
-        }
-        
-        String[][] arrVisual = new String[height][width];
-
-        int i = 0;
-        for (int nodeCount=0; nodeCount < path.size(); nodeCount++) {
-            Node n = path.get(i);
-            arrVisual[n.y][n.x] = String.valueOf(i);
-            i++;
-        }
-        
-        StringBuilder sb = new StringBuilder();
-        
-        for (int y=0; y<height; y++) {
-            for (int x=0; x<width; x++) {
-
-                String str = arrVisual[y][x];
-
-                if (str == null) {
-                    char s = maze[y][x].toString().charAt(0);
-
-                    if (String.valueOf(s).compareTo("W") == 0) {
-                        sb.append(WALL_STR);
-                    }
-                    else {
-                        sb.append(String.format(STR_FORMAT, s));
-                    }
-                }
-                else {
-                    sb.append(String.format(STR_FORMAT, str));
-                }
-
-                sb.append(" ");
-
-            }
-
-            sb.append("\n");
-        }
-        
-
-
-        return sb.toString();
+    public String getFormatted(String str) {
+        // the number in the format should be one larger than
+        // the longest strRep of Node.Type
+        return String.format("%3s", str);
     }
 
+    public void printMazeWithPath() {
+        
+        String[][] mazeOfStr = getMazeWithTypes();
+
+        // set numbers that represent the order of steps of the (a) solution
+        for (int i=0; i<path.size(); i++) {
+            Node n = path.get(i);
+            mazeOfStr[n.y][n.x] = getFormatted(String.valueOf(i));
+        }
+
+        System.out.println(mazeOfStrToStr(mazeOfStr));
+    }
+
+    public void printMazeWithTypes() {
+        System.out.println(mazeOfStrToStr(getMazeWithTypes()));
+    }
+
+    // convert a 2d-array to a string
+    private String mazeOfStrToStr(String[][] m) {
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                sb.append(m[y][x]);
+            }
+            sb.append('\n');
+        }
+    
+        return sb.toString();
+    }
+    
+     // generate a maze of string representations of the nodes
+    private String[][] getMazeWithTypes() {
+        
+        String[][] mazeOfStr = new String[height][width];
+
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                mazeOfStr[y][x] = getFormatted(maze[y][x].strRep);
+            }
+        }
+    
+        return mazeOfStr;
+    }
 
 }

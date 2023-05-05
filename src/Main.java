@@ -9,8 +9,8 @@ public class Main {
 
     // maze config
     public static final int BLOCK_SIZE = 30;
-    public static final int DIMENSION_WIDTH = 15;
-    public static final int DIMENSION_HEIGHT = 10;
+    public static final int DIMENSION_WIDTH = 4;
+    public static final int DIMENSION_HEIGHT = 4;
 
     public static final Hashtable<Node.Type, Color> COLOR_TABLE = new Hashtable<>() {
         {
@@ -268,7 +268,8 @@ public class Main {
     public static void generateNewMaze() {
         // new maze in 2D-array-form
         mazeGen.generate();
-        System.out.println(mazeGen);
+        mazeGen.printMazeWithPath();
+        mazeGen.printMazeWithTypes();
 
         resetGraphics();
     }
