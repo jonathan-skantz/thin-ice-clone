@@ -30,4 +30,5 @@ Swing
 ### Code and commit message formatting
 * Imperative form
 * Refer to issues fixed at the end of each commit message. 
+
 For example: `Add player sprite. Fix #21`
