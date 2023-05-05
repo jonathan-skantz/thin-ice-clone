@@ -4,12 +4,18 @@
 public class Node {
 
     public enum Type {
-        WALL,
-        GROUND,
-        START,
-        END,
-        BLOCKED,
-        DOUBLE
+        WALL("-"),
+        GROUND("G"),
+        START("S"),
+        END("E"),
+        BLOCKED("B"),
+        DOUBLE("2x");
+
+        public String strRep;
+
+        private Type(String rep) {
+            strRep = rep;
+        }
     }
 
     public final int x;
