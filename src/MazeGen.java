@@ -44,7 +44,7 @@ public class MazeGen {
     private final int[] DIR = new int[] {1, -1};
 
     public static void main(String[] args) {
-        MazeGen mg = new MazeGen(5, 1);
+        MazeGen mg = new MazeGen(3, 1);
         mg.generate();
         mg.printMazeWithPath();
         mg.printMazeWithTypes();
@@ -126,6 +126,7 @@ public class MazeGen {
             for (Node n : doubles) {
                 if (n.same(node)) {
                     set(node, Node.Type.DOUBLE);
+                    break;
                 }
             }
         }
@@ -156,33 +157,26 @@ public class MazeGen {
         int startY = rand.nextInt(height);
         startNode = new Node(startX, startY);
 
+        // set start node and add to path
+        set(startNode, Node.Type.START);
+        path.add(startNode);        
+        
         currentNode = startNode;
 
-        do {
-            Node.Type nextBlock = getNextBlock();
+        while (getNextNode()) {
+            Node.Type nextType = getNextBlock();
             
-            set(currentNode, nextBlock);
+            set(currentNode, nextType);
             
-            if (nextBlock != Node.Type.WALL) {
-                path.add(currentNode);
-            }
-            else {
-                if (path.isEmpty()) {
-                    continue;
-                }
-
-                String s = currentNode + " set to wall, backing to ";
-                
+            if (nextType == Node.Type.WALL) {
                 // take a step back (note that currentNode it never added to path here)
                 currentNode = path.lastElement();
-
-                s += currentNode;
-                System.out.println(s);
-
+            }
+            else {
+                // only add currentNode if it is walkable
+                path.add(currentNode);
             }
         }
-
-        while (getNextNode());
 
         // change default from null to Node.Type.WALL
         for (int y=0; y<height; y++) {
@@ -194,7 +188,7 @@ public class MazeGen {
         }
 
         // prevent endNode from ending up right next to startNode
-        if (currentNode.nextTo(startNode)) {
+        if (currentNode.nextTo(startNode) && path.size() > 2) {
             currentNode = path.pop();
         }
         
@@ -202,7 +196,6 @@ public class MazeGen {
 
         maze[startNode.y][startNode.x] = Node.Type.START;
         maze[endNode.y][endNode.x] = Node.Type.END;
-
 
     }
     
@@ -293,11 +286,9 @@ public class MazeGen {
             return false;
         }
         
-        // not visited before
-        for (Node n : path) {
-            if (n.x == newX && n.y == newY) {
-                return false;
-            }
+        // node already set
+        if (get(newX, newY) != null) {
+            return false;
         }
 
         return true;
