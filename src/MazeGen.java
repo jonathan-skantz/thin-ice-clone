@@ -15,8 +15,8 @@ SOLUTIONS:
 
 */
 import java.util.ArrayList;
-// import java.util.Arrays;
 import java.util.Random;
+import java.util.Stack;
 
 public class MazeGen {
  
@@ -24,6 +24,10 @@ public class MazeGen {
     private final String STR_FORMAT = "%" + WALL_STR.length() + "s";
 
     public ArrayList<Node> path = new ArrayList<>();
+
+    // keep track of the user's path, in order to be able to backtrack
+    private Stack<Node> userPath = new Stack<>();
+    private Stack<Node> userUndos = new Stack<>();
 
     // keep track of doubles, only to know where they were when resetting
     private ArrayList<Node> doubles = new ArrayList<>();
@@ -68,7 +72,8 @@ public class MazeGen {
         }
         
         set(node, type);
-        
+        userPath.add(node);
+
         return type;
     }
 
@@ -122,6 +127,39 @@ public class MazeGen {
         for (Node n : doubles) {
             set(n, Node.Type.DOUBLE);
         }
+    }
+
+    public void resetNode(Node node) {
+
+        if (get(node) == Node.Type.BLOCKED) {
+            set(node, Node.Type.GROUND);
+        }
+
+        else {
+
+            for (Node n : doubles) {
+                if (n.same(node)) {
+                    set(node, Node.Type.DOUBLE);
+                }
+            }
+        }
+    }
+
+    public void step(int direction) {
+        resetNode(currentNode);
+        
+        if (direction == -1) {
+            currentNode = userPath.pop();
+            userUndos.add(currentNode);
+        }
+        else {
+            currentNode = userUndos.pop();
+            userPath.add(currentNode);
+        }
+
+        // System.out.println("path: " + userPath);
+        // System.out.println("undos: " + userUndos);
+        // System.out.println();
     }
 
     public void generate() {

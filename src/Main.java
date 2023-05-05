@@ -106,44 +106,36 @@ public class Main {
         }
     }
 
-    public static void tryMoveToNode(KeyHandler.ActionKey action) {
+    public static void tryMoveToNode(int dx, int dy) {
 
         if (mazeCompleted) {
             return;
         }
 
-        int dx = 0;
-        int dy = 0;
-
-        switch (action) {
-            case UP:
-                dy = -1;
-                break;
-            
-            case DOWN:
-                dy = 1;
-                break;
-            
-            case LEFT:
-                dx = -1;
-                break;
-            
-            case RIGHT:
-                dx = 1;
-                break;
-            
-            default:
-                break;
-        }
-
+        
         Node newNode = new Node(mazeGen.currentNode.x + dx, mazeGen.currentNode.y + dy);
-
+        
         if (mazeGen.pointOnGrid(newNode.x, newNode.y)) {
             
             Node.Type nodeType = mazeGen.get(newNode);
             
             if (nodeType != Node.Type.WALL && nodeType != Node.Type.BLOCKED) {
                 // valid block to move to
+                
+                KeyHandler.ActionKey action;
+
+                if (dx == 1) {
+                    action = KeyHandler.ActionKey.MOVE_RIGHT;
+                }
+                else if (dx == -1) {
+                    action = KeyHandler.ActionKey.MOVE_LEFT;
+                }
+                else if (dy == 1) {
+                    action = KeyHandler.ActionKey.MOVE_DOWN;
+                }
+                else {
+                    action = KeyHandler.ActionKey.MOVE_UP;
+                }
 
                 player.move(action);
 
@@ -164,10 +156,10 @@ public class Main {
         KeyHandler listener = new KeyHandler();
         window.addKeyListener(listener);
         
-        KeyHandler.ActionKey.UP.setCallback(() -> { tryMoveToNode(KeyHandler.ActionKey.UP); });
-        KeyHandler.ActionKey.DOWN.setCallback(() -> { tryMoveToNode(KeyHandler.ActionKey.DOWN); });
-        KeyHandler.ActionKey.LEFT.setCallback(() -> { tryMoveToNode(KeyHandler.ActionKey.LEFT); });
-        KeyHandler.ActionKey.RIGHT.setCallback(() -> { tryMoveToNode(KeyHandler.ActionKey.RIGHT); });
+        KeyHandler.ActionKey.MOVE_UP.setCallback(() -> { tryMoveToNode(0, -1); });
+        KeyHandler.ActionKey.MOVE_DOWN.setCallback(() -> { tryMoveToNode(0, 1); });
+        KeyHandler.ActionKey.MOVE_LEFT.setCallback(() -> { tryMoveToNode(-1, 0); });
+        KeyHandler.ActionKey.MOVE_RIGHT.setCallback(() -> { tryMoveToNode(1, 0); });
         
         KeyHandler.ActionKey.MAZE_NEW.setCallback(() -> { 
             
@@ -183,9 +175,36 @@ public class Main {
         });
 
         KeyHandler.ActionKey.MAZE_HINT.setCallback(() -> { showHint(); });
+
+        KeyHandler.ActionKey.MAZE_STEP_UNDO.setCallback(() -> { step(-1); });
+        KeyHandler.ActionKey.MAZE_STEP_REDO.setCallback(() -> { step(1); });
         
     }
     
+    public static void step(int direction) {
+        
+        Node oldNode = mazeGen.currentNode;
+        mazeGen.step(direction);
+
+
+        // TODO: player moves incorrectly when step + 1
+        if (mazeGen.currentNode.x < oldNode.x) {
+            player.move(KeyHandler.ActionKey.MOVE_LEFT);
+        }
+        else if (mazeGen.currentNode.x > oldNode.x) {
+            player.move(KeyHandler.ActionKey.MOVE_RIGHT);
+        }
+        else if (mazeGen.currentNode.y < oldNode.y) {
+            player.move(KeyHandler.ActionKey.MOVE_UP);
+        }
+        else {
+            player.move(KeyHandler.ActionKey.MOVE_DOWN);
+        }
+
+        mazeSprites[mazeGen.currentNode.y][mazeGen.currentNode.x].setBackgroundColor(COLOR_TABLE.get(Node.Type.GROUND));
+        
+    }
+
     public static void resetPlayer() {
         
         // Node startNode = mazeGenerator.getStartNode(); 

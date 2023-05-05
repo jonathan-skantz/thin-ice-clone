@@ -10,14 +10,17 @@ public class KeyHandler extends KeyAdapter {
     // define actions and their corresponding key
     public enum ActionKey {
 
-        UP(KeyEvent.VK_W),
-        DOWN(KeyEvent.VK_S),
-        LEFT(KeyEvent.VK_A),
-        RIGHT(KeyEvent.VK_D),
+        MOVE_UP(KeyEvent.VK_W),
+        MOVE_DOWN(KeyEvent.VK_S),
+        MOVE_LEFT(KeyEvent.VK_A),
+        MOVE_RIGHT(KeyEvent.VK_D),
 
         MAZE_NEW(KeyEvent.VK_SPACE),
         MAZE_RESET(KeyEvent.VK_ESCAPE),
-        MAZE_HINT(KeyEvent.VK_H);
+        MAZE_HINT(KeyEvent.VK_H),
+
+        MAZE_STEP_UNDO(KeyEvent.VK_LEFT),
+        MAZE_STEP_REDO(KeyEvent.VK_RIGHT);
 
         private ActionKey(int keyCode) {
             this.keyCode = keyCode;
