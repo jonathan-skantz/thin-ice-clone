@@ -202,16 +202,21 @@ public class MazeGen {
     // TODO: prevent creating double in corner
     private Node.Type getNextBlock() {
         
-        double chance = rand.nextDouble();
-        
-        // if (chance < 0.10) {
-            //     doubles.add(currentNode);
-            //     return Node.Type.DOUBLE;
-        // }
-        if (chance < 0.25) {
-            return Node.Type.WALL;
-        }
+        if (path.size() > 1) {
+            // this check prevents creating walls all around the first node
 
+            double chance = rand.nextDouble();
+            
+            // if (chance < 0.10) {
+                //     doubles.add(currentNode);
+                //     return Node.Type.DOUBLE;
+            // }
+
+            if (chance < 0.25) {
+                return Node.Type.WALL;
+            }
+        }
+            
         return Node.Type.GROUND;
     }
 
