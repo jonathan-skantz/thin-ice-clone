@@ -12,11 +12,17 @@ import java.util.Stack;
 
 public class MazeGen {
  
+    public boolean complete = false;       // is set to true when currentNode == endNode
+
     public Stack<Node> path = new Stack<>();
 
     // keep track of the user's path, in order to be able to backtrack
-    private Stack<Node> userPath = new Stack<>();
-    private Stack<Node> userUndos = new Stack<>();
+    private Stack<Node> pathHistory = new Stack<>();
+    private Stack<Node.Type> pathHistoryTypes = new Stack<>();
+    
+    private Stack<Node> pathHistoryRedo = new Stack<>();
+    // pathHistoryRedoTypes are not necessary to track since when redoing,
+    // the system thinks the player is moving just like normal
 
     // keep track of doubles, only to know where they were when resetting
     private ArrayList<Node> doubles = new ArrayList<>();
@@ -61,23 +67,36 @@ public class MazeGen {
         }
     }
 
-    // mark as walked
-    public Node.Type leaveNode(Node node) {
+    public void userMove(int dx, int dy) {
+        // NOTE: doesn't check move validity
+
+        Node newNode = new Node(currentNode.x+dx, currentNode.y+dy);
         
-        Node.Type type;
-
-        if (get(node) == Node.Type.DOUBLE) {
-            type = Node.Type.GROUND;
-
+        if (get(currentNode) == Node.Type.DOUBLE) {
+            set(currentNode, Node.Type.GROUND);
         }
         else {
-            type = Node.Type.BLOCKED;
+            set(currentNode, Node.Type.BLOCKED);
         }
         
-        set(node, type);
-        userPath.add(node);
+        pathHistory.add(newNode);
+        pathHistoryTypes.add(get(newNode));
 
-        return type;
+        if (pathHistoryRedo.size() > 0) {
+            if (pathHistoryRedo.peek().same(newNode)) {
+                pathHistoryRedo.pop();
+            }
+            else {
+                // new history is made, clear last record of redos
+                pathHistoryRedo.clear();
+            }
+        }
+        
+        if ((get(newNode) == Node.Type.END)) {
+            complete = true;
+        }
+
+        currentNode = newNode;
     }
 
     public void set(Node node, Node.Type type) {
@@ -103,6 +122,15 @@ public class MazeGen {
 
     public void reset() {
         
+        pathHistory.clear();
+        pathHistoryTypes.clear();
+        pathHistoryRedo.clear();
+        
+        pathHistory.add(startNode);
+        pathHistoryTypes.add(get(startNode));
+
+        complete = false;
+
         for (int y=0; y<height; y++) {
             for (int x=0; x<width; x++) {
                 
@@ -119,9 +147,13 @@ public class MazeGen {
         }
     }
 
-    public void resetNode(Node node) {
+    public void nodeReset(Node node) {
 
-        if (get(node) == Node.Type.BLOCKED) {
+        if (node.same(startNode)) {
+            set(node, Node.Type.START);
+        }
+
+        else if (get(node) == Node.Type.BLOCKED) {
             set(node, Node.Type.GROUND);
         }
 
@@ -136,20 +168,43 @@ public class MazeGen {
         }
     }
 
-    public void step(int direction) {
-        resetNode(currentNode);
+    // returns previous node's type
+    public Node.Type step(int direction){
         
         if (direction == -1) {
-            currentNode = userPath.pop();
-            userUndos.add(currentNode);
+            
+            if (pathHistory.size() > 1) {
+                nodeReset(currentNode);
+                
+                Node lastNode = pathHistory.pop();      // same as current
+                pathHistoryTypes.pop();
+                
+                pathHistoryRedo.add(lastNode);
+                
+                currentNode = pathHistory.peek();
+                Node.Type typeBefore = pathHistoryTypes.peek();
+                
+                return typeBefore;
+            }
         }
         else {
-            currentNode = userUndos.pop();
-            userPath.add(currentNode);
+            if (pathHistoryRedo.size() > 0) {
+            
+                Node oldNode = currentNode;
+                
+                Node newNode = pathHistoryRedo.peek();      // NOTE: doesn't pop, since that is done in userMove()
+                userMove(newNode.x-currentNode.x, newNode.y-currentNode.y);
+                
+                return get(oldNode);
+            }
         }
+        
+        return null;
     }
 
     public void generate() {
+
+        complete = false;
 
         // generate a new maze until the path is >= minPathLength
 
@@ -162,6 +217,10 @@ public class MazeGen {
             path.clear();
             doubles.clear();
 
+            pathHistory.clear();
+            pathHistoryTypes.clear();
+            pathHistoryRedo.clear();
+
             // set random start
             int startX = rand.nextInt(width);
             int startY = rand.nextInt(height);
@@ -169,7 +228,9 @@ public class MazeGen {
 
             // set start node and add to path
             set(startNode, Node.Type.START);
-            path.add(startNode);        
+            path.add(startNode);
+            pathHistory.add(startNode);
+            pathHistoryTypes.add(get(startNode));
             
             currentNode = startNode;
 
@@ -179,7 +240,7 @@ public class MazeGen {
                 set(currentNode, nextType);
                 
                 if (nextType == Node.Type.WALL) {
-                    // take a step back (note that currentNode it never added to path here)
+                    // take a step back (note that currentNode is never added to path here)
                     currentNode = path.lastElement();
                 }
                 else {
@@ -309,8 +370,8 @@ public class MazeGen {
         return true;
     }
 
-    public boolean nodeWalkable(int x, int y) {
-        return get(x, y) != Node.Type.WALL && get(x, y) != Node.Type.BLOCKED;
+    public boolean nodeTypeWalkable(Node node) {
+        return get(node) != Node.Type.WALL && get(node) != Node.Type.BLOCKED;
     }
 
     private boolean validMove(int dx, int dy) {
