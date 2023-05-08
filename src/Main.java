@@ -106,6 +106,7 @@ public class Main {
         
         Node newNode = new Node(mazeGen.currentNode.x + dx, mazeGen.currentNode.y + dy);
         
+        // TODO: combine pointOnGrid and nodeTypeWalkable?
         if (mazeGen.pointOnGrid(newNode.x, newNode.y)) {
             
             if (mazeGen.nodeTypeWalkable(newNode)) {
@@ -168,13 +169,12 @@ public class Main {
         
         Node oldNode = mazeGen.currentNode;
 
-        Node.Type lastNodeType = mazeGen.step(direction);
+        Node.Type typeBefore = mazeGen.step(direction);
 
-        if (lastNodeType == null) {
+        if (typeBefore == null) {
             return;
         }
         
-        // TODO: player moves incorrectly when step + 1
         if (mazeGen.currentNode.x < oldNode.x) {
             player.move(KeyHandler.ActionKey.MOVE_LEFT);
         }
@@ -188,16 +188,16 @@ public class Main {
             player.move(KeyHandler.ActionKey.MOVE_DOWN);
         }
 
-        // TODO: start should be start color
-
+        Color color = COLOR_TABLE.get(typeBefore);
         Sprite spr;
         if (direction == -1) {
             spr = mazeSprites[mazeGen.currentNode.y][mazeGen.currentNode.x];
         }
         else {
-            spr = mazeSprites[mazeGen.currentNode.y][mazeGen.currentNode.x];
+            spr = mazeSprites[oldNode.y][oldNode.x];
+            
         }
-        spr.setBackgroundColor(COLOR_TABLE.get(lastNodeType));
+        spr.setBackgroundColor(color);
         
     }
 
