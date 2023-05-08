@@ -1,17 +1,9 @@
 /*
 
-TODO:
-
-* prevent start and end next to each other
-* minimum path length
 * maze ends only at edge of maze or when colliding with a path node
 * no dead ends
 
 
-SOLUTIONS:
-* start somewhere in the middle?
-* if no up,down,left,right (or permutation): regenerate
-* place random walls throughout the empty maze to begin with
 
 */
 import java.util.ArrayList;
@@ -43,6 +35,13 @@ public class MazeGen {
 
     private final int[] DIR = new int[] {1, -1};
 
+    private int currentDirX;
+    private int currentDirY;
+
+    private final float CHANCE_CONTINUE_SAME_DIR = 0.5f;       // NOTE: moving right and then down, the chance of moving right is not 50/50 but the same as before moving down
+    private final float CHANCE_NEXT_NODE_WALL = 0.10f;
+    private final float CHANCE_NEXT_NODE_DOUBLE = 0.25f;
+
     public static void main(String[] args) {
         MazeGen mg = new MazeGen(3, 1);
         mg.generate();
@@ -53,6 +52,8 @@ public class MazeGen {
     public MazeGen(int w, int h) {
         width = w;
         height = h;
+        currentDirX = getRandomDirection();
+        currentDirY = getRandomDirection();
     }
 
     // mark as walked
@@ -97,19 +98,17 @@ public class MazeGen {
 
     public void reset() {
         
-        Node.Type type;
-
         for (int y=0; y<height; y++) {
             for (int x=0; x<width; x++) {
                 
-                type = get(x, y);
-                
-                if (type == Node.Type.BLOCKED) {
+                if (get(x, y) == Node.Type.BLOCKED) {
                     set(x, y, Node.Type.GROUND);
                 }
             }
         }
 
+        // account for nodes that were just set to ground
+        // even though they should be double
         for (Node n : doubles) {
             set(n, Node.Type.DOUBLE);
         }
@@ -164,7 +163,7 @@ public class MazeGen {
         currentNode = startNode;
 
         while (getNextNode()) {
-            Node.Type nextType = getNextBlock();
+            Node.Type nextType = getNextNodeType();
             
             set(currentNode, nextType);
             
@@ -200,19 +199,19 @@ public class MazeGen {
     }
     
     // TODO: prevent creating double in corner
-    private Node.Type getNextBlock() {
+    private Node.Type getNextNodeType() {
         
         if (path.size() > 1) {
             // this check prevents creating walls all around the first node
 
             double chance = rand.nextDouble();
             
-            // if (chance < 0.10) {
-                //     doubles.add(currentNode);
-                //     return Node.Type.DOUBLE;
-            // }
+            if (chance < CHANCE_NEXT_NODE_DOUBLE) {
+                doubles.add(currentNode);
+                return Node.Type.DOUBLE;
+            }
 
-            if (chance < 0.25) {
+            else if (chance < CHANCE_NEXT_NODE_WALL) {
                 return Node.Type.WALL;
             }
         }
@@ -245,10 +244,20 @@ public class MazeGen {
 
     private boolean tryMoveDx() {
         
-        int dx = getRandomDirection();
+        int dx;
+        
+        double chance = rand.nextDouble();
+        if (chance < CHANCE_CONTINUE_SAME_DIR) {
+            dx = currentDirX;
+        }
+        else {
+            dx = currentDirX * -1;
+            dx = currentDirX;
+        }
         
         if (!validMove(dx, 0)) {
             dx *= -1;
+            currentDirX = dx;
             if (!validMove(dx, 0)) {
                 return false;
             }
@@ -260,10 +269,20 @@ public class MazeGen {
 
     private boolean tryMoveDy() {
         
-        int dy = getRandomDirection();
+        int dy;
         
+        double chance = rand.nextDouble();
+        if (chance < CHANCE_CONTINUE_SAME_DIR) {
+            dy = currentDirY;
+        }
+        else {
+            dy = currentDirY * -1;
+            currentDirY = dy;
+        }
+
         if (!validMove(0, dy)) {
             dy *= -1;
+            currentDirY = dy;
             if (!validMove(0, dy)) {
                 return false;
             }
@@ -306,6 +325,8 @@ public class MazeGen {
     public String getFormatted(String str) {
         // the number in the format should be one larger than
         // the longest strRep of Node.Type
+        // TODO: get length without looping through
+        // Node.Type.values() every call.
         return String.format("%3s", str);
     }
 
