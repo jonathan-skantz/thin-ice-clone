@@ -4,11 +4,18 @@
 public class Node {
 
     public enum Type {
-        WALL,
-        GROUND,
-        START,
-        END,
-        BLOCKED
+        WALL("-"),
+        GROUND("G"),
+        START("S"),
+        END("E"),
+        BLOCKED("B"),
+        DOUBLE("2x");
+
+        public String strRep;
+
+        private Type(String rep) {
+            strRep = rep;
+        }
     }
 
     public final int x;
@@ -25,8 +32,20 @@ public class Node {
         this.y = y;
     }
     
+    @Override
     public String toString() {
         return "Node(" + x + "," + y + ")";
+    }
+
+    public boolean same(Node node) {
+        return x == node.x && y == node.y;
+    }
+
+    public boolean nextTo(Node node) {
+        boolean vertically = node.x == x && (node.y == y+1 || node.y == y-1);
+        boolean horizontally = node.y == y && (node.x == x+1 || node.x == x-1);
+
+        return vertically || horizontally;
     }
 
 }

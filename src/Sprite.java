@@ -356,19 +356,19 @@ public class Sprite {
 
         switch (actionKey) {
 
-            case UP:
+            case MOVE_UP:
                 rect.y -= velocity;
                 break;
 
-            case DOWN:
+            case MOVE_DOWN:
                 rect.y += velocity;
                 break;
 
-            case LEFT:
+            case MOVE_LEFT:
                 rect.x -= velocity;
                 break;
 
-            case RIGHT:
+            case MOVE_RIGHT:
                 rect.x += velocity;
                 break;
             

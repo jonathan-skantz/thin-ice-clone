@@ -46,8 +46,7 @@ public class CalculateSolution {
             for (int y=currentNode.y-1; y<=currentNode.y+1; y++) {
                 for (int x=currentNode.x-1; x<=currentNode.x+1; x++) {
                     // skip if the neighbor is out of bounds, or is not walkable
-                    // TODO: here, check if blocked as well
-                    if (!pointOnGrid(x, y) || !pointNotCorner(currentNode, x, y) || !pointNotNode(currentNode, x, y) || mazeGen.get(x, y) == Node.Type.WALL || visited[y][x]) {
+                    if (!pointOnGrid(x, y) || !pointNotCorner(currentNode, x, y) || !pointNotNode(currentNode, x, y) || !mazeGen.nodeWalkable(x, y) || visited[y][x]) {
                         continue;
                     }
 

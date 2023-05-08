@@ -1,56 +1,83 @@
 /*
 
-TODO:
-
-* prevent start and end next to each other
-* minimum path length
 * maze ends only at edge of maze or when colliding with a path node
 * no dead ends
 
 
-SOLUTIONS:
-* start somewhere in the middle?
-* if no up,down,left,right (or permutation): regenerate
-* place random walls throughout the empty maze to begin with
 
 */
 import java.util.ArrayList;
-// import java.util.Arrays;
 import java.util.Random;
+import java.util.Stack;
 
 public class MazeGen {
  
-    private final String WALL_STR = "||";
-    private final String STR_FORMAT = "%" + WALL_STR.length() + "s";
+    public Stack<Node> path = new Stack<>();
 
-    public ArrayList<Node> path = new ArrayList<>();
+    // keep track of the user's path, in order to be able to backtrack
+    private Stack<Node> userPath = new Stack<>();
+    private Stack<Node> userUndos = new Stack<>();
+
+    // keep track of doubles, only to know where they were when resetting
+    private ArrayList<Node> doubles = new ArrayList<>();
     
     private Random rand = new Random();
     private Node.Type[][] maze;
-
+    
     public int width;
     public int height;
     
     public Node startNode;
     public Node endNode;
     
-    // used to generate the maze as well as 
-    // keep track of the player
+    // used to generate the maze as well as keep track of the player
     public Node currentNode;
 
     private final int[] DIR = new int[] {1, -1};
 
+    private int currentDirX = getRandomDirection();
+    private int currentDirY = getRandomDirection();
+
+    private final float CHANCE_NEXT_NODE_SAME_DIR = 0.5f;       // NOTE: moving right and then down, the chance of moving right is not 50/50 but the same as before moving down
+    private final float CHANCE_NEXT_NODE_WALL = 0.10f;
+    private final float CHANCE_NEXT_NODE_DOUBLE = 0.25f;
+
+    private int minPathLength = 100;
+
     public static void main(String[] args) {
-        MazeGen mg = new MazeGen(10, 10);
+        MazeGen mg = new MazeGen(3, 1);
         mg.generate();
-        System.out.println(mg);
-        mg.printPath();
-        System.out.println(mg.startNode);
+        mg.printMazeWithPath();
+        mg.printMazeWithTypes();
     }
 
     public MazeGen(int w, int h) {
         width = w;
         height = h;
+
+        // prevent maze generation from taking too long
+        if (minPathLength > width * height * 0.9 ) {
+            minPathLength = (int) (width * height * 0.5);
+        }
+    }
+
+    // mark as walked
+    public Node.Type leaveNode(Node node) {
+        
+        Node.Type type;
+
+        if (get(node) == Node.Type.DOUBLE) {
+            type = Node.Type.GROUND;
+
+        }
+        else {
+            type = Node.Type.BLOCKED;
+        }
+        
+        set(node, type);
+        userPath.add(node);
+
+        return type;
     }
 
     public void set(Node node, Node.Type type) {
@@ -70,95 +97,143 @@ public class MazeGen {
     }
 
     // TEMP
-    public Boolean pointOnGrid(int x, int y) {
+    public boolean pointOnGrid(int x, int y) {
         return x >= 0 && y >= 0 && x < width && y < height;
+    }
+
+    public void reset() {
+        
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                
+                if (get(x, y) == Node.Type.BLOCKED) {
+                    set(x, y, Node.Type.GROUND);
+                }
+            }
+        }
+
+        // account for nodes that were just set to ground
+        // even though they should be double
+        for (Node n : doubles) {
+            set(n, Node.Type.DOUBLE);
+        }
+    }
+
+    public void resetNode(Node node) {
+
+        if (get(node) == Node.Type.BLOCKED) {
+            set(node, Node.Type.GROUND);
+        }
+
+        else {
+
+            for (Node n : doubles) {
+                if (n.same(node)) {
+                    set(node, Node.Type.DOUBLE);
+                    break;
+                }
+            }
+        }
+    }
+
+    public void step(int direction) {
+        resetNode(currentNode);
+        
+        if (direction == -1) {
+            currentNode = userPath.pop();
+            userUndos.add(currentNode);
+        }
+        else {
+            currentNode = userUndos.pop();
+            userPath.add(currentNode);
+        }
     }
 
     public void generate() {
 
-        // reset maze
-        maze = new Node.Type[height][width];
-        path.clear();
+        // generate a new maze until the path is >= minPathLength
 
-        // set random start
-        int startX = rand.nextInt(width);
-        int startY = rand.nextInt(height);
-        startNode = new Node(startX, startY);
-
-        currentNode = startNode;
-        
+        int count = 0;
 
         do {
-            path.add(currentNode);
-            maze[currentNode.y][currentNode.x] = Node.Type.GROUND;
-        }
 
-        while (getNextNode());
+            // reset maze
+            maze = new Node.Type[height][width];
+            path.clear();
+            doubles.clear();
 
-        // change default from null to Block.WALL
-        for (int y=0; y<height; y++) {
-            for (int x=0; x<width; x++) {
-                if (get(x, y) == null) {
-                    set(x, y, Node.Type.WALL);
+            // set random start
+            int startX = rand.nextInt(width);
+            int startY = rand.nextInt(height);
+            startNode = new Node(startX, startY);
+
+            // set start node and add to path
+            set(startNode, Node.Type.START);
+            path.add(startNode);        
+            
+            currentNode = startNode;
+
+            while (getNextNode()) {
+                Node.Type nextType = getNextNodeType();
+                
+                set(currentNode, nextType);
+                
+                if (nextType == Node.Type.WALL) {
+                    // take a step back (note that currentNode it never added to path here)
+                    currentNode = path.lastElement();
+                }
+                else {
+                    // only add currentNode if it is walkable
+                    path.add(currentNode);
                 }
             }
+
+            // change default from null to Node.Type.WALL
+            for (int y=0; y<height; y++) {
+                for (int x=0; x<width; x++) {
+                    if (get(x, y) == null) {
+                        set(x, y, Node.Type.WALL);
+                    }
+                }
+            }
+
+            // prevent endNode from ending up right next to startNode
+            if (currentNode.nextTo(startNode) && path.size() > 2) {
+                currentNode = path.pop();
+            }
+            
+            endNode = currentNode;
+
+            maze[startNode.y][startNode.x] = Node.Type.START;
+            maze[endNode.y][endNode.x] = Node.Type.END;
+
+            count++;
         }
 
-        endNode = currentNode;
+        while (path.size() < minPathLength);
 
-        maze[startNode.y][startNode.x] = Node.Type.START;
-        maze[endNode.y][endNode.x] = Node.Type.END;
-
+        System.out.println("mazes generated: " + count);
     }
     
-    
-    private void printPath() {
-        // TODO: str builder
-
-        System.out.println("nodes: " + path.size());
+    // TODO: prevent creating double in corner
+    private Node.Type getNextNodeType() {
         
-        // int i = 0;
-        // for (Node n : path) {
-        //     System.out.print(i + ":(" + n.x + "," + n.y + ") ");
-        //     i++;
-        // }
+        if (path.size() > 1) {
+            // this check prevents creating walls all around the first node
 
-        System.out.println();
-        int lastX = path.get(0).x;
-        int lastY = path.get(0).y;
-        int dx = 0;
-        int dy = 0;
-
-        path.remove(0);
-        int i = 0;
-
-        for (Node n : path) {
-            System.out.print(i + ":");
-            dx = n.x - lastX;
-            dy = n.y - lastY;
-            if (dx != 0) {
-                lastX = n.x;
-                
-                if (dx == 1) {
-                    System.out.print("r ");
-                }
-                else {
-                    System.out.print("l ");
-                }
+            double chance = rand.nextDouble();
+            
+            if (chance < CHANCE_NEXT_NODE_DOUBLE) {
+                doubles.add(currentNode);
+                return Node.Type.DOUBLE;
             }
-            else if (dy != 0) {
-                lastY = n.y;
 
-                if (dy == 1) {
-                    System.out.print("d ");
-                }
-                else {
-                    System.out.print("u ");
-                }
+            else if (chance < CHANCE_NEXT_NODE_WALL) {
+                return Node.Type.WALL;
             }
-            i++;
         }
-        System.out.println();
+            
+        return Node.Type.GROUND;
     }
 
     private boolean getNextNode() {
@@ -186,25 +261,45 @@ public class MazeGen {
 
     private boolean tryMoveDx() {
         
-        int dx = getRandomDirection();
+        int dx;
+        
+        double chance = rand.nextDouble();
+        if (chance < CHANCE_NEXT_NODE_SAME_DIR) {
+            dx = currentDirX;
+        }
+        else {
+            dx = currentDirX * -1;
+            dx = currentDirX;
+        }
         
         if (!validMove(dx, 0)) {
             dx *= -1;
+            currentDirX = dx;
             if (!validMove(dx, 0)) {
                 return false;
             }
         }
-        
+
         currentNode = new Node(currentNode.x + dx, currentNode.y);
         return true;
     }
 
     private boolean tryMoveDy() {
         
-        int dy = getRandomDirection();
+        int dy;
         
+        double chance = rand.nextDouble();
+        if (chance < CHANCE_NEXT_NODE_SAME_DIR) {
+            dy = currentDirY;
+        }
+        else {
+            dy = currentDirY * -1;
+            currentDirY = dy;
+        }
+
         if (!validMove(0, dy)) {
             dy *= -1;
+            currentDirY = dy;
             if (!validMove(0, dy)) {
                 return false;
             }
@@ -212,6 +307,10 @@ public class MazeGen {
         
         currentNode = new Node(currentNode.x, currentNode.y + dy);
         return true;
+    }
+
+    public boolean nodeWalkable(int x, int y) {
+        return get(x, y) != Node.Type.WALL && get(x, y) != Node.Type.BLOCKED;
     }
 
     private boolean validMove(int dx, int dy) {
@@ -228,11 +327,9 @@ public class MazeGen {
             return false;
         }
         
-        // not visited before
-        for (Node n : path) {
-            if (n.x == newX && n.y == newY) {
-                return false;
-            }
+        // node already set
+        if (get(newX, newY) != null) {
+            return false;
         }
 
         return true;
@@ -242,55 +339,58 @@ public class MazeGen {
         return maze;
     }
 
-    public String toString() {
-        
-        ArrayList<Node.Type> vals = new ArrayList<>();
-
-        for (Node.Type b : Node.Type.values()) {
-            vals.add(b);
-        }
-        
-        String[][] arrVisual = new String[height][width];
-
-        int i = 0;
-        for (int nodeCount=0; nodeCount < path.size(); nodeCount++) {
-            Node n = path.get(i);
-            arrVisual[n.y][n.x] = String.valueOf(i);
-            i++;
-        }
-        
-        StringBuilder sb = new StringBuilder();
-        
-        for (int y=0; y<height; y++) {
-            for (int x=0; x<width; x++) {
-
-                String str = arrVisual[y][x];
-
-                if (str == null) {
-                    char s = maze[y][x].toString().charAt(0);
-
-                    if (String.valueOf(s).compareTo("W") == 0) {
-                        sb.append(WALL_STR);
-                    }
-                    else {
-                        sb.append(String.format(STR_FORMAT, s));
-                    }
-                }
-                else {
-                    sb.append(String.format(STR_FORMAT, str));
-                }
-
-                sb.append(" ");
-
-            }
-
-            sb.append("\n");
-        }
-        
-
-
-        return sb.toString();
+    public String getFormatted(String str) {
+        // the number in the format should be one larger than
+        // the longest strRep of Node.Type
+        // TODO: get length without looping through
+        // Node.Type.values() every call.
+        return String.format("%3s", str);
     }
 
+    public void printMazeWithPath() {
+        
+        String[][] mazeOfStr = getMazeWithTypes();
+
+        // set numbers that represent the order of steps of the (a) solution
+        for (int i=0; i<path.size(); i++) {
+            Node n = path.get(i);
+            mazeOfStr[n.y][n.x] = getFormatted(String.valueOf(i));
+        }
+
+        System.out.println(mazeOfStrToStr(mazeOfStr));
+    }
+
+    public void printMazeWithTypes() {
+        System.out.println(mazeOfStrToStr(getMazeWithTypes()));
+    }
+
+    // convert a 2d-array to a string
+    private String mazeOfStrToStr(String[][] m) {
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                sb.append(m[y][x]);
+            }
+            sb.append('\n');
+        }
+    
+        return sb.toString();
+    }
+    
+     // generate a maze of string representations of the nodes
+    private String[][] getMazeWithTypes() {
+        
+        String[][] mazeOfStr = new String[height][width];
+
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                mazeOfStr[y][x] = getFormatted(maze[y][x].strRep);
+            }
+        }
+    
+        return mazeOfStr;
+    }
 
 }
