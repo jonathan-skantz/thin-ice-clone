@@ -81,6 +81,16 @@ public class MazeGen {
         
         pathHistory.add(newNode);
         pathHistoryTypes.add(get(newNode));
+
+        if (pathHistoryRedo.size() > 0) {
+            if (pathHistoryRedo.peek().same(newNode)) {
+                pathHistoryRedo.pop();
+            }
+            else {
+                // new history is made, clear last record of redos
+                pathHistoryRedo.clear();
+            }
+        }
         
         if ((get(newNode) == Node.Type.END)) {
             complete = true;
@@ -171,8 +181,8 @@ public class MazeGen {
                 
                 pathHistoryRedo.add(lastNode);
                 
-                currentNode = pathHistory.lastElement();
-                Node.Type typeBefore = pathHistoryTypes.lastElement();
+                currentNode = pathHistory.peek();
+                Node.Type typeBefore = pathHistoryTypes.peek();
                 
                 return typeBefore;
             }
@@ -182,7 +192,7 @@ public class MazeGen {
             
                 Node oldNode = currentNode;
                 
-                Node newNode = pathHistoryRedo.pop();
+                Node newNode = pathHistoryRedo.peek();      // NOTE: doesn't pop, since that is done in userMove()
                 userMove(newNode.x-currentNode.x, newNode.y-currentNode.y);
                 
                 return get(oldNode);
