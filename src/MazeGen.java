@@ -35,12 +35,14 @@ public class MazeGen {
 
     private final int[] DIR = new int[] {1, -1};
 
-    private int currentDirX;
-    private int currentDirY;
+    private int currentDirX = getRandomDirection();
+    private int currentDirY = getRandomDirection();
 
-    private final float CHANCE_CONTINUE_SAME_DIR = 0.5f;       // NOTE: moving right and then down, the chance of moving right is not 50/50 but the same as before moving down
+    private final float CHANCE_NEXT_NODE_SAME_DIR = 0.5f;       // NOTE: moving right and then down, the chance of moving right is not 50/50 but the same as before moving down
     private final float CHANCE_NEXT_NODE_WALL = 0.10f;
     private final float CHANCE_NEXT_NODE_DOUBLE = 0.25f;
+
+    private int minPathLength = 100;
 
     public static void main(String[] args) {
         MazeGen mg = new MazeGen(3, 1);
@@ -52,8 +54,11 @@ public class MazeGen {
     public MazeGen(int w, int h) {
         width = w;
         height = h;
-        currentDirX = getRandomDirection();
-        currentDirY = getRandomDirection();
+
+        // prevent maze generation from taking too long
+        if (minPathLength > width * height * 0.9 ) {
+            minPathLength = (int) (width * height * 0.5);
+        }
     }
 
     // mark as walked
@@ -146,56 +151,68 @@ public class MazeGen {
 
     public void generate() {
 
-        // reset maze
-        maze = new Node.Type[height][width];
-        path.clear();
-        doubles.clear();
+        // generate a new maze until the path is >= minPathLength
 
-        // set random start
-        int startX = rand.nextInt(width);
-        int startY = rand.nextInt(height);
-        startNode = new Node(startX, startY);
+        int count = 0;
 
-        // set start node and add to path
-        set(startNode, Node.Type.START);
-        path.add(startNode);        
-        
-        currentNode = startNode;
+        do {
 
-        while (getNextNode()) {
-            Node.Type nextType = getNextNodeType();
+            // reset maze
+            maze = new Node.Type[height][width];
+            path.clear();
+            doubles.clear();
+
+            // set random start
+            int startX = rand.nextInt(width);
+            int startY = rand.nextInt(height);
+            startNode = new Node(startX, startY);
+
+            // set start node and add to path
+            set(startNode, Node.Type.START);
+            path.add(startNode);        
             
-            set(currentNode, nextType);
-            
-            if (nextType == Node.Type.WALL) {
-                // take a step back (note that currentNode it never added to path here)
-                currentNode = path.lastElement();
-            }
-            else {
-                // only add currentNode if it is walkable
-                path.add(currentNode);
-            }
-        }
+            currentNode = startNode;
 
-        // change default from null to Node.Type.WALL
-        for (int y=0; y<height; y++) {
-            for (int x=0; x<width; x++) {
-                if (get(x, y) == null) {
-                    set(x, y, Node.Type.WALL);
+            while (getNextNode()) {
+                Node.Type nextType = getNextNodeType();
+                
+                set(currentNode, nextType);
+                
+                if (nextType == Node.Type.WALL) {
+                    // take a step back (note that currentNode it never added to path here)
+                    currentNode = path.lastElement();
+                }
+                else {
+                    // only add currentNode if it is walkable
+                    path.add(currentNode);
                 }
             }
+
+            // change default from null to Node.Type.WALL
+            for (int y=0; y<height; y++) {
+                for (int x=0; x<width; x++) {
+                    if (get(x, y) == null) {
+                        set(x, y, Node.Type.WALL);
+                    }
+                }
+            }
+
+            // prevent endNode from ending up right next to startNode
+            if (currentNode.nextTo(startNode) && path.size() > 2) {
+                currentNode = path.pop();
+            }
+            
+            endNode = currentNode;
+
+            maze[startNode.y][startNode.x] = Node.Type.START;
+            maze[endNode.y][endNode.x] = Node.Type.END;
+
+            count++;
         }
 
-        // prevent endNode from ending up right next to startNode
-        if (currentNode.nextTo(startNode) && path.size() > 2) {
-            currentNode = path.pop();
-        }
-        
-        endNode = currentNode;
+        while (path.size() < minPathLength);
 
-        maze[startNode.y][startNode.x] = Node.Type.START;
-        maze[endNode.y][endNode.x] = Node.Type.END;
-
+        System.out.println("mazes generated: " + count);
     }
     
     // TODO: prevent creating double in corner
@@ -247,7 +264,7 @@ public class MazeGen {
         int dx;
         
         double chance = rand.nextDouble();
-        if (chance < CHANCE_CONTINUE_SAME_DIR) {
+        if (chance < CHANCE_NEXT_NODE_SAME_DIR) {
             dx = currentDirX;
         }
         else {
@@ -272,7 +289,7 @@ public class MazeGen {
         int dy;
         
         double chance = rand.nextDouble();
-        if (chance < CHANCE_CONTINUE_SAME_DIR) {
+        if (chance < CHANCE_NEXT_NODE_SAME_DIR) {
             dy = currentDirY;
         }
         else {
