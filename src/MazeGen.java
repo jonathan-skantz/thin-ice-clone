@@ -12,6 +12,8 @@ import java.util.Stack;
 
 public class MazeGen {
  
+    public boolean complete = false;       // is set to true when currentNode == endNode
+
     public Stack<Node> path = new Stack<>();
 
     // keep track of the user's path, in order to be able to backtrack
@@ -61,23 +63,22 @@ public class MazeGen {
         }
     }
 
-    // mark as walked
-    public Node.Type leaveNode(Node node) {
+    public void userMove(int dx, int dy) {
+
+        Node newNode = new Node(currentNode.x+dx, currentNode.y+dy);
         
-        Node.Type type;
-
-        if (get(node) == Node.Type.DOUBLE) {
-            type = Node.Type.GROUND;
-
+        if (get(currentNode) == Node.Type.DOUBLE) {
+            set(currentNode, Node.Type.GROUND);
         }
         else {
-            type = Node.Type.BLOCKED;
+            if ((get(newNode) == Node.Type.END)) {
+                complete = true;
+            }
+            set(currentNode, Node.Type.BLOCKED);
         }
         
-        set(node, type);
-        userPath.add(node);
-
-        return type;
+        currentNode = newNode;
+        userPath.add(currentNode);
     }
 
     public void set(Node node, Node.Type type) {
@@ -103,6 +104,11 @@ public class MazeGen {
 
     public void reset() {
         
+        userPath.clear();
+        userUndos.clear();
+        
+        complete = false;
+
         for (int y=0; y<height; y++) {
             for (int x=0; x<width; x++) {
                 
@@ -119,9 +125,13 @@ public class MazeGen {
         }
     }
 
-    public void resetNode(Node node) {
+    public void nodeReset(Node node) {
 
-        if (get(node) == Node.Type.BLOCKED) {
+        if (node.same(startNode)) {
+            set(node, Node.Type.START);
+        }
+
+        else if (get(node) == Node.Type.BLOCKED) {
             set(node, Node.Type.GROUND);
         }
 
@@ -136,20 +146,41 @@ public class MazeGen {
         }
     }
 
-    public void step(int direction) {
-        resetNode(currentNode);
+    // returns previous node's type
+    public Node.Type step(int direction) {
         
         if (direction == -1) {
-            currentNode = userPath.pop();
-            userUndos.add(currentNode);
+            if (userPath.size() > 1) {
+                nodeReset(currentNode);
+                
+                Node lastStep = userPath.pop();
+                userUndos.add(lastStep);      // remove last step and add to undos
+                currentNode = userPath.lastElement();
+
+                return get(lastStep);
+            }
         }
         else {
-            currentNode = userUndos.pop();
-            userPath.add(currentNode);
+            if (userUndos.size() > 0) {
+                
+                Node lastStep = currentNode;
+
+                currentNode = userUndos.pop();
+                nodeReset(currentNode);
+                userPath.add(currentNode);      // TODO: check that the user doesn't try to move to an already used double
+
+                return get(lastStep);
+            }
         }
+        
+        return null;
     }
 
     public void generate() {
+
+        complete = false;
+        userPath.clear();
+        userUndos.clear();
 
         // generate a new maze until the path is >= minPathLength
 
@@ -169,7 +200,8 @@ public class MazeGen {
 
             // set start node and add to path
             set(startNode, Node.Type.START);
-            path.add(startNode);        
+            path.add(startNode);   
+            userPath.add(startNode);
             
             currentNode = startNode;
 
@@ -309,8 +341,8 @@ public class MazeGen {
         return true;
     }
 
-    public boolean nodeWalkable(int x, int y) {
-        return get(x, y) != Node.Type.WALL && get(x, y) != Node.Type.BLOCKED;
+    public boolean nodeTypeWalkable(Node node) {
+        return get(node) != Node.Type.WALL && get(node) != Node.Type.BLOCKED;
     }
 
     private boolean validMove(int dx, int dy) {

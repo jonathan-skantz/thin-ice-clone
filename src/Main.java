@@ -32,7 +32,6 @@ public class Main {
     public static final Color HINT_COLOR = new Color(150, 150, 255);
 
     public static MazeGen mazeGen = new MazeGen(DIMENSION_WIDTH, DIMENSION_HEIGHT);
-    public static boolean mazeCompleted = false;
     
     // coordinates of topleft of maze
     public static final int MAZE_START_X = (Window.width - BLOCK_SIZE * DIMENSION_WIDTH) / 2;
@@ -98,17 +97,9 @@ public class Main {
 
     }
 
-    public static void testMazeCompleted() {
-
-        if (mazeGen.currentNode.x == mazeGen.endNode.x && mazeGen.currentNode.y == mazeGen.endNode.y) {
-            mazeCompleted = true;
-            textNextLevel.setVisible(true);
-        }
-    }
-
     public static void tryMoveToNode(int dx, int dy) {
 
-        if (mazeCompleted) {
+        if (mazeGen.complete) {
             return;
         }
 
@@ -117,36 +108,28 @@ public class Main {
         
         if (mazeGen.pointOnGrid(newNode.x, newNode.y)) {
             
-            Node.Type nodeType = mazeGen.get(newNode);
-            
-            if (nodeType != Node.Type.WALL && nodeType != Node.Type.BLOCKED) {
-                // valid block to move to
+            if (mazeGen.nodeTypeWalkable(newNode)) {
                 
                 KeyHandler.ActionKey action;
 
-                if (dx == 1) {
-                    action = KeyHandler.ActionKey.MOVE_RIGHT;
-                }
-                else if (dx == -1) {
-                    action = KeyHandler.ActionKey.MOVE_LEFT;
-                }
-                else if (dy == 1) {
-                    action = KeyHandler.ActionKey.MOVE_DOWN;
-                }
-                else {
-                    action = KeyHandler.ActionKey.MOVE_UP;
-                }
+                if (dx == 1) action = KeyHandler.ActionKey.MOVE_RIGHT;
+                else if (dx == -1) action = KeyHandler.ActionKey.MOVE_LEFT;
+                else if (dy == 1) action = KeyHandler.ActionKey.MOVE_DOWN;
+                else action = KeyHandler.ActionKey.MOVE_UP;
 
                 player.move(action);
 
-                Node.Type newType = mazeGen.leaveNode(mazeGen.currentNode);
 
-                Color color = COLOR_TABLE.get(newType);
-                mazeSprites[mazeGen.currentNode.y][mazeGen.currentNode.x].setBackgroundColor(color);
+                Node lastNode = mazeGen.currentNode;
+                mazeGen.userMove(dx, dy);
+
+                Node.Type lastNodeType = mazeGen.get(lastNode);
+                Color color = COLOR_TABLE.get(lastNodeType);
+                mazeSprites[lastNode.y][lastNode.x].setBackgroundColor(color);
                 
-                mazeGen.currentNode = newNode;
-
-                testMazeCompleted();
+                if (mazeGen.complete) {
+                    textNextLevel.setVisible(true);
+                }
             }
         }
     }
@@ -164,7 +147,7 @@ public class Main {
         KeyHandler.ActionKey.MAZE_NEW.setCallback(() -> { 
             
             // prevent making new mazes unless the current is solved
-            // if (mazeCompleted) {
+            // if (mazeGen.complete) {
                 generateNewMaze();
             // }
         });
@@ -184,9 +167,13 @@ public class Main {
     public static void step(int direction) {
         
         Node oldNode = mazeGen.currentNode;
-        mazeGen.step(direction);
 
+        Node.Type lastNodeType = mazeGen.step(direction);
 
+        if (lastNodeType == null) {
+            return;
+        }
+        
         // TODO: player moves incorrectly when step + 1
         if (mazeGen.currentNode.x < oldNode.x) {
             player.move(KeyHandler.ActionKey.MOVE_LEFT);
@@ -197,17 +184,24 @@ public class Main {
         else if (mazeGen.currentNode.y < oldNode.y) {
             player.move(KeyHandler.ActionKey.MOVE_UP);
         }
-        else {
+        else if (mazeGen.currentNode.y > oldNode.y) {
             player.move(KeyHandler.ActionKey.MOVE_DOWN);
         }
 
-        mazeSprites[mazeGen.currentNode.y][mazeGen.currentNode.x].setBackgroundColor(COLOR_TABLE.get(Node.Type.GROUND));
+        // TODO: start should be start color
+
+        Sprite spr;
+        if (direction == -1) {
+            spr = mazeSprites[mazeGen.currentNode.y][mazeGen.currentNode.x];
+        }
+        else {
+            spr = mazeSprites[mazeGen.currentNode.y][mazeGen.currentNode.x];
+        }
+        spr.setBackgroundColor(COLOR_TABLE.get(lastNodeType));
         
     }
 
     public static void resetPlayer() {
-        
-        // Node startNode = mazeGenerator.getStartNode(); 
         
         // move player to center of start node
         int blockX = MAZE_START_X + mazeGen.startNode.x * BLOCK_SIZE;
@@ -219,13 +213,10 @@ public class Main {
         player.moveTo(centeredX, centeredY);
         
         mazeGen.currentNode = mazeGen.startNode;
-
-        // TODO: reset option in MazeGen
     }
     
     public static void resetGraphics() {
-        
-        mazeCompleted = false;
+
         textNextLevel.setVisible(false);
         
         boolean firstMaze = mazeSprites[0][0] == null;
@@ -253,8 +244,10 @@ public class Main {
 
         // finally set the start node color
         Node startNode = mazeGen.startNode;
-        mazeGen.set(startNode, Node.Type.START);
         mazeSprites[startNode.y][startNode.x].setBackgroundColor(COLOR_TABLE.get(Node.Type.START));
+
+        // // TODO: why is this needed?
+        mazeSprites[mazeGen.endNode.y][mazeGen.endNode.x].setBackgroundColor(COLOR_TABLE.get(Node.Type.END));
 
         // reset nodes (otherwise they refer to incorrect blocks)
         for (int i=0; i<hintNodes.length; i++) {
