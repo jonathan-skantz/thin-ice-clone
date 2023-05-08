@@ -137,6 +137,7 @@ public class Main {
 
     public static void setupKeyCallbacks() {
 
+        // TODO: add listener when creating new instance of Window
         KeyHandler listener = new KeyHandler();
         window.addKeyListener(listener);
         
@@ -167,6 +168,10 @@ public class Main {
     
     public static void step(int direction) {
         
+        if (mazeGen.complete) {
+            return;
+        }
+
         Node oldNode = mazeGen.currentNode;
 
         Node.Type typeBefore = mazeGen.step(direction);

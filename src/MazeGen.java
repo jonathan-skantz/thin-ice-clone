@@ -116,6 +116,9 @@ public class MazeGen {
         pathHistoryTypes.clear();
         pathHistoryRedo.clear();
         
+        pathHistory.add(startNode);
+        pathHistoryTypes.add(get(startNode));
+
         complete = false;
 
         for (int y=0; y<height; y++) {
