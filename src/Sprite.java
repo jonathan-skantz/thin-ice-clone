@@ -11,7 +11,7 @@ import java.awt.image.BufferedImage;
 
 /**
  * Class for creating rectangle sprites, which consist of
- * one of two or both a background color and image.
+ * a background color and/or image.
  */
 public class Sprite extends JComponent {
     
@@ -40,9 +40,8 @@ public class Sprite extends JComponent {
         } catch (IOException e) {
             System.out.println("IOException when loading \"" + relPath + "\": " + e.getMessage());
             
-            // create default image (red square with border and cross)
+            // create default image (red square with border)
             setBounds(0, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT);
-
             setBackground(Color.RED);
             setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
         }
@@ -74,31 +73,25 @@ public class Sprite extends JComponent {
         super.paintComponent(g);        // TODO: this is probably not necessary
         
         g.setColor(getBackground());
-        // NOTE: (x,y) = (0,0) since `g` is the graphics that
-        // refers to this sprite's canvas
-
+        
+        // NOTE: fills at (0,0) since `g` is the graphics that refers to this sprite's canvas
         g.fillRect(0, 0, getWidth(), getHeight());
 
         // NOTE: bgImage may be null
         g.drawImage(bgImage, 0, 0, null);
-
-        System.out.println(getBounds());
     }
 
     /**
-     * Moves the sprite to the center of the window.
+     * Move the sprite to the center of the window.
      */
     public void moveToCenter() {
         int x = (Window.width - getWidth()) / 2;
         int y = (Window.height - getHeight()) / 2;
         setLocation(x, y);
-        // System.out.println(getBounds());       // TODO: why does printing this hide the sprite?
     }
 
     /**
-     * Moves the sprite according to its velocity and current direction.
-     * 
-     * @param key "up", "down", "left", or "right" currently implemented.
+     * Move the sprite according to its velocity and current direction.
      */
     public void move(KeyHandler.ActionKey actionKey) {
 
