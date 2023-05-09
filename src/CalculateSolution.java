@@ -1,12 +1,58 @@
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 
 public class CalculateSolution {
 
     private MazeGen mazeGen;
+    private Random rand = new Random();
 
     CalculateSolution(MazeGen mazeGen) {
         this.mazeGen = mazeGen;
+    }
+
+    private ArrayList<Node.Type> neighboringTypes(int i, int j) {
+        ArrayList<Node.Type> neighboringTypes = new ArrayList<>();
+        for (int k = i-1; k < i+2; k++) {
+            for (int l = j-1; l < j+2; j++) {
+                if (pointOnGrid(k, l)) {
+                    neighboringTypes.add(mazeGen.getMaze()[l][k]);
+                }
+            }
+        }
+
+        return neighboringTypes;
+    }
+
+    private int numNeighboringWalls(ArrayList<Node.Type> neighboringTypes, int i, int j) {
+        int numNeighboringWalls = 0;
+        if (pointOnGrid(i, j)) {
+            for(int k = 0; k < 3; k++) {
+                if(neighboringTypes.get(k) == Node.Type.WALL) {
+                    numNeighboringWalls++;
+                }
+            }
+        }
+
+        return numNeighboringWalls;
+    }
+
+    private boolean isDeadEnd(int i, int j) {
+        if(numNeighboringWalls(neighboringTypes(i, j), i, j) == 3) return true; // gör : ? grej
+        else return false;
+    }
+
+    private boolean leadsToDeadEnd(int i, int j) {
+        int numBlocked = 0;
+        for(int k = 0; k < neighboringTypes(i, j).size(); k++) {
+            if(mazeGen.getMaze()[j][i] == Node.Type.BLOCKED) {
+                numBlocked++;
+            }
+        }
+
+        if(numNeighboringWalls(neighboringTypes(i, j), i, j) == 2 && numBlocked == 1) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -16,8 +62,70 @@ public class CalculateSolution {
      * @return a LinkedList of Nodes representing a possible longest path to the endNode
      */
     public LinkedList<Node> findLongestPath() {
+        LinkedList<Node> longestPath = new LinkedList<>();
+        int longestPathLength = 0;
+
+        for(int i = 0; i < mazeGen.width; i++) {
+            for(int j = 0; j < mazeGen.height; j++) {
+                if(mazeGen.getMaze()[j][i] == Node.Type.GROUND) {
+                    // Don't count dead-ends
+                    // Don't count nodes that lead to dead-ends
+                    if(isDeadEnd(i, j) || leadsToDeadEnd(i, j)) {
+                        continue;
+                    }
+                    
+                    longestPathLength++;
+                }
+            }
+        }
+
+        System.out.println(longestPathLength);
+
+        // TODO: 
+        // Look through all nodes and see which are dead-ends
+        // Count neighbours of dead-end nodes which only have one neighbor in the direction of dead-end node 
+        // Subtract ^ + 1 from total number of walkable nodes
+
+        // Determine if dead end: if only has one neighbor
+        // Get that neighbor and check if only one neighbor in dead end direction
+
+        // Construct paths randomly until one has the maximum length 
+        
+        
+        return longestPath;
 
     }
+
+    // public boolean isDeadEnd(int x, int y, int directionX, int directionY, boolean[][] visited) {
+    //     int dx = directionX;
+    //     int dy = directionY;
+    //     int nx = x + dx;
+    //     int ny = y + dy;
+    //     if (nx < 0 || nx >= mazeGen.width || ny < 0 || ny >= mazeGen.height) {
+    //         // the adjacent node is outside the maze
+    //         return true;
+    //     }
+    //     if (mazeGen.getMaze()[nx][ny] == Node.Type.WALL) {
+    //         // the adjacent node is a wall
+    //         return true;
+    //     }
+    //     // check if all nodes adjacent to the adjacent node in the same direction are walls or visited
+    //     int count = 0;
+    //     for (int i = 0; i < 4; i++) {
+    //         if (i != direction) {
+    //             int nnx = nx + dx[i];
+    //             int nny = ny + dy[i];
+    //             if (nnx >= 0 && nnx < mazeGen.width && nny >= 0 && nny < mazeGen.height) {
+    //                 if (mazeGen.getMaze()[nnx][nny] == Node.Type.WALL || visited[nnx][nny]) {
+    //                     count++;
+    //                 }
+    //             } else {
+    //                 count++;
+    //             }
+    //         }
+    //     }
+    //     return count == 3;
+    // }
 
     /**
      * Finds the shortest path from startNode to endNode in the maze.
