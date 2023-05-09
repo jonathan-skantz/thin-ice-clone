@@ -1,5 +1,6 @@
 import java.awt.Color;
 
+import java.awt.Insets;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
@@ -29,12 +30,21 @@ public class Window extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         sprites.setLayout(null);
-        sprites.setBounds(0, 0, width, height);
-        sprites.setBackground(BG_COLOR);
-
-        add(sprites);   // finally add the panel
 
         setVisible(true);
+        Insets ins = getInsets();
+        System.out.println(ins);
+        
+        width = width - ins.left - ins.right;
+        height = height - ins.top - ins.bottom;
+
+        sprites.setBounds(ins.left, ins.top, width, height);
+        sprites.setBackground(BG_COLOR);
+
+        sprites.setLocation(0, 0);
+        
+        add(sprites);   // finally add the panel
+
     }
 
 }
