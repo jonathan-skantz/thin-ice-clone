@@ -12,15 +12,15 @@ public class CalculateSolution {
     private ArrayList<Node.Type> neighboringTypes(int i, int j) {
         ArrayList<Node.Type> neighboringTypes = new ArrayList<>();
         for (int k = i-1; k < i+2; k++) {
-            for (int l = j-1; l < j+2; j++) {
+            for (int l = j-1; l < j+2; l++) { 
                 if (pointOnGrid(k, l)) {
                     neighboringTypes.add(mazeGen.getMaze()[l][k]);
                 }
             }
         }
-
+    
         return neighboringTypes;
-    }
+    }    
 
     private int numNeighboringWalls(ArrayList<Node.Type> neighboringTypes, int i, int j) {
         int numNeighboringWalls = 0;
