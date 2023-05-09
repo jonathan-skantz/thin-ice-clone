@@ -1,6 +1,12 @@
 import java.util.Hashtable;
 import java.util.LinkedList;
+
+import javax.swing.border.Border;
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
+
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 
 public class Main {
@@ -24,8 +30,9 @@ public class Main {
     };
 
     // border config
-    public static final int BORDER_WIDTH = 2;
+    public static final int BORDER_WIDTH = 1;
     public static final Color BORDER_COLOR = new Color(0, 0, 0, 50);
+    public static final Border BORDER = BorderFactory.createLineBorder(BORDER_COLOR, BORDER_WIDTH);
 
     // hint config
     public static final int HINT_MAX = 3;
@@ -39,7 +46,7 @@ public class Main {
 
     // sprites
     public static Sprite player;
-    public static Sprite textNextLevel;
+    public static JLabel textNextLevel;
     public static Sprite[][] mazeSprites = new Sprite[DIMENSION_HEIGHT][DIMENSION_WIDTH];
 
     public static Node[] hintNodes = new Node[HINT_MAX];
@@ -48,33 +55,42 @@ public class Main {
     public static void main(String[] args) {
 
         setupKeyCallbacks();
-
-        window.setAllowRepaint(false);
         
+        window.sprites.setVisible(false);
+
         // create player
         int size = BLOCK_SIZE - 2 * BORDER_WIDTH;
         player = new Sprite(size, size, Color.ORANGE, BLOCK_SIZE);
-        player.setBorder(2, Color.BLACK, true);
+        player.setBorder(BORDER);
         
-        // create next-level-text
+        // setup next-level-text
         Font font = new Font("arial", Font.PLAIN, 20);
-        textNextLevel = new Sprite("Level complete", font, Color.BLACK);
-        textNextLevel.moveTo(textNextLevel.rect.x, Window.height - textNextLevel.rect.height - 25);
+        textNextLevel = new JLabel("Level complete");
+        window.sprites.add(textNextLevel);
+
+        textNextLevel.setForeground(Color.BLACK);
+        textNextLevel.setFont(font);
+        Dimension d = textNextLevel.getPreferredSize();
+        
+        int y = Window.height - 50;
+        int x = (Window.width - d.width) / 2;
+        textNextLevel.setBounds(x, y, d.width, d.height);
         textNextLevel.setVisible(false);
         
+
         generateNewMaze();
     }
 
     public static void showHint() {
 
-        window.setAllowRepaint(false);
+        window.sprites.setVisible(false);
 
         // reset old hint sprites
         for (Node n : hintNodes) {
             if (n != null) {
 
                 if (mazeGen.get(n) != Node.Type.BLOCKED && !n.same(mazeGen.currentNode)) {
-                    mazeSprites[n.y][n.x].setBackgroundColor(COLOR_TABLE.get(Node.Type.GROUND));
+                    mazeSprites[n.y][n.x].setBackground(COLOR_TABLE.get(Node.Type.GROUND));
                 }
             }
         }
@@ -88,12 +104,12 @@ public class Main {
         for (int hint=1; hint<=HINT_MAX && hint<path.size()-1; hint++) {
             Node step = path.get(hint);
 
-            mazeSprites[step.y][step.x].setBackgroundColor(HINT_COLOR);
+            mazeSprites[step.y][step.x].setBackground(HINT_COLOR);
             hintNodes[i] = step;
             i++;
         }
 
-        window.setAllowRepaint(true);
+        window.sprites.setVisible(true);
 
     }
 
@@ -103,7 +119,6 @@ public class Main {
             return;
         }
 
-        
         Node newNode = new Node(mazeGen.currentNode.x + dx, mazeGen.currentNode.y + dy);
         
         // TODO: combine pointOnGrid and nodeTypeWalkable?
@@ -126,7 +141,7 @@ public class Main {
 
                 Node.Type lastNodeType = mazeGen.get(lastNode);
                 Color color = COLOR_TABLE.get(lastNodeType);
-                mazeSprites[lastNode.y][lastNode.x].setBackgroundColor(color);
+                mazeSprites[lastNode.y][lastNode.x].setBackground(color);
                 
                 if (mazeGen.complete) {
                     textNextLevel.setVisible(true);
@@ -202,7 +217,7 @@ public class Main {
             spr = mazeSprites[oldNode.y][oldNode.x];
             
         }
-        spr.setBackgroundColor(color);
+        spr.setBackground(color);
         
     }
 
@@ -212,10 +227,10 @@ public class Main {
         int blockX = MAZE_START_X + mazeGen.startNode.x * BLOCK_SIZE;
         int blockY = MAZE_START_Y + mazeGen.startNode.y * BLOCK_SIZE;
         
-        int centeredX = blockX + (BLOCK_SIZE - player.canvas.getWidth()) / 2;
-        int centeredY = blockY + (BLOCK_SIZE - player.canvas.getHeight()) / 2;
+        int centeredX = blockX + (BLOCK_SIZE - player.getWidth()) / 2;
+        int centeredY = blockY + (BLOCK_SIZE - player.getHeight()) / 2;
         
-        player.moveTo(centeredX, centeredY);
+        player.setLocation(centeredX, centeredY);
         
         mazeGen.currentNode = mazeGen.startNode;
     }
@@ -226,7 +241,7 @@ public class Main {
         
         boolean firstMaze = mazeSprites[0][0] == null;
 
-        window.setAllowRepaint(false);
+        window.sprites.setVisible(false);
 
         // create a new sprite for every block in the maze
         for (int y=0; y<mazeGen.height; y++) {
@@ -241,7 +256,7 @@ public class Main {
                 
                 else {
                     // reaches here when generating new maze
-                    mazeSprites[y][x].setBackgroundColor(color);
+                    mazeSprites[y][x].setBackground(color);
                 }
 
             }
@@ -249,10 +264,10 @@ public class Main {
 
         // finally set the start node color
         Node startNode = mazeGen.startNode;
-        mazeSprites[startNode.y][startNode.x].setBackgroundColor(COLOR_TABLE.get(Node.Type.START));
+        mazeSprites[startNode.y][startNode.x].setBackground(COLOR_TABLE.get(Node.Type.START));
 
         // // TODO: why is this needed?
-        mazeSprites[mazeGen.endNode.y][mazeGen.endNode.x].setBackgroundColor(COLOR_TABLE.get(Node.Type.END));
+        mazeSprites[mazeGen.endNode.y][mazeGen.endNode.x].setBackground(COLOR_TABLE.get(Node.Type.END));
 
         // reset nodes (otherwise they refer to incorrect blocks)
         for (int i=0; i<hintNodes.length; i++) {
@@ -260,7 +275,7 @@ public class Main {
         }
         resetPlayer();
         
-        window.setAllowRepaint(true);
+        window.sprites.setVisible(true);
     }
 
     public static void generateNewMaze() {
@@ -276,13 +291,13 @@ public class Main {
 
         // create block
         Sprite block = new Sprite(BLOCK_SIZE, BLOCK_SIZE, color, 0);
-        block.setBorder(BORDER_WIDTH, BORDER_COLOR, true);
+        block.setBorder(BORDER);
         mazeSprites[y][x] = block;
         
         // move block
         int xPos = MAZE_START_X + x * BLOCK_SIZE;
         int yPos = MAZE_START_Y + y * BLOCK_SIZE;
-        block.moveTo(xPos, yPos);
+        block.setLocation(xPos, yPos);
     }
     
 }
