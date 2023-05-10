@@ -1,5 +1,4 @@
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 
 public class CalculateSolution {
 
@@ -9,10 +8,61 @@ public class CalculateSolution {
         this.mazeGen = mazeGen;
     }
 
+    private HashMap<Integer, int[]> getNeighboringValues(int i, int j, boolean[][] visited) {
+        HashMap<Integer, int[]> neighboringValues = new HashMap<>();
+        for (int k = i-1; k < i+2; k++) {
+            for (int l = j-1; l < j+2; l++) { 
+                if (pointOnGrid(k, l) && mazeGen.getMaze()[l][k] == Node.Type.GROUND && !visited[l][k]) {
+                    String value = mazeGen.arrVisual[l][k];
+                    int[] indexes = {l, k};
+                    System.out.println(l + ", " + k);
+                    neighboringValues.put(Integer.valueOf(value), indexes);
+                    visited[l][k] = true;
+                }
+            }
+        }
+    
+        return neighboringValues;
+    } 
+    
+    public LinkedList<Node> findLongestPath() {
+        String[][] arrVisual = mazeGen.arrVisual;
+        LinkedList<Node> longestPath = new LinkedList<>();
+        boolean[][] visited = new boolean[mazeGen.height][mazeGen.width];
+
+        //find neighbording node with lowest value and add to longestPath
+        Node curr = mazeGen.currentNode;
+        int lowest = Integer.MAX_VALUE;
+        HashMap<Integer, int[]> neighboringValues;
+        int[] indexOfLowestNeighbor = new int[2];
+        
+        while(curr != mazeGen.endNode) { 
+            neighboringValues = getNeighboringValues(curr.x, curr.y, visited);
+            for(int value : neighboringValues.keySet()) {
+                if(value < lowest) {
+                    lowest = value;
+                }
+            }
+
+            indexOfLowestNeighbor = neighboringValues.get(lowest);
+            // set new curr
+            if(indexOfLowestNeighbor[0] == mazeGen.endNode.x && indexOfLowestNeighbor[1] == mazeGen.endNode.y) {
+                curr = mazeGen.endNode;
+            } else {
+                curr = new Node(indexOfLowestNeighbor[0], indexOfLowestNeighbor[1]);
+                longestPath.addLast(curr);
+                System.out.println(longestPath.size());
+            }
+
+        }
+
+        return longestPath;
+    }
+
     /**
      * Finds the shortest path from startNode to endNode in the maze.
      *
-     * @return an ArrayList of Nodes representing the shortest path from startNode to endNode
+     * @return a LinkedList of Nodes representing the shortest path from startNode to endNode
      */
     public LinkedList<Node> findShortestPath() {
         // create a queue for BFS
@@ -46,7 +96,8 @@ public class CalculateSolution {
             for (int y=currentNode.y-1; y<=currentNode.y+1; y++) {
                 for (int x=currentNode.x-1; x<=currentNode.x+1; x++) {
                     // skip if the neighbor is out of bounds, or is not walkable
-                    if (!pointOnGrid(x, y) || !pointNotCorner(currentNode, x, y) || !pointNotNode(currentNode, x, y) || !mazeGen.nodeWalkable(x, y) || visited[y][x]) {
+                    // TODO: here, check if blocked as well
+                    if (!pointOnGrid(x, y) || !pointNotCorner(currentNode, x, y) || !pointNotNode(currentNode, x, y) || mazeGen.get(x, y) == Node.Type.WALL || visited[y][x]) {
                         continue;
                     }
 
