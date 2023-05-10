@@ -75,6 +75,7 @@ public class Main {
         
         // labels and buttons for changing controls
         UI.setUpKeyConfig(window);
+        UI.setUpMazeConfig(window, mazeGen);
 
         // generate maze and reset graphics
         generateNewMaze();
@@ -282,8 +283,6 @@ public class Main {
         mazeGen.generate();
         mazeGen.printMazeWithPath();
         mazeGen.printMazeWithTypes();
-
-        System.out.println(mazeGen.chanceNextNodeSameDir);
 
         resetGraphics();
     }

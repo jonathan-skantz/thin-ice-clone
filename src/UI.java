@@ -7,44 +7,44 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JSlider;
 
 public class UI {
  
     public static void setUpKeyConfig(Window window) {
+        
+        JPanel panel = new JPanel(new GridBagLayout());
 
+        // constraints
         Insets insets = new Insets(5, 5, 5, 5);
 
-        // constraints for first column
+        // 1st column
         GridBagConstraints gbcCol1 = new GridBagConstraints();
         gbcCol1.gridx = 0;
-        gbcCol1.gridy = GridBagConstraints.RELATIVE;
-        gbcCol1.weightx = 0.0; // set weight to 0 to make column fixed size
         gbcCol1.insets = insets;
         
-        // constraints for second column
+        // 2nd column
         GridBagConstraints gbcCol2 = new GridBagConstraints();
         gbcCol2.gridx = 1;
-        gbcCol2.gridy = GridBagConstraints.RELATIVE;
-        gbcCol2.weightx = 1; // set weight to 1 to make column take up remaining horizontal space
         gbcCol2.insets = insets;
 
-
-        JPanel keyConfig = new JPanel(new GridBagLayout());
-
+        // new label in 1st column, new btn in 2nd column
         for (KeyHandler.ActionKey key : KeyHandler.ActionKey.values()) {
 
             JLabel label = new JLabel(key.name());
-            label.setPreferredSize(new Dimension(150, label.getPreferredSize().height));
-            keyConfig.add(label, gbcCol1);
-
             JButton btn = new JButton(KeyEvent.getKeyText(key.keyCode));
+            
+            label.setPreferredSize(new Dimension(125, label.getPreferredSize().height));
             btn.setPreferredSize(new Dimension(100, btn.getPreferredSize().height));
-            keyConfig.add(btn, gbcCol2);
+            
+            panel.add(label, gbcCol1);
+            panel.add(btn, gbcCol2);
 
             btn.addActionListener(e -> {
                 // when clicked, change text to "?" and start listening for key press
@@ -63,7 +63,7 @@ public class UI {
 
         }
 
-        JButton btnConfig = getConfigPopupButton(window, "Key config", keyConfig);
+        JButton btnConfig = getConfigPopupButton(window, "Key config", panel);
         
         // move to bottomleft
         int pad = 10;
@@ -72,7 +72,50 @@ public class UI {
 
     }
 
+    public static void setUpMazeConfig(Window window, MazeGen mazeGen) {
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        // (label followed by slider) x 3
+        for (MazeGen.ChanceNextNode chanceItem : MazeGen.ChanceNextNode.values()) {
+
+            int val = (int)(chanceItem.chance * 100);
+            JLabel label = new JLabel(chanceItem.name() + ": " + val + "%");
+            JSlider slider = new JSlider(JSlider.HORIZONTAL, 0, 100, val);
+
+            slider.setMajorTickSpacing(10);
+            slider.setMinorTickSpacing(5);
+            slider.setPaintTicks(true);
+            slider.setPaintLabels(true);
+            slider.setSnapToTicks(true);
+            slider.setPreferredSize(new Dimension(500, 100));
+            slider.setBorder(BorderFactory.createEmptyBorder(5, 5, 50, 5));
+
+            slider.addChangeListener(e -> {
+                int value = slider.getValue();
+                chanceItem.chance = value;
+                label.setText(chanceItem.name() + ": " + value + "%");
+            });
+
+            panel.add(label, gbc);
+            panel.add(slider, gbc);
+        }
+
+        JButton btn = getConfigPopupButton(window, "Maze config", panel);
+
+        // move to bottomright
+        int pad = 10;
+        int x = Window.width - btn.getWidth() - pad;
+        int y = Window.height - btn.getHeight() - pad;
+        btn.setLocation(x, y);
+    }
+
     public static JButton getConfigPopupButton(Window window, String title, JPanel contentPane) {
+        
         // setup button that opens a dialog
         JButton btn = new JButton(title);
         btn.setSize(btn.getPreferredSize());
