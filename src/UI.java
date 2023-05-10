@@ -18,6 +18,8 @@ import javax.swing.JSlider;
 
 public class UI {
  
+    private static boolean mazeConfigIsNew = false;
+
     public static void setUpKeyConfig(Window window) {
         
         JPanel panel = new JPanel(new GridBagLayout());
@@ -78,7 +80,7 @@ public class UI {
         panel.add(label, gbcCol1);
         panel.add(cb, gbcCol2);
 
-        JButton btnConfig = getConfigPopupButton(window, "Key config", panel, true);
+        JButton btnConfig = getConfigPopupButton(window, "Key config", panel);
         
         // move to bottomleft
         int pad = 10;
@@ -128,7 +130,7 @@ public class UI {
                 int newVal = slider.getValue();
                 chanceItem.chance = (float)newVal / 100;
                 label.setText(chanceItem.name() + ": " + newVal + "%");
-                System.out.println(chanceItem + " set to " + newVal);
+                mazeConfigIsNew = true;
             });
 
             panel.add(label, gbc);
@@ -145,12 +147,14 @@ public class UI {
             int val = sliderWidth.getValue();
             Main.setNewWidth(val);
             labelWidth.setText("Width: " + val);
+            mazeConfigIsNew = true;
         });
         
         sliderHeight.addChangeListener(e -> {
             int val = sliderHeight.getValue();
             Main.setNewHeight(val);
             labelHeight.setText("Height: " + val);
+            mazeConfigIsNew = true;
         });
 
         panel.add(labelWidth, gbc);
@@ -160,7 +164,7 @@ public class UI {
         panel.add(sliderHeight, gbc);
 
 
-        JButton btn = getConfigPopupButton(window, "Maze config", panel, true);
+        JButton btn = getConfigPopupButton(window, "Maze config", panel);
 
         // move to bottomright
         int pad = 10;
@@ -169,7 +173,7 @@ public class UI {
         btn.setLocation(x, y);
     }
 
-    public static JButton getConfigPopupButton(Window window, String title, JPanel contentPane, boolean newMazeOnClose) {
+    public static JButton getConfigPopupButton(Window window, String title, JPanel contentPane) {
         
         // setup button that opens a dialog
         JButton btn = new JButton(title);
@@ -189,10 +193,12 @@ public class UI {
             dialog.addWindowListener(new WindowAdapter() {
                 @Override
                 public void windowClosed(WindowEvent e) {
-                    window.requestFocus();  // prevents focus back to the config btn
+                    window.requestFocus();  // prevents focus back to the config btn and rather the game canvas
                     
-                    if (newMazeOnClose) {
+                    // TODO: this also checks when closing the key config popup (not desired)
+                    if (mazeConfigIsNew) {
                         Main.generateNewMaze();
+                        mazeConfigIsNew = false;
                     }
                 }
             });
