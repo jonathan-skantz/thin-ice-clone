@@ -78,7 +78,7 @@ public class UI {
         panel.add(label, gbcCol1);
         panel.add(cb, gbcCol2);
 
-        JButton btnConfig = getConfigPopupButton(window, "Key config", panel);
+        JButton btnConfig = getConfigPopupButton(window, "Key config", panel, true);
         
         // move to bottomleft
         int pad = 10;
@@ -160,7 +160,7 @@ public class UI {
         panel.add(sliderHeight, gbc);
 
 
-        JButton btn = getConfigPopupButton(window, "Maze config", panel);
+        JButton btn = getConfigPopupButton(window, "Maze config", panel, true);
 
         // move to bottomright
         int pad = 10;
@@ -169,7 +169,7 @@ public class UI {
         btn.setLocation(x, y);
     }
 
-    public static JButton getConfigPopupButton(Window window, String title, JPanel contentPane) {
+    public static JButton getConfigPopupButton(Window window, String title, JPanel contentPane, boolean newMazeOnClose) {
         
         // setup button that opens a dialog
         JButton btn = new JButton(title);
@@ -190,6 +190,10 @@ public class UI {
                 @Override
                 public void windowClosed(WindowEvent e) {
                     window.requestFocus();  // prevents focus back to the config btn
+                    
+                    if (newMazeOnClose) {
+                        Main.generateNewMaze();
+                    }
                 }
             });
         });
