@@ -22,7 +22,10 @@ public class KeyHandler extends KeyAdapter {
         MAZE_HINT(KeyEvent.VK_H),
 
         MAZE_STEP_UNDO(KeyEvent.VK_LEFT),
-        MAZE_STEP_REDO(KeyEvent.VK_RIGHT);
+        MAZE_STEP_REDO(KeyEvent.VK_RIGHT),
+        
+        ZOOM_IN(KeyEvent.VK_PLUS),
+        ZOOM_OUT(KeyEvent.VK_MINUS);
 
         private ActionKey(int keyCode) {
             this.keyCode = keyCode;
@@ -66,7 +69,10 @@ public class KeyHandler extends KeyAdapter {
         }
 
         ActionKey action = ActionKey.getAction(keyCode);
-        if (action != null) {               // prevents listening to unused keys
+
+        // if the key has an action, or if (ctrl and +) or (ctrl and -) is pressed
+        if (action != null ||
+            (e.isControlDown() && (action == ActionKey.ZOOM_IN || action == ActionKey.ZOOM_OUT))) {
             keysPressed.add(keyCode);
             action.callback.run();          // executes corresponding action
         }
