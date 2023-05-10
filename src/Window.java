@@ -33,7 +33,6 @@ public class Window extends JFrame {
 
         setVisible(true);
         Insets ins = getInsets();
-        System.out.println(ins);
         
         width = width - ins.left - ins.right;
         height = height - ins.top - ins.bottom;
