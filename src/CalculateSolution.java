@@ -3,7 +3,6 @@ import java.util.*;
 public class CalculateSolution {
 
     private MazeGen mazeGen;
-    private Random rand = new Random();
 
     CalculateSolution(MazeGen mazeGen) {
         this.mazeGen = mazeGen;
@@ -82,50 +81,12 @@ public class CalculateSolution {
         System.out.println(longestPathLength);
 
         // TODO: 
-        // Look through all nodes and see which are dead-ends
-        // Count neighbours of dead-end nodes which only have one neighbor in the direction of dead-end node 
-        // Subtract ^ + 1 from total number of walkable nodes
-
-        // Determine if dead end: if only has one neighbor
-        // Get that neighbor and check if only one neighbor in dead end direction
-
+        // Solve bug #95
         // Construct paths randomly until one has the maximum length 
-        
         
         return longestPath;
 
     }
-
-    // public boolean isDeadEnd(int x, int y, int directionX, int directionY, boolean[][] visited) {
-    //     int dx = directionX;
-    //     int dy = directionY;
-    //     int nx = x + dx;
-    //     int ny = y + dy;
-    //     if (nx < 0 || nx >= mazeGen.width || ny < 0 || ny >= mazeGen.height) {
-    //         // the adjacent node is outside the maze
-    //         return true;
-    //     }
-    //     if (mazeGen.getMaze()[nx][ny] == Node.Type.WALL) {
-    //         // the adjacent node is a wall
-    //         return true;
-    //     }
-    //     // check if all nodes adjacent to the adjacent node in the same direction are walls or visited
-    //     int count = 0;
-    //     for (int i = 0; i < 4; i++) {
-    //         if (i != direction) {
-    //             int nnx = nx + dx[i];
-    //             int nny = ny + dy[i];
-    //             if (nnx >= 0 && nnx < mazeGen.width && nny >= 0 && nny < mazeGen.height) {
-    //                 if (mazeGen.getMaze()[nnx][nny] == Node.Type.WALL || visited[nnx][nny]) {
-    //                     count++;
-    //                 }
-    //             } else {
-    //                 count++;
-    //             }
-    //         }
-    //     }
-    //     return count == 3;
-    // }
 
     /**
      * Finds the shortest path from startNode to endNode in the maze.
