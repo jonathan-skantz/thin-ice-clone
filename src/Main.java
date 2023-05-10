@@ -12,10 +12,11 @@ public class Main {
 
     public static Window window = new Window();
 
+    private static int DEFAULT_WIDTH = 5;
+    private static int DEFAULT_HEIGHT = 5;
+
     // maze config
     public static final int BLOCK_SIZE = 30;
-    public static final int DIMENSION_WIDTH = 4;
-    public static final int DIMENSION_HEIGHT = 4;
 
     public static final Hashtable<Node.Type, Color> COLOR_TABLE = new Hashtable<>() {
         {
@@ -37,22 +38,26 @@ public class Main {
     public static final int HINT_MAX = 3;
     public static final Color HINT_COLOR = new Color(150, 150, 255);
 
-    public static MazeGen mazeGen = new MazeGen(DIMENSION_WIDTH, DIMENSION_HEIGHT);
+    public static MazeGen mazeGen;
     
     // coordinates of topleft of maze
-    public static final int MAZE_START_X = (Window.width - BLOCK_SIZE * DIMENSION_WIDTH) / 2;
-    public static final int MAZE_START_Y = (Window.height - BLOCK_SIZE * DIMENSION_HEIGHT) / 2;
+    public static int mazeStartX;
+    public static int mazeStartY;
 
     // sprites
     public static Sprite player;
     public static JLabel textNextLevel;
-    public static Sprite[][] mazeSprites = new Sprite[DIMENSION_HEIGHT][DIMENSION_WIDTH];
+    public static Sprite[][] mazeSprites;
 
     public static Node[] hintNodes = new Node[HINT_MAX];
 
     public static void main(String[] args) {
-
+        
         setupKeyCallbacks();
+
+        mazeGen = new MazeGen(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+        setNewWidth(DEFAULT_WIDTH);
+        setNewHeight(DEFAULT_HEIGHT);
         
         window.sprites.setVisible(false);
         
@@ -224,8 +229,8 @@ public class Main {
     public static void resetPlayer() {
         
         // move player to center of start node
-        int blockX = MAZE_START_X + mazeGen.startNode.x * BLOCK_SIZE;
-        int blockY = MAZE_START_Y + mazeGen.startNode.y * BLOCK_SIZE;
+        int blockX = mazeStartX + mazeGen.startNode.x * BLOCK_SIZE;
+        int blockY = mazeStartY + mazeGen.startNode.y * BLOCK_SIZE;
         
         int centeredX = blockX + (BLOCK_SIZE - player.getWidth()) / 2;
         int centeredY = blockY + (BLOCK_SIZE - player.getHeight()) / 2;
@@ -235,13 +240,39 @@ public class Main {
         mazeGen.currentNode = mazeGen.startNode;
     }
     
+    public static void setNewWidth(int w) {
+        // NOTE: only sets new settings, doesn't actually update graphics
+        mazeGen.width = w;
+        mazeStartX = (Window.width - BLOCK_SIZE * mazeGen.width) / 2;
+    }
+
+    public static void setNewHeight(int h) {
+        mazeGen.height = h;
+        mazeStartY = (Window.height - BLOCK_SIZE * mazeGen.height) / 2;
+    }
+
     public static void resetGraphics() {
 
         textNextLevel.setVisible(false);
-        
-        boolean firstMaze = mazeSprites[0][0] == null;
-
         window.sprites.setVisible(false);
+        
+        boolean firstMaze = mazeSprites == null;
+
+        // makeNewSprites || newMazeSize
+        if (firstMaze || (mazeSprites.length != mazeGen.height || mazeSprites[0].length != mazeGen.width)) {
+            
+            if (!firstMaze) {
+                // remove old sprites from canvas
+                for (Sprite[] row : mazeSprites) {
+                    for (Sprite spr : row) {
+                        window.sprites.remove(spr);
+                    }
+                }
+            }
+                
+            mazeSprites = new Sprite[mazeGen.height][mazeGen.width];
+            firstMaze = true;
+        }
 
         // create a new sprite for every block in the maze
         for (int y=0; y<mazeGen.height; y++) {
@@ -249,7 +280,7 @@ public class Main {
                 
                 // reset color and node value
                 Color color = COLOR_TABLE.get(mazeGen.get(x, y));
-
+                
                 if (firstMaze) {
                     makeBlock(x, y, color);
                 }
@@ -295,8 +326,8 @@ public class Main {
         mazeSprites[y][x] = block;
         
         // move block
-        int xPos = MAZE_START_X + x * BLOCK_SIZE;
-        int yPos = MAZE_START_Y + y * BLOCK_SIZE;
+        int xPos = mazeStartX + x * BLOCK_SIZE;
+        int yPos = mazeStartY + y * BLOCK_SIZE;
         block.setLocation(xPos, yPos);
     }
     

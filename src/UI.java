@@ -72,6 +72,28 @@ public class UI {
 
     }
 
+    public static JSlider getNewSlider(int max, int currentVal) {
+
+        JSlider slider = new JSlider(JSlider.HORIZONTAL, 0, max, currentVal);
+
+        if (max == 100) {
+            slider.setMajorTickSpacing(10);
+            slider.setMinorTickSpacing(5);
+            slider.setSnapToTicks(true);
+        }
+        else {
+            slider.setMajorTickSpacing(5);
+            slider.setMinorTickSpacing(1);
+        }
+        
+        slider.setPaintTicks(true);
+        slider.setPaintLabels(true);
+        slider.setPreferredSize(new Dimension(500, 100));
+        slider.setBorder(BorderFactory.createEmptyBorder(5, 5, 50, 5));
+
+        return slider;
+    }
+
     public static void setUpMazeConfig(Window window, MazeGen mazeGen) {
 
         JPanel panel = new JPanel(new GridBagLayout());
@@ -85,25 +107,43 @@ public class UI {
 
             int val = (int)(chanceItem.chance * 100);
             JLabel label = new JLabel(chanceItem.name() + ": " + val + "%");
-            JSlider slider = new JSlider(JSlider.HORIZONTAL, 0, 100, val);
-
-            slider.setMajorTickSpacing(10);
-            slider.setMinorTickSpacing(5);
-            slider.setPaintTicks(true);
-            slider.setPaintLabels(true);
-            slider.setSnapToTicks(true);
-            slider.setPreferredSize(new Dimension(500, 100));
-            slider.setBorder(BorderFactory.createEmptyBorder(5, 5, 50, 5));
+            JSlider slider = getNewSlider(100, val);
 
             slider.addChangeListener(e -> {
-                int value = slider.getValue();
-                chanceItem.chance = value;
-                label.setText(chanceItem.name() + ": " + value + "%");
+                int newVal = slider.getValue();
+                chanceItem.chance = (float)newVal / 100;
+                label.setText(chanceItem.name() + ": " + newVal + "%");
+                System.out.println(chanceItem + " set to " + newVal);
             });
 
             panel.add(label, gbc);
             panel.add(slider, gbc);
         }
+
+        JSlider sliderWidth = getNewSlider(20, mazeGen.width);
+        JSlider sliderHeight = getNewSlider(20, mazeGen.height);
+
+        JLabel labelWidth = new JLabel("Width: " + mazeGen.width);
+        JLabel labelHeight = new JLabel("Height: " + mazeGen.height);
+
+        sliderWidth.addChangeListener(e -> {
+            int val = sliderWidth.getValue();
+            Main.setNewWidth(val);
+            labelWidth.setText("Width: " + val);
+        });
+        
+        sliderHeight.addChangeListener(e -> {
+            int val = sliderHeight.getValue();
+            Main.setNewHeight(val);
+            labelHeight.setText("Height: " + val);
+        });
+
+        panel.add(labelWidth, gbc);
+        panel.add(sliderWidth, gbc);
+        
+        panel.add(labelHeight, gbc);
+        panel.add(sliderHeight, gbc);
+
 
         JButton btn = getConfigPopupButton(window, "Maze config", panel);
 
