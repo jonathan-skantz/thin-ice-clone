@@ -3,22 +3,10 @@ import java.util.LinkedList;
 
 import javax.swing.border.Border;
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JPanel;
 
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 public class Main {
 
@@ -62,7 +50,6 @@ public class Main {
 
     public static Node[] hintNodes = new Node[HINT_MAX];
 
-
     public static void main(String[] args) {
 
         setupKeyCallbacks();
@@ -87,85 +74,10 @@ public class Main {
         window.sprites.add(textNextLevel);
         
         // labels and buttons for changing controls
-        setUpKeyConfig();
+        UI.setUpKeyConfig(window);
 
-        // generate maze,
+        // generate maze and reset graphics
         generateNewMaze();
-    }
-
-    public static void setUpKeyConfig() {
-        JPanel keyConfig = new JPanel(new GridBagLayout());
-
-        Insets insets = new Insets(5, 5, 5, 5);
-
-        // constraints for first column
-        GridBagConstraints gbc1 = new GridBagConstraints();
-        gbc1.gridx = 0;
-        gbc1.gridy = GridBagConstraints.RELATIVE;
-        gbc1.weightx = 0.0; // set weight to 0 to make column fixed size
-        gbc1.insets = insets;
-        
-        // constraints for second column
-        GridBagConstraints gbc2 = new GridBagConstraints();
-        gbc2.gridx = 1;
-        gbc2.gridy = GridBagConstraints.RELATIVE;
-        gbc2.weightx = 1; // set weight to 1 to make column take up remaining horizontal space
-        gbc2.insets = insets;
-
-        for (KeyHandler.ActionKey key : KeyHandler.ActionKey.values()) {
-
-            JLabel label = new JLabel(key.name());
-            label.setPreferredSize(new Dimension(150, label.getPreferredSize().height));
-            keyConfig.add(label, gbc1);
-
-            JButton btn = new JButton(KeyEvent.getKeyText(key.keyCode));
-            btn.setPreferredSize(new Dimension(100, btn.getPreferredSize().height));
-            keyConfig.add(btn, gbc2);
-
-            btn.addActionListener(e -> {
-                // when clicked, change text to "?" and start listening for key press
-                btn.setText("?");
-
-                btn.addKeyListener(new KeyAdapter() {
-                    @Override
-                    public void keyPressed(KeyEvent e) {
-                        // change control and stop listening
-                        key.keyCode = e.getKeyCode();
-                        btn.setText(KeyEvent.getKeyText(key.keyCode));
-                        btn.removeKeyListener(this);
-                    }
-                });
-            });
-
-        }
-
-        // setup button that opens a dialog with the keybinds
-        JButton btnKeyConfig = new JButton("Key config");
-        btnKeyConfig.setSize(btnKeyConfig.getPreferredSize());
-        window.sprites.add(btnKeyConfig);
-
-        // move to bottomleft
-        int pad = 10;
-        int y = Window.height - btnKeyConfig.getHeight() - pad;
-        btnKeyConfig.setLocation(pad, y);
-
-        // open popup with `keyConfig` as content
-        btnKeyConfig.addActionListener(e -> {
-            JDialog dialog = new JDialog(window, "Config popup", true);
-            dialog.setResizable(false);
-            dialog.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            dialog.setContentPane(keyConfig);
-            dialog.setLocationRelativeTo(window);
-            dialog.pack();
-            dialog.setVisible(true);
-
-            dialog.addWindowListener(new WindowAdapter() {
-                @Override
-                public void windowClosed(WindowEvent e) {
-                    window.requestFocus();  // prevents focus back to the config btn
-                }
-            });
-        });
     }
 
     public static void showHint() {
@@ -370,6 +282,8 @@ public class Main {
         mazeGen.generate();
         mazeGen.printMazeWithPath();
         mazeGen.printMazeWithTypes();
+
+        System.out.println(mazeGen.chanceNextNodeSameDir);
 
         resetGraphics();
     }
