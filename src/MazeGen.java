@@ -50,6 +50,8 @@ public class MazeGen {
 
     private int minPathLength = 100;
 
+    public String[][] arrVisual;
+
     public static void main(String[] args) {
         MazeGen mg = new MazeGen(3, 1);
         mg.generate();
