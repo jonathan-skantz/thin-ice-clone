@@ -7,6 +7,8 @@ public class KeyHandler extends KeyAdapter {
     
     private HashSet<Integer> keysPressed = new HashSet<>();     // store key codes
 
+    public static boolean allowContinuous = false;      // register held down key as multiple presses
+
     // define actions and their corresponding key
     public enum ActionKey {
 
@@ -59,8 +61,7 @@ public class KeyHandler extends KeyAdapter {
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
 
-        if (keysPressed.contains(keyCode)) {
-            // prevents spammed events (when holding down key)
+        if (!allowContinuous && keysPressed.contains(keyCode)) {
             return;
         }
 

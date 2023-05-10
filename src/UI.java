@@ -9,6 +9,7 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -62,6 +63,20 @@ public class UI {
             });
 
         }
+
+        // checkbox for continous key presses
+        JLabel label = new JLabel("Allow continuous");
+        label.setPreferredSize(new Dimension(125, label.getPreferredSize().height));
+
+        JCheckBox cb = new JCheckBox(String.valueOf(KeyHandler.allowContinuous), KeyHandler.allowContinuous);
+        cb.setPreferredSize(new Dimension(100, cb.getPreferredSize().height));
+
+        cb.addItemListener(e -> {
+            KeyHandler.allowContinuous = cb.isSelected();
+        });
+
+        panel.add(label, gbcCol1);
+        panel.add(cb, gbcCol2);
 
         JButton btnConfig = getConfigPopupButton(window, "Key config", panel);
         
