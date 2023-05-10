@@ -15,7 +15,7 @@ import java.awt.image.BufferedImage;
  */
 public class Sprite extends JComponent {
     
-    private int velocity;
+    public int velocity;
 
     public static Window window;
 

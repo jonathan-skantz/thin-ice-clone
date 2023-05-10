@@ -44,11 +44,25 @@ public class MazeGen {
     private int currentDirX = getRandomDirection();
     private int currentDirY = getRandomDirection();
 
-    private final float CHANCE_NEXT_NODE_SAME_DIR = 0.5f;       // NOTE: moving right and then down, the chance of moving right is not 50/50 but the same as before moving down
-    private final float CHANCE_NEXT_NODE_WALL = 0.10f;
-    private final float CHANCE_NEXT_NODE_DOUBLE = 0.25f;
+    public int minPathLength = 100;
+    
+    public enum ChanceNextNode {
 
-    private int minPathLength = 100;
+        SAME_DIR(0.50f),
+        WALL(0.10f),
+        DOUBLE(0.25f);
+
+        public float chance;
+
+        private ChanceNextNode(float chance) {
+            this.chance = chance;
+        }
+
+        public boolean evaluate(double randChance) {
+            return randChance <= chance;
+        }
+
+    }
 
     public static void main(String[] args) {
         MazeGen mg = new MazeGen(3, 1);
@@ -284,12 +298,12 @@ public class MazeGen {
 
             double chance = rand.nextDouble();
             
-            if (chance < CHANCE_NEXT_NODE_DOUBLE) {
+            if (ChanceNextNode.DOUBLE.evaluate(chance)) {
                 doubles.add(currentNode);
                 return Node.Type.DOUBLE;
             }
 
-            else if (chance < CHANCE_NEXT_NODE_WALL) {
+            else if (ChanceNextNode.WALL.evaluate(chance)) {
                 return Node.Type.WALL;
             }
         }
@@ -323,9 +337,9 @@ public class MazeGen {
     private boolean tryMoveDx() {
         
         int dx;
-        
         double chance = rand.nextDouble();
-        if (chance < CHANCE_NEXT_NODE_SAME_DIR) {
+
+        if (ChanceNextNode.SAME_DIR.evaluate(chance)) {
             dx = currentDirX;
         }
         else {
@@ -348,9 +362,9 @@ public class MazeGen {
     private boolean tryMoveDy() {
         
         int dy;
-        
         double chance = rand.nextDouble();
-        if (chance < CHANCE_NEXT_NODE_SAME_DIR) {
+
+        if (ChanceNextNode.SAME_DIR.evaluate(chance)) {
             dy = currentDirY;
         }
         else {
