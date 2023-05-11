@@ -1,5 +1,4 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedList;
 import java.util.Stack;
 
 public class MazeSolver {
@@ -10,19 +9,24 @@ public class MazeSolver {
     private Node nodeStart;
 
     private Stack<Node> accumulatorPath;
-    public List<Node> longestPath;
+    public LinkedList<Node> longestPath;
 
     public static void main(String[] args) {
-        MazeGen mg = new MazeGen(10, 10);
 
+        // generate maze
+        MazeGen mg = new MazeGen(5, 5);
         mg.generate();
+
+        // find solution
         MazeSolver s = new MazeSolver(mg, mg.startNode);
         s.findLongestPath();
 
-        mg.printMazeWithPath();
-        s.printMazeWithPath();
-        System.out.println(s.longestPath);
+        // print comparison
+        System.out.println("Maze with creation path:");
+        MazePrinter.printMazeWithPath(mg.maze, mg.creationPath);
 
+        System.out.println("longest: ");
+        MazePrinter.printMazeWithPath(mg.maze, s.longestPath);
     }
 
     public MazeSolver(MazeGen mg, Node start) {
@@ -37,11 +41,15 @@ public class MazeSolver {
         this.nodeStart = start;
     }
 
-    public void findLongestPath() {
+    public LinkedList<Node> findLongestPath() {
+        
+        // reset paths
         accumulatorPath = new Stack<>();
-        longestPath = new ArrayList<>();
+        longestPath = new LinkedList<>();
 
         exploreNewNodeFrom(nodeStart);
+
+        return longestPath;
     }
 
     private boolean walkable(Node node) {
@@ -70,7 +78,7 @@ public class MazeSolver {
             // if end node: check if longer than last saved path
 
             if (accumulatorPath.size() > longestPath.size()) {
-                longestPath = new ArrayList<>(accumulatorPath);
+                longestPath = new LinkedList<>(accumulatorPath);
             }
         }
     
@@ -98,60 +106,5 @@ public class MazeSolver {
         // therefore: backtrack to the previous node and continue exploring from there
         accumulatorPath.pop();
     }
-    
-
-    public List<Node> getLongestPath() {
-        return longestPath;
-    }
-
-    // TODO: reduce code duplication
-    public String getFormatted(String str) {
-        // the number in the format should be one larger than
-        // the longest strRep of Node.Type
-        // TODO: get length without looping through
-        // Node.Type.values() every call.
-        return String.format("%3s", str);
-    }
-    private String[][] getMazeWithTypes() {
-        
-        String[][] mazeOfStr = new String[mg.maze.length][mg.maze[0].length];
-
-        for (int y=0; y<mg.maze.length; y++) {
-            for (int x=0; x<mg.maze[y].length; x++) {
-                mazeOfStr[y][x] = getFormatted(mg.maze[y][x].strRep);
-            }
-        }
-    
-        return mazeOfStr;
-    }
-
-    // convert a 2d-array to a string
-    private String mazeOfStrToStr(String[][] m) {
-
-        StringBuilder sb = new StringBuilder();
-
-        for (int y=0; y<mg.maze.length; y++) {
-            for (int x=0; x<mg.maze[y].length; x++) {
-                sb.append(m[y][x]);
-            }
-            sb.append('\n');
-        }
-    
-        return sb.toString();
-    }
-
-    public void printMazeWithPath() {
-        
-        String[][] mazeOfStr = getMazeWithTypes();
-
-        // set numbers that represent the order of steps of the (a) solution
-        for (int i=0; i<longestPath.size(); i++) {
-            Node n = longestPath.get(i);
-            mazeOfStr[n.y][n.x] = getFormatted(String.valueOf(i));
-        }
-
-        System.out.println(mazeOfStrToStr(mazeOfStr));
-    }
-
 
 }
