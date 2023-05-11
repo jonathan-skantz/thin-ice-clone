@@ -20,6 +20,8 @@ public class Main {
 
     private static boolean zoomUpdate = false;
 
+    public static boolean hintTypeLongest = true;
+
     // maze config
     public static int blockSize = 30;
 
@@ -106,10 +108,17 @@ public class Main {
         }
 
         // get solution based on current node
-        CalculateSolution sol = new CalculateSolution(mazeGen);
+        MazeSolver solver = new MazeSolver(mazeGen, mazeGen.currentNode);
 
-        LinkedList<Node> path = sol.findShortestPath();
-        
+        LinkedList<Node> path;
+
+        if (hintTypeLongest) {
+            path = solver.findShortestPath();
+        }
+        else {
+            path = solver.findLongestPath();
+        }
+
         int i = 0;
         for (int hint=1; hint<=HINT_MAX && hint<path.size()-1; hint++) {
             Node step = path.get(hint);
@@ -120,7 +129,7 @@ public class Main {
         }
 
         window.sprites.setVisible(true);
-
+        
     }
 
     public static void tryMoveToNode(int dx, int dy) {
@@ -340,8 +349,7 @@ public class Main {
     public static void generateNewMaze() {
         // new maze in 2D-array-form
         mazeGen.generate();
-        mazeGen.printMazeWithPath();
-        mazeGen.printMazeWithTypes();
+        MazePrinter.printMazeWithPath(mazeGen.maze, mazeGen.creationPath);
 
         resetMazeGraphics(true);
         resetPlayerGraphics();
