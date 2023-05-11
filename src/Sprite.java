@@ -1,3 +1,7 @@
+/**
+ * Class for creating rectangle sprites, which consist of
+ * a background color and/or image.
+ */
 import java.io.File;
 import java.io.IOException;
 
@@ -9,10 +13,6 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
-/**
- * Class for creating rectangle sprites, which consist of
- * a background color and/or image.
- */
 public class Sprite extends JComponent {
     
     public int velocity;

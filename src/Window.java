@@ -1,12 +1,12 @@
+/**
+ * Class for creating and setting up a JFrame.
+ */
 import java.awt.Color;
 
 import java.awt.Insets;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-/**
- * Class for creating and setting up a JFrame.
- */
 public class Window extends JFrame {
     
     private final Color BG_COLOR = Color.LIGHT_GRAY;

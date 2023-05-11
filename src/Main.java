@@ -1,3 +1,6 @@
+/**
+ * A Main class for the game
+ */
 import java.util.Hashtable;
 import java.util.LinkedList;
 
