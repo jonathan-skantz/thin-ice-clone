@@ -91,6 +91,14 @@ public class Main {
 
             mazeSprites[step.y][step.x].setBackgroundColor(HINT_COLOR);
             hintNodes[i] = step;
+
+            // Paint number on hint block
+            Font font = new Font("arial", Font.PLAIN, 15);
+            Sprite hintBlockNumber = new Sprite(String.valueOf(i+1), font, Color.BLACK);
+            hintBlockNumber.moveTo(mazeSprites[step.y][step.x].rect.x + BLOCK_SIZE / 2 - hintBlockNumber.rect.width / 2,
+                                   mazeSprites[step.y][step.x].rect.y + BLOCK_SIZE / 2 - hintBlockNumber.rect.height / 2);
+            hintBlockNumber.setVisible(true);
+
             i++;
         }
 
