@@ -71,6 +71,7 @@ public class Main {
         window.setAllowRepaint(false);
 
         // reset old hint sprites
+        // TODO: remove old numbers for hinted blocks
         for (Node n : hintNodes) {
             if (n != null) {
 
