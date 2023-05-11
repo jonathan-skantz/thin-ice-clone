@@ -15,7 +15,7 @@ Video of "Thin Ice": https://youtu.be/H8I29P8eiio
 
 Our game:
 
-![image]([https://gits-15.sys.kth.se/jskantz/projinda/blob/main/src/images/game-screenshot.png](https://gits-15.sys.kth.se/jskantz/projinda/blob/main/src/images/thin-ice-gameplay.gif))
+![]([https://gits-15.sys.kth.se/jskantz/projinda/blob/main/src/images/game-screenshot.png](https://gits-15.sys.kth.se/jskantz/projinda/blob/main/src/images/thin-ice-gameplay.gif))
 
 ### Language
 Java
