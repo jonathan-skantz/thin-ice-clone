@@ -59,6 +59,18 @@ public class Sprite {
         window.addSprite(this);
         moveToCenter();
     }
+    
+    /**
+     * Should be called internally after
+     * loading a sprite for the first time.
+     * 
+     * @param vel Velocity.
+     */
+    private void setupTextSprite(int vel) {
+        velocity = vel;
+        window.addSpriteToFront(this);
+        moveToCenter();
+    }
 
     /**
      * Create an image sprite.
@@ -142,7 +154,7 @@ public class Sprite {
         applyText();
 
         canvasStopDrawing();
-        setupSprite(0);
+        setupTextSprite(0);
     }
 
     /**
