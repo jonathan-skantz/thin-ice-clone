@@ -29,6 +29,7 @@ The goal is to reach the pink block by stepping on as many blocks as possible, t
 * Move down: S
 * Move right: D
 * Move left: A
+* Get hint: H
 * Generate new level: SPACE
 
 ### How to run this game
