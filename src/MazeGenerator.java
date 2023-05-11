@@ -1,5 +1,4 @@
 /**
- * 
  * -- CURRENTLY UNUSED --
  * replaced by MazeGen.java
  * 

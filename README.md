@@ -2,6 +2,8 @@
 
 ### Authors: Jonathan Skantz & Elias Hollstrand
 
+![gif](https://gits-15.sys.kth.se/jskantz/projinda/blob/main/src/images/thin-ice-gameplay.gif)
+
 ### Description
 A clone of the Club Penguin game "Thin Ice", with the addition of a self-playing mode where the computer calculates the correct solution.
 
@@ -13,12 +15,29 @@ Screenshot of "Thin Ice":
 
 Video of "Thin Ice": https://youtu.be/H8I29P8eiio
 
-
 ### Language
 Java
 
 ### Framework
 Swing
+
+### How to play the game
+
+The goal is to reach the pink block by stepping on as many blocks as possible, turning them into ice (blue).
+#### Controls
+* Move up: W
+* Move down: S
+* Move right: D
+* Move left: A
+* Get hint: H
+* Generate new level: SPACE
+
+### How to run this game
+
+1. Download this repo by cloning it using `git clone https://gits-15.sys.kth.se/jskantz/projinda.git`
+2. Navigate to `projinda/src/`
+3. Compile all of the files with the command `javac *.java`
+4. Run the file `Main.java` using the command `java Main`
 
 ### MVP (minimum viable product)
 * One level
