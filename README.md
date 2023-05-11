@@ -2,6 +2,8 @@
 
 ### Authors: Jonathan Skantz & Elias Hollstrand
 
+![gif](https://gits-15.sys.kth.se/jskantz/projinda/blob/main/src/images/thin-ice-gameplay.gif)
+
 ### Description
 A clone of the Club Penguin game "Thin Ice", with the addition of a self-playing mode where the computer calculates the correct solution.
 
@@ -12,10 +14,6 @@ Screenshot of "Thin Ice":
 ![image](https://gits-15.sys.kth.se/storage/user/17035/files/b38e07ce-7d9e-4858-b7c3-dcd0d1d06004)
 
 Video of "Thin Ice": https://youtu.be/H8I29P8eiio
-
-Our game:
-
-![gif](https://gits-15.sys.kth.se/jskantz/projinda/blob/main/src/images/thin-ice-gameplay.gif)
 
 ### Language
 Java
