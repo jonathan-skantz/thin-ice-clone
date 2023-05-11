@@ -164,7 +164,7 @@ public class MazeSolver {
         
         Node.Type t = mazeCopy[y][x];
 
-        return t == Node.Type.GROUND || t == Node.Type.END;
+        return t != Node.Type.BLOCKED && t != Node.Type.WALL;
     }
 
     private void exploreNewNodeFrom(Node currentNode) {
