@@ -33,7 +33,7 @@ The goal is to reach the pink block by stepping on as many blocks as possible, t
 
 ### How to run this game
 
-1. Download this repo by cloning it using `git clone git@gits-15.sys.kth.se:jskantz/projinda.git`
+1. Download this repo by cloning it using `git clone https://gits-15.sys.kth.se/jskantz/projinda.git`
 2. Navigate to `projinda/src/`
 3. Compile all of the files with the command `javac *.java`
 4. Run the file `Main.java` using the command `java Main`
