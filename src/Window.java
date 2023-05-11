@@ -72,6 +72,14 @@ public class Window extends JFrame {
             repaint();
         }
     }
+
+    public void addSpriteToFront(Sprite sprite) {
+
+        if (!sprites.contains(sprite)) {
+            sprites.add(0, sprite);
+            repaint();
+        }
+    }
     
     public void removeSprite(Sprite sprite) {
         sprites.remove(sprite);
