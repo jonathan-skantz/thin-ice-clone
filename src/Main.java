@@ -113,10 +113,10 @@ public class Main {
         LinkedList<Node> path;
 
         if (hintTypeLongest) {
-            path = solver.findShortestPath();
+            path = solver.findLongestPath();
         }
         else {
-            path = solver.findLongestPath();
+            path = solver.findShortestPath();
         }
 
         int i = 0;
