@@ -1,3 +1,6 @@
+/**
+ * Class for calculating the shortest path from startNode to endNode in the maze.
+ */
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -5,6 +8,10 @@ public class CalculateSolution {
 
     private MazeGen mazeGen;
 
+    /**
+     * Constructor for CalculateSolution
+     * @param mazeGen the MazeGen object to calculate the shortest path for
+     */
     CalculateSolution(MazeGen mazeGen) {
         this.mazeGen = mazeGen;
     }
