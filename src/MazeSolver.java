@@ -1,4 +1,5 @@
 import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Stack;
 
 public class MazeSolver {
@@ -9,7 +10,9 @@ public class MazeSolver {
     private Node nodeStart;
 
     private Stack<Node> accumulatorPath;
+    
     public LinkedList<Node> longestPath;
+    public LinkedList<Node> shortestPath;
 
     public static void main(String[] args) {
 
@@ -17,9 +20,10 @@ public class MazeSolver {
         MazeGen mg = new MazeGen(5, 5);
         mg.generate();
 
-        // find solution
+        // find solutions
         MazeSolver s = new MazeSolver(mg, mg.startNode);
         s.findLongestPath();
+        s.findShortestPath();       
 
         // print comparison
         System.out.println("Maze with creation path:");
@@ -27,6 +31,9 @@ public class MazeSolver {
 
         System.out.println("longest: ");
         MazePrinter.printMazeWithPath(mg.maze, s.longestPath);
+
+        System.out.println("\nshortest:");
+        MazePrinter.printMazeWithPath(mg.maze, s.shortestPath);
     }
 
     public MazeSolver(MazeGen mg, Node start) {
@@ -39,6 +46,97 @@ public class MazeSolver {
             }
         }
         this.nodeStart = start;
+    }
+
+    /**
+     * Find the shortest path from currentNode to endNode in the maze.
+     *
+     * @return a LinkedList of Nodes representing the shortest path from currentNode to endNode
+     */
+    public LinkedList<Node> findShortestPath() {
+        
+        // create a queue for BFS
+        Queue<Node> queue = new LinkedList<>();
+
+        // create an array to store the parent node of each node in the shortest path
+        Node[][] parent = new Node[mg.height][mg.width];
+
+        // initialize the parent array to null
+        for (int y=0; y<mg.height; y++) {
+            for (int x=0; x<mg.width; x++) {
+                parent[y][x] = null;
+            }
+        }
+
+        mg.currentNode = nodeStart;
+
+        // mark the startNode as visited and add it to the queue
+        boolean[][] visited = new boolean[mg.height][mg.width];
+        visited[mg.currentNode.y][mg.currentNode.x] = true;
+        queue.add(mg.currentNode);
+
+        // perform BFS
+        while (!queue.isEmpty()) {
+            Node currentNode = queue.poll();
+
+            // check if the current node is the endNode
+            if (currentNode.equals(mg.endNode)) {
+                break;
+            }
+            
+            // explore the neighbors of the current node
+            for (int y=currentNode.y-1; y<=currentNode.y+1; y++) {
+                for (int x=currentNode.x-1; x<=currentNode.x+1; x++) {
+                    // skip if the neighbor is out of bounds, or is not walkable
+
+                    Node newNode = new Node(x,  y);
+
+                    if (!walkable(newNode) || !pointNotCorner(currentNode, x, y) || !pointNotNode(currentNode, x, y) || visited[y][x]) {
+                        continue;
+                    }
+
+                    // mark the neighbor as visited, add it to the queue, and set its parent
+                    visited[y][x] = true;
+                    Node nextNode = new Node(x, y);
+                    queue.add(nextNode);
+                    parent[y][x] = currentNode;
+                }
+            }
+        }
+
+        // reset shortest path
+        shortestPath = new LinkedList<>();
+        Node currentNode = mg.endNode;
+        while (currentNode != null) {
+            shortestPath.addFirst(currentNode);
+            currentNode = parent[currentNode.y][currentNode.x];
+        }
+
+        return shortestPath;
+    }
+
+    /**
+     * Helper method that checks if a given point is not diagonally adjacent to a given node
+     * 
+     * @param node the node to compare against
+     * @param x x-coordinate
+     * @param y y-coordinate
+     * @return true if the point is not diagonally adjacent to the given node, false otherwise
+     */
+    private boolean pointNotCorner(Node node, int x, int y) {
+        return (x == node.x || y == node.y);
+    }
+
+    /**
+     * Helper method that checks that a given node is not already part of the maze
+     * 
+     * @param node the node to compare against
+     * @param x x-coordinate
+     * @param y y-coordinate
+     * @return true if the point is not the same as the given node, false otherwise
+     */
+    private boolean pointNotNode(Node node, int x, int y) {
+        return !(x == node.x && y == node.y);
     }
 
     public LinkedList<Node> findLongestPath() {
@@ -68,7 +166,6 @@ public class MazeSolver {
 
         return t == Node.Type.GROUND || t == Node.Type.END;
     }
-
 
     private void exploreNewNodeFrom(Node currentNode) {
         
