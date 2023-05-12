@@ -164,6 +164,20 @@ public class UI {
         panel.add(labelHeight, gbc);
         panel.add(sliderHeight, gbc);
 
+        // slider for min maze length
+        JLabel labelLen = new JLabel("Min path length: " + mazeGen.minPathLength);
+        JSlider sliderLen = getNewSlider(100, mazeGen.minPathLength);
+        sliderLen.addChangeListener(e -> {
+            int newVal = sliderLen.getValue();
+            mazeGen.minPathLength = newVal;
+            labelLen.setText("Min path length: " + newVal);
+
+            mazeConfigIsNew = true;
+        });
+        panel.add(labelLen, gbc);
+        panel.add(sliderLen, gbc);
+
+
         // button for hint types
         JButton btnHintType = new JButton();
         if (Main.hintTypeLongest) {
@@ -173,12 +187,9 @@ public class UI {
             btnHintType.setText("Hint path type: Shortest path");
         }
 
-
-        // btnHintType.setPreferredSize(btnHintType.getSize());
         panel.add(btnHintType, gbc);
         btnHintType.addActionListener(e -> {
             Main.hintTypeLongest = !Main.hintTypeLongest;
-
 
             if (Main.hintTypeLongest) {
                 btnHintType.setText("Hint path type: Longest path");
@@ -186,7 +197,6 @@ public class UI {
             else {
                 btnHintType.setText("Hint path type: Shortest path");
             }
-
         });
 
         JButton btn = getConfigPopupButton(window, "Maze config", panel);
