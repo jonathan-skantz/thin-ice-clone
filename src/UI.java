@@ -22,22 +22,23 @@ public class UI {
  
     private static boolean mazeConfigIsNew = false;
 
+    // constraints
+    private static Insets insets = new Insets(5, 5, 5, 5);
+
+    private static GridBagConstraints gbcCol1 = new GridBagConstraints();
+    private static GridBagConstraints gbcCol2 = new GridBagConstraints();
+    
+    static {
+        gbcCol1.gridx = 0;
+        gbcCol1.insets = insets;
+
+        gbcCol2.gridx = 1;
+        gbcCol2.insets = insets;
+    }
+
     public static void setUpKeyConfig() {
         
         JPanel panel = new JPanel(new GridBagLayout());
-
-        // constraints
-        Insets insets = new Insets(5, 5, 5, 5);
-
-        // 1st column
-        GridBagConstraints gbcCol1 = new GridBagConstraints();
-        gbcCol1.gridx = 0;
-        gbcCol1.insets = insets;
-        
-        // 2nd column
-        GridBagConstraints gbcCol2 = new GridBagConstraints();
-        gbcCol2.gridx = 1;
-        gbcCol2.insets = insets;
 
         // new label in 1st column, new btn in 2nd column
         for (KeyHandler.ActionKey key : KeyHandler.ActionKey.values()) {
@@ -94,19 +95,6 @@ public class UI {
     public static void setUpColorConfig() {
           
         JPanel panel = new JPanel(new GridBagLayout());
-
-        // constraints
-        Insets insets = new Insets(5, 5, 5, 5);
-
-        // 1st column
-        GridBagConstraints gbcCol1 = new GridBagConstraints();
-        gbcCol1.gridx = 0;
-        gbcCol1.insets = insets;
-        
-        // 2nd column
-        GridBagConstraints gbcCol2 = new GridBagConstraints();
-        gbcCol2.gridx = 1;
-        gbcCol2.insets = insets;
 
         // new label in 1st column, new btn in 2nd column
         for (Node.Type type : Config.BLOCK_COLORS.keySet()) {
@@ -231,7 +219,6 @@ public class UI {
         });
         panel.add(labelLen, gbc);
         panel.add(sliderLen, gbc);
-
 
         // slider for max hint size
         JLabel labelHint = new JLabel("Hint length: " + Config.hintMax);
