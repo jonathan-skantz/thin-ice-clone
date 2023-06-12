@@ -38,14 +38,14 @@ public class Main {
         textNextLevel.setForeground(Color.BLACK);
         textNextLevel.setSize(textNextLevel.getPreferredSize());
         
-        int y = Window.height - 50;
+        int y = 50;
         int x = (Window.width - textNextLevel.getWidth()) / 2;
         textNextLevel.setLocation(x, y);
         window.sprites.add(textNextLevel);
         
-        // labels and buttons for changing controls
-        UI.setUpKeyConfig(window);
-        UI.setUpMazeConfig(window, Config.mazeGen);
+        UI.setUpKeyConfig();
+        UI.setUpColorConfig();
+        UI.setUpMazeConfig();
 
         // generate maze and reset graphics
         generateNewMaze();
@@ -230,6 +230,16 @@ public class Main {
         int centeredY = blockY + (Config.blockSize - player.getHeight()) / 2;
         
         player.setLocation(centeredX, centeredY);
+    }
+
+    public static void newBlockColors() {
+        for (int y=0; y<Config.mazeGen.height; y++) {
+            for (int x=0; x<Config.mazeGen.width; x++) {
+                Node.Type type = Config.mazeGen.maze[y][x];
+
+                mazeSprites[y][x].setBackground(Config.BLOCK_COLORS.get(type));
+            }
+        }
     }
 
     public static void resetPlayerGraphics() {

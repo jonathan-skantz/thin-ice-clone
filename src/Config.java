@@ -41,6 +41,7 @@ public class Config {
     // flags for updates
     public static boolean newSize = false;
     public static boolean newHintMax = false;
+    public static boolean newBlockColor = false;
 
     public static void setMazeWidth(int w) {
         mazeGen.width = w;
@@ -55,6 +56,15 @@ public class Config {
     public static void setHintMax(int v) {
         hintMax = v;
         newHintMax = true;
+    }
+
+    public static void setMazeMinPathLength(int v) {
+        mazeGen.minPathLength = v;
+    }
+
+    public static void setBlockColor(Node.Type block, Color color) {
+        BLOCK_COLORS.replace(block, color);
+        newBlockColor = true;
     }
 
 }
