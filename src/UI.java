@@ -1,3 +1,4 @@
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -10,6 +11,7 @@ import java.awt.event.WindowEvent;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JColorChooser;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -20,22 +22,23 @@ public class UI {
  
     private static boolean mazeConfigIsNew = false;
 
-    public static void setUpKeyConfig(Window window) {
-        
-        JPanel panel = new JPanel(new GridBagLayout());
+    // constraints
+    private static Insets insets = new Insets(5, 5, 5, 5);
 
-        // constraints
-        Insets insets = new Insets(5, 5, 5, 5);
-
-        // 1st column
-        GridBagConstraints gbcCol1 = new GridBagConstraints();
+    private static GridBagConstraints gbcCol1 = new GridBagConstraints();
+    private static GridBagConstraints gbcCol2 = new GridBagConstraints();
+    
+    static {
         gbcCol1.gridx = 0;
         gbcCol1.insets = insets;
-        
-        // 2nd column
-        GridBagConstraints gbcCol2 = new GridBagConstraints();
+
         gbcCol2.gridx = 1;
         gbcCol2.insets = insets;
+    }
+
+    public static void setUpKeyConfig() {
+        
+        JPanel panel = new JPanel(new GridBagLayout());
 
         // new label in 1st column, new btn in 2nd column
         for (KeyHandler.ActionKey key : KeyHandler.ActionKey.values()) {
@@ -80,12 +83,52 @@ public class UI {
         panel.add(label, gbcCol1);
         panel.add(cb, gbcCol2);
 
-        JButton btnConfig = getConfigPopupButton(window, "Key config", panel);
+        JButton btnConfig = getConfigPopupButton("Key config", panel);
         
         // move to bottomleft
         int pad = 10;
         int y = Window.height - btnConfig.getHeight() - pad;
         btnConfig.setLocation(pad, y);
+
+    }
+
+    public static void setUpColorConfig() {
+          
+        JPanel panel = new JPanel(new GridBagLayout());
+
+        // new label in 1st column, new btn in 2nd column
+        for (Node.Type type : Config.BLOCK_COLORS.keySet()) {
+
+            JLabel label = new JLabel(type.name());
+            JButton btn = new JButton();
+            Color currentColor = Config.BLOCK_COLORS.get(type);
+            btn.setBackground(currentColor);
+            
+            label.setPreferredSize(new Dimension(125, label.getPreferredSize().height));
+            btn.setPreferredSize(new Dimension(30, 30));
+            
+            panel.add(label, gbcCol1);
+            panel.add(btn, gbcCol2);
+
+            btn.addActionListener(e -> {
+                Color newColor = JColorChooser.showDialog(Main.window, "Color for " + type, currentColor);
+
+                if (newColor != null) {
+                    btn.setBackground(newColor);
+                    
+                    Config.setBlockColor(type, newColor);
+                    Main.newBlockColors();
+                }
+            });
+
+        }
+
+        JButton btnConfig = getConfigPopupButton("Color config", panel);
+        
+        int pad = 10;
+        int x = (Window.width - btnConfig.getWidth()) / 2;
+        int y = Window.height - btnConfig.getHeight() - pad;
+        btnConfig.setLocation(x, y);
 
     }
 
@@ -111,7 +154,7 @@ public class UI {
         return slider;
     }
 
-    public static void setUpMazeConfig(Window window, MazeGen mazeGen) {
+    public static void setUpMazeConfig() {
 
         JPanel panel = new JPanel(new GridBagLayout());
         
@@ -138,22 +181,22 @@ public class UI {
         }
 
         // label and slider for width and height
-        JSlider sliderWidth = getNewSlider(20, mazeGen.width);
-        JSlider sliderHeight = getNewSlider(20, mazeGen.height);
+        JSlider sliderWidth = getNewSlider(20, Config.mazeGen.width);
+        JSlider sliderHeight = getNewSlider(20, Config.mazeGen.height);
 
-        JLabel labelWidth = new JLabel("Width: " + mazeGen.width);
-        JLabel labelHeight = new JLabel("Height: " + mazeGen.height);
+        JLabel labelWidth = new JLabel("Width: " + Config.mazeGen.width);
+        JLabel labelHeight = new JLabel("Height: " + Config.mazeGen.height);
 
         sliderWidth.addChangeListener(e -> {
             int val = sliderWidth.getValue();
-            Main.setNewWidth(val);
+            Config.setMazeWidth(val);
             labelWidth.setText("Width: " + val);
             mazeConfigIsNew = true;
         });
         
         sliderHeight.addChangeListener(e -> {
             int val = sliderHeight.getValue();
-            Main.setNewHeight(val);
+            Config.setMazeHeight(val);
             labelHeight.setText("Height: " + val);
             mazeConfigIsNew = true;
         });
@@ -164,32 +207,54 @@ public class UI {
         panel.add(labelHeight, gbc);
         panel.add(sliderHeight, gbc);
 
+        // slider for min maze length
+        JLabel labelLen = new JLabel("Min path length: " + Config.mazeGen.minPathLength);
+        JSlider sliderLen = getNewSlider(100, Config.mazeGen.minPathLength);
+        sliderLen.addChangeListener(e -> {
+            int newVal = sliderLen.getValue();
+            Config.setMazeMinPathLength(newVal);
+            labelLen.setText("Min path length: " + newVal);
+
+            mazeConfigIsNew = true;
+        });
+        panel.add(labelLen, gbc);
+        panel.add(sliderLen, gbc);
+
+        // slider for max hint size
+        JLabel labelHint = new JLabel("Hint length: " + Config.hintMax);
+        JSlider sliderHint = getNewSlider(100, Config.mazeGen.minPathLength);
+        sliderHint.addChangeListener(e -> {
+            int newVal = sliderHint.getValue();
+            Config.setHintMax(newVal);
+            labelHint.setText("Hint length: " + Config.hintMax);
+
+            mazeConfigIsNew = true;
+        });
+        panel.add(labelHint, gbc);
+        panel.add(sliderHint, gbc);
+
         // button for hint types
         JButton btnHintType = new JButton();
-        if (Main.hintTypeLongest) {
+        if (Config.hintTypeLongest) {
             btnHintType.setText("Hint path type: Longest path");
         }
         else {
             btnHintType.setText("Hint path type: Shortest path");
         }
 
-
-        // btnHintType.setPreferredSize(btnHintType.getSize());
         panel.add(btnHintType, gbc);
         btnHintType.addActionListener(e -> {
-            Main.hintTypeLongest = !Main.hintTypeLongest;
+            Config.hintTypeLongest = !Config.hintTypeLongest;
 
-
-            if (Main.hintTypeLongest) {
+            if (Config.hintTypeLongest) {
                 btnHintType.setText("Hint path type: Longest path");
             }
             else {
                 btnHintType.setText("Hint path type: Shortest path");
             }
-
         });
 
-        JButton btn = getConfigPopupButton(window, "Maze config", panel);
+        JButton btn = getConfigPopupButton("Maze config", panel);
 
         // move to bottomright
         int pad = 10;
@@ -198,27 +263,27 @@ public class UI {
         btn.setLocation(x, y);
     }
 
-    public static JButton getConfigPopupButton(Window window, String title, JPanel contentPane) {
+    public static JButton getConfigPopupButton(String title, JPanel contentPane) {
         
         // setup button that opens a dialog
         JButton btn = new JButton(title);
         btn.setSize(btn.getPreferredSize());
-        window.sprites.add(btn);
+        Main.window.sprites.add(btn);
 
         // open popup with `contentPane`
         btn.addActionListener(e -> {
-            JDialog dialog = new JDialog(window, title, true);
+            JDialog dialog = new JDialog(Main.window, title, true);
             dialog.setResizable(false);
             dialog.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             dialog.setContentPane(contentPane);
-            dialog.setLocationRelativeTo(window);
+            dialog.setLocationRelativeTo(Main.window);
             dialog.pack();
             dialog.setVisible(true);
 
             dialog.addWindowListener(new WindowAdapter() {
                 @Override
                 public void windowClosed(WindowEvent e) {
-                    window.requestFocus();  // prevents focus back to the config btn and rather the game canvas
+                    Main.window.requestFocus();  // prevents focus back to the config btn and rather the game canvas
                     
                     // TODO: this also checks when closing the key config popup (not desired)
                     if (mazeConfigIsNew) {
