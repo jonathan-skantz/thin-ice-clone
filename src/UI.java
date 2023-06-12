@@ -146,14 +146,14 @@ public class UI {
 
         sliderWidth.addChangeListener(e -> {
             int val = sliderWidth.getValue();
-            Main.setNewWidth(val);
+            Config.setMazeWidth(val);
             labelWidth.setText("Width: " + val);
             mazeConfigIsNew = true;
         });
         
         sliderHeight.addChangeListener(e -> {
             int val = sliderHeight.getValue();
-            Main.setNewHeight(val);
+            Config.setMazeHeight(val);
             labelHeight.setText("Height: " + val);
             mazeConfigIsNew = true;
         });
@@ -179,12 +179,12 @@ public class UI {
 
 
         // slider for max hint size
-        JLabel labelHint = new JLabel("Hint length: " + Main.hintMax);
+        JLabel labelHint = new JLabel("Hint length: " + Config.hintMax);
         JSlider sliderHint = getNewSlider(100, mazeGen.minPathLength);
         sliderHint.addChangeListener(e -> {
             int newVal = sliderHint.getValue();
-            Main.setNewMaxHint(newVal);
-            labelHint.setText("Hint length: " + Main.hintMax);
+            Config.setHintMax(newVal);
+            labelHint.setText("Hint length: " + Config.hintMax);
 
             mazeConfigIsNew = true;
         });
@@ -193,7 +193,7 @@ public class UI {
 
         // button for hint types
         JButton btnHintType = new JButton();
-        if (Main.hintTypeLongest) {
+        if (Config.hintTypeLongest) {
             btnHintType.setText("Hint path type: Longest path");
         }
         else {
@@ -202,9 +202,9 @@ public class UI {
 
         panel.add(btnHintType, gbc);
         btnHintType.addActionListener(e -> {
-            Main.hintTypeLongest = !Main.hintTypeLongest;
+            Config.hintTypeLongest = !Config.hintTypeLongest;
 
-            if (Main.hintTypeLongest) {
+            if (Config.hintTypeLongest) {
                 btnHintType.setText("Hint path type: Longest path");
             }
             else {
