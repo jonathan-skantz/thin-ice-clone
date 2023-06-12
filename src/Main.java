@@ -42,7 +42,7 @@ public class Main {
     public static final Border BORDER = BorderFactory.createLineBorder(BORDER_COLOR, BORDER_WIDTH);
 
     // hint config
-    public static final int HINT_MAX = 3;
+    public static int hintMax = 3;
     public static final Color HINT_COLOR = new Color(150, 150, 255);
 
     public static MazeGen mazeGen;
@@ -56,7 +56,7 @@ public class Main {
     public static JLabel textNextLevel;
     public static Sprite[][] mazeSprites;
 
-    public static Node[] hintNodes = new Node[HINT_MAX];
+    public static Node[] hintNodes = new Node[hintMax];
 
     public static void main(String[] args) {
         
@@ -120,7 +120,7 @@ public class Main {
         }
 
         int i = 0;
-        for (int hint=1; hint<=HINT_MAX && hint<path.size()-1; hint++) {
+        for (int hint=1; hint<=hintMax && hint<path.size()-1; hint++) {
             Node step = path.get(hint);
 
             mazeSprites[step.y][step.x].setBackground(HINT_COLOR);
@@ -284,6 +284,11 @@ public class Main {
         mazeGen.height = h;
     }
     
+    public static void setNewMaxHint(int v) {
+        hintMax = v;
+        hintNodes = new Node[hintMax];
+    }
+
     public static void resetMazeGraphics(boolean resetStartNode) {
         
         textNextLevel.setVisible(false);

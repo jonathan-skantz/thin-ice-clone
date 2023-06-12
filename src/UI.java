@@ -178,6 +178,19 @@ public class UI {
         panel.add(sliderLen, gbc);
 
 
+        // slider for max hint size
+        JLabel labelHint = new JLabel("Hint length: " + Main.hintMax);
+        JSlider sliderHint = getNewSlider(100, mazeGen.minPathLength);
+        sliderHint.addChangeListener(e -> {
+            int newVal = sliderHint.getValue();
+            Main.setNewMaxHint(newVal);
+            labelHint.setText("Hint length: " + Main.hintMax);
+
+            mazeConfigIsNew = true;
+        });
+        panel.add(labelHint, gbc);
+        panel.add(sliderHint, gbc);
+
         // button for hint types
         JButton btnHintType = new JButton();
         if (Main.hintTypeLongest) {
