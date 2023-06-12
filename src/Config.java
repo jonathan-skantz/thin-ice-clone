@@ -38,17 +38,23 @@ public class Config {
     public static final Color HINT_COLOR = new Color(150, 150, 255);
     public static boolean hintTypeLongest = true;   // either longest or shortest
 
+    // flags for updates
+    public static boolean newSize = false;
+    public static boolean newHintMax = false;
 
     public static void setMazeWidth(int w) {
         mazeGen.width = w;
+        newSize = true;
     }
 
     public static void setMazeHeight(int h) {
         mazeGen.height = h;
+        newSize = true;
     }
 
     public static void setHintMax(int v) {
         hintMax = v;
+        newHintMax = true;
     }
 
 }

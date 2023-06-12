@@ -54,15 +54,19 @@ public class Main {
     public static void showHint() {
 
         window.sprites.setVisible(false);
-
+        
         // reset old hint sprites
         for (Node n : hintNodes) {
             if (n != null) {
-
+                
                 if (Config.mazeGen.get(n) != Node.Type.BLOCKED && !n.same(Config.mazeGen.currentNode)) {
                     mazeSprites[n.y][n.x].setBackground(Config.BLOCK_COLORS.get(Node.Type.GROUND));
                 }
             }
+        }
+
+        if (Config.newHintMax) {
+            hintNodes = new Node[Config.hintMax];
         }
 
         // get solution based on current node
@@ -240,9 +244,9 @@ public class Main {
         
         boolean firstMaze = mazeSprites == null;
 
-        // makeNewSprites || newMazeSize || zoomUpdate
-        if (firstMaze || (mazeSprites.length != Config.mazeGen.height || mazeSprites[0].length != Config.mazeGen.width) || zoomUpdate) {
-            
+        if (firstMaze || Config.newSize || zoomUpdate) {
+            Config.newSize = false;
+
             if (!firstMaze) {
                 // remove old sprites from canvas
                 for (Sprite[] row : mazeSprites) {
@@ -285,6 +289,7 @@ public class Main {
 
         // // TODO: why is this needed?
         mazeSprites[Config.mazeGen.endNode.y][Config.mazeGen.endNode.x].setBackground(Config.BLOCK_COLORS.get(Node.Type.END));
+
         // reset nodes (otherwise they refer to incorrect blocks)
         for (int i=0; i<hintNodes.length; i++) {
             hintNodes[i] = null;
