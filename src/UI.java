@@ -162,23 +162,20 @@ public class UI {
         gbc.gridx = 0;
         gbc.anchor = GridBagConstraints.CENTER;
 
-        // (label followed by slider) x 3
-        for (MazeGen.ChanceNextNode chanceItem : MazeGen.ChanceNextNode.values()) {
+        // label and slider for chance of double
+        int valDouble = (int)(Config.mazeGen.chanceDouble * 100);
+        JLabel labelDouble = new JLabel("Chance of double: " + valDouble + "%");
+        JSlider sliderDouble = getNewSlider(100, valDouble);
 
-            int val = (int)(chanceItem.chance * 100);
-            JLabel label = new JLabel(chanceItem.name() + ": " + val + "%");
-            JSlider slider = getNewSlider(100, val);
+        sliderDouble.addChangeListener(e -> {
+            int newVal = sliderDouble.getValue();
+            Config.mazeGen.chanceDouble = (float)newVal / 100;
+            labelDouble.setText("Chance of double: " + newVal + "%");
+            mazeConfigIsNew = true;
+        });
 
-            slider.addChangeListener(e -> {
-                int newVal = slider.getValue();
-                chanceItem.chance = (float)newVal / 100;
-                label.setText(chanceItem.name() + ": " + newVal + "%");
-                mazeConfigIsNew = true;
-            });
-
-            panel.add(label, gbc);
-            panel.add(slider, gbc);
-        }
+        panel.add(labelDouble, gbc);
+        panel.add(sliderDouble, gbc);
 
         // label and slider for width and height
         JSlider sliderWidth = getNewSlider(20, Config.mazeGen.width);

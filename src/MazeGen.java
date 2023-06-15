@@ -7,6 +7,7 @@
 
 */
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.Stack;
@@ -40,30 +41,16 @@ public class MazeGen {
     // used to generate the maze as well as keep track of the player
     public Node currentNode;
 
-    private final int[] DIR = new int[] {1, -1};
-
-    private int currentDirX = getRandomDirection();
-    private int currentDirY = getRandomDirection();
+    // up, down, left, right
+    private ArrayList<int[]> directions = new ArrayList<>(){{
+        add(new int[] {0, -1});
+        add(new int[] {0, 1});
+        add(new int[] {-1, 0});
+        add(new int[] {1, 0});
+    }};
 
     public int minPathLength = 100;
-    
-    public enum ChanceNextNode {
-
-        SAME_DIR(0.50f),
-        WALL(0.10f),
-        DOUBLE(0.25f);
-
-        public float chance;
-
-        private ChanceNextNode(float chance) {
-            this.chance = chance;
-        }
-
-        public boolean evaluate(double randChance) {
-            return randChance <= chance;
-        }
-
-    }
+    public float chanceDouble = 0.25f;
 
     public static void main(String[] args) {
 
@@ -253,26 +240,31 @@ public class MazeGen {
             int startY = rand.nextInt(height);
             startNode = new Node(startX, startY);
 
-            // set start node and add to path
-            set(startNode, Node.Type.START);
-            creationPath.add(startNode);
+            // add startNode to path
             pathHistory.add(startNode);
             pathHistoryTypes.add(get(startNode));
             
             currentNode = startNode;
+            boolean stuck = false;
 
-            while (getNextNode()) {
+            while (!stuck) {
+
                 Node.Type nextType = getNextNodeType();
-                
                 set(currentNode, nextType);
+                creationPath.add(currentNode);
+
+                // try all directions randomly
+                Collections.shuffle(directions, rand);
                 
-                if (nextType == Node.Type.WALL) {
-                    // take a step back (note that currentNode is never added to path here)
-                    currentNode = creationPath.getLast();
-                }
-                else {
-                    // only add currentNode if it is walkable
-                    creationPath.add(currentNode);
+                stuck = true;
+                for (int[] change : directions) {
+                    Node nextNode = new Node(currentNode.x + change[0], currentNode.y + change[1]);
+                    
+                    if (nodeWithinBounds(nextNode) && get(nextNode) == null) {
+                        currentNode = nextNode;
+                        stuck = false;
+                        break;
+                    }
                 }
             }
 
@@ -308,121 +300,24 @@ public class MazeGen {
     // TODO: prevent creating double in corner
     private Node.Type getNextNodeType() {
         
-        if (creationPath.size() > 1) {
-            // this check prevents creating walls all around the first node
+        double chance = rand.nextDouble();
 
-            double chance = rand.nextDouble();
-            
-            if (ChanceNextNode.DOUBLE.evaluate(chance)) {
-                doubles.add(currentNode);
-                return Node.Type.DOUBLE;
-            }
+        if (chance <= chanceDouble) {
+            doubles.add(currentNode);
 
-            else if (ChanceNextNode.WALL.evaluate(chance)) {
-                return Node.Type.WALL;
-            }
+            return Node.Type.DOUBLE;
         }
-            
+
         return Node.Type.GROUND;
     }
 
-    private boolean getNextNode() {
-
-        boolean tryDxFirst = getRandomDirection() == 1;
-
-        if (tryDxFirst) {
-            if (!tryMoveDx()) {
-                return tryMoveDy();
-            }
-            return true;
-        }
-
-        else {
-            if (!tryMoveDy()) {
-                return tryMoveDx();
-            }
-            return true;
-        }
-    }
-
-    private int getRandomDirection() {
-        return DIR[rand.nextInt(2)];
-    }
-
-    private boolean tryMoveDx() {
-        
-        int dx;
-        double chance = rand.nextDouble();
-
-        if (ChanceNextNode.SAME_DIR.evaluate(chance)) {
-            dx = currentDirX;
-        }
-        else {
-            dx = currentDirX * -1;
-            dx = currentDirX;
-        }
-        
-        if (!validMove(dx, 0)) {
-            dx *= -1;
-            currentDirX = dx;
-            if (!validMove(dx, 0)) {
-                return false;
-            }
-        }
-
-        currentNode = new Node(currentNode.x + dx, currentNode.y);
-        return true;
-    }
-
-    private boolean tryMoveDy() {
-        
-        int dy;
-        double chance = rand.nextDouble();
-
-        if (ChanceNextNode.SAME_DIR.evaluate(chance)) {
-            dy = currentDirY;
-        }
-        else {
-            dy = currentDirY * -1;
-            currentDirY = dy;
-        }
-
-        if (!validMove(0, dy)) {
-            dy *= -1;
-            currentDirY = dy;
-            if (!validMove(0, dy)) {
-                return false;
-            }
-        }
-        
-        currentNode = new Node(currentNode.x, currentNode.y + dy);
-        return true;
-    }
 
     public boolean nodeTypeWalkable(Node node) {
         return get(node) != Node.Type.WALL && get(node) != Node.Type.BLOCKED;
     }
 
-    private boolean validMove(int dx, int dy) {
-        
-        // within horizontal width
-        int newX = currentNode.x + dx;
-        if (newX < 0 || newX >= width) {
-            return false;
-        }
-        
-        // within vertical width
-        int newY = currentNode.y + dy;
-        if (newY < 0 || newY >= height) {
-            return false;
-        }
-        
-        // node already set
-        if (get(newX, newY) != null) {
-            return false;
-        }
-
-        return true;
+    private boolean nodeWithinBounds(Node node) {
+        return node.x >= 0 && node.x < width && node.y >= 0 && node.y < height;
     }
 
 }
