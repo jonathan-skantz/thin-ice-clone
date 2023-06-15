@@ -94,41 +94,27 @@ public class Main {
         
     }
 
-    public static void tryMoveToNode(int dx, int dy) {
+    public static void tryToMove(KeyHandler.ActionKey action) {
 
         if (Config.mazeGen.complete) {
             return;
         }
 
-        Node newNode = new Node(Config.mazeGen.currentNode.x + dx, Config.mazeGen.currentNode.y + dy);
-        
-        // TODO: combine pointOnGrid and nodeTypeWalkable?
-        if (Config.mazeGen.pointOnGrid(newNode.x, newNode.y)) {
+        Node lastNode = Config.mazeGen.currentNode;
+
+        if (Config.mazeGen.userMove(action)) {
             
-            if (Config.mazeGen.nodeTypeWalkable(newNode)) {
-                
-                KeyHandler.ActionKey action;
-
-                if (dx == 1) action = KeyHandler.ActionKey.MOVE_RIGHT;
-                else if (dx == -1) action = KeyHandler.ActionKey.MOVE_LEFT;
-                else if (dy == 1) action = KeyHandler.ActionKey.MOVE_DOWN;
-                else action = KeyHandler.ActionKey.MOVE_UP;
-
-                player.move(action);
-
-
-                Node lastNode = Config.mazeGen.currentNode;
-                Config.mazeGen.userMove(dx, dy);
-
-                Node.Type lastNodeType = Config.mazeGen.get(lastNode);
-                Color color = Config.BLOCK_COLORS.get(lastNodeType);
-                mazeSprites[lastNode.y][lastNode.x].setBackground(color);
-                
-                if (Config.mazeGen.complete) {
-                    textNextLevel.setVisible(true);
-                }
+            player.move(action);
+            
+            Node.Type lastNodeType = Config.mazeGen.get(lastNode);
+            Color color = Config.BLOCK_COLORS.get(lastNodeType);
+            mazeSprites[lastNode.y][lastNode.x].setBackground(color);
+            
+            if (Config.mazeGen.complete) {
+                textNextLevel.setVisible(true);
             }
         }
+
     }
 
     public static void setupKeyCallbacks() {
@@ -137,10 +123,10 @@ public class Main {
         KeyHandler listener = new KeyHandler();
         window.addKeyListener(listener);
         
-        KeyHandler.ActionKey.MOVE_UP.setCallback(() -> { tryMoveToNode(0, -1); });
-        KeyHandler.ActionKey.MOVE_DOWN.setCallback(() -> { tryMoveToNode(0, 1); });
-        KeyHandler.ActionKey.MOVE_LEFT.setCallback(() -> { tryMoveToNode(-1, 0); });
-        KeyHandler.ActionKey.MOVE_RIGHT.setCallback(() -> { tryMoveToNode(1, 0); });
+        KeyHandler.ActionKey.MOVE_UP.setCallback(() -> { tryToMove(KeyHandler.ActionKey.MOVE_UP); });
+        KeyHandler.ActionKey.MOVE_DOWN.setCallback(() -> { tryToMove(KeyHandler.ActionKey.MOVE_DOWN); });
+        KeyHandler.ActionKey.MOVE_LEFT.setCallback(() -> { tryToMove(KeyHandler.ActionKey.MOVE_LEFT); });
+        KeyHandler.ActionKey.MOVE_RIGHT.setCallback(() -> { tryToMove(KeyHandler.ActionKey.MOVE_RIGHT); });
         
         KeyHandler.ActionKey.MAZE_NEW.setCallback(() -> { 
             
@@ -187,37 +173,26 @@ public class Main {
             return;
         }
 
-        Node oldNode = Config.mazeGen.currentNode;
+        Node lastNode = Config.mazeGen.currentNode;
 
-        Node.Type typeBefore = Config.mazeGen.step(direction);
+        KeyHandler.ActionKey action = Config.mazeGen.step(direction);
 
-        if (typeBefore == null) {
-            return;
-        }
-        
-        if (Config.mazeGen.currentNode.x < oldNode.x) {
-            player.move(KeyHandler.ActionKey.MOVE_LEFT);
-        }
-        else if (Config.mazeGen.currentNode.x > oldNode.x) {
-            player.move(KeyHandler.ActionKey.MOVE_RIGHT);
-        }
-        else if (Config.mazeGen.currentNode.y < oldNode.y) {
-            player.move(KeyHandler.ActionKey.MOVE_UP);
-        }
-        else if (Config.mazeGen.currentNode.y > oldNode.y) {
-            player.move(KeyHandler.ActionKey.MOVE_DOWN);
+        if (action != null) {
+            player.move(action);
+
+            Node.Type typeBefore = Config.mazeGen.get(lastNode);
+            Color color = Config.BLOCK_COLORS.get(typeBefore);
+            Sprite spr;
+            if (direction == -1) {
+                spr = mazeSprites[Config.mazeGen.currentNode.y][Config.mazeGen.currentNode.x];
+            }
+            else {
+                spr = mazeSprites[lastNode.y][lastNode.x];
+                
+            }
+            spr.setBackground(color);
         }
 
-        Color color = Config.BLOCK_COLORS.get(typeBefore);
-        Sprite spr;
-        if (direction == -1) {
-            spr = mazeSprites[Config.mazeGen.currentNode.y][Config.mazeGen.currentNode.x];
-        }
-        else {
-            spr = mazeSprites[oldNode.y][oldNode.x];
-            
-        }
-        spr.setBackground(color);
         
     }
 

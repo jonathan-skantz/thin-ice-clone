@@ -89,36 +89,43 @@ public class MazeGen {
         }
     }
 
-    public void userMove(int dx, int dy) {
-        // NOTE: doesn't check move validity
+    // returns true if valid move, false if invalid move
+    public boolean userMove(KeyHandler.ActionKey action) {
 
-        Node newNode = new Node(currentNode.x+dx, currentNode.y+dy);
-        
-        if (get(currentNode) == Node.Type.DOUBLE) {
-            set(currentNode, Node.Type.GROUND);
-        }
-        else {
-            set(currentNode, Node.Type.BLOCKED);
-        }
-        
-        pathHistory.add(newNode);
-        pathHistoryTypes.add(get(newNode));
+        int[] change = action.getMovement();
+        Node newNode = new Node(currentNode.x + change[0], currentNode.y + change[1]);
 
-        if (pathHistoryRedo.size() > 0) {
-            if (pathHistoryRedo.peek().same(newNode)) {
-                pathHistoryRedo.pop();
+        if (pointOnGrid(newNode.x, newNode.y) && nodeTypeWalkable(newNode)) {
+            
+            if (get(currentNode) == Node.Type.DOUBLE) {
+                set(currentNode, Node.Type.GROUND);
             }
             else {
-                // new history is made, clear last record of redos
-                pathHistoryRedo.clear();
+                set(currentNode, Node.Type.BLOCKED);
             }
-        }
-        
-        if ((get(newNode) == Node.Type.END)) {
-            complete = true;
+            
+            pathHistory.add(newNode);
+            pathHistoryTypes.add(get(newNode));
+    
+            if (pathHistoryRedo.size() > 0) {
+                if (pathHistoryRedo.peek().same(newNode)) {
+                    pathHistoryRedo.pop();
+                }
+                else {
+                    // new history is made, clear last record of redos
+                    pathHistoryRedo.clear();
+                }
+            }
+            
+            if (newNode.same(endNode)) {
+                complete = true;
+            }
+    
+            currentNode = newNode;
+            return true;
         }
 
-        currentNode = newNode;
+        return false;
     }
 
     public void set(Node node, Node.Type type) {
@@ -190,34 +197,34 @@ public class MazeGen {
         }
     }
 
-    // returns previous node's type
-    public Node.Type step(int direction){
+    // returns ActionKey in which grid direction the step occured
+    public KeyHandler.ActionKey step(int direction){
         
         if (direction == -1) {
             
             if (pathHistory.size() > 1) {
                 nodeReset(currentNode);
                 
-                Node lastNode = pathHistory.pop();      // same as current
+                Node lastNode = pathHistory.pop();      // pops currentNode
                 pathHistoryTypes.pop();
                 
                 pathHistoryRedo.add(lastNode);
                 
                 currentNode = pathHistory.peek();
-                Node.Type typeBefore = pathHistoryTypes.peek();
                 
-                return typeBefore;
+                return KeyHandler.ActionKey.getActionFromMovement(lastNode, currentNode);
             }
         }
         else {
             if (pathHistoryRedo.size() > 0) {
-            
-                Node oldNode = currentNode;
                 
+                Node lastNode = currentNode;
                 Node newNode = pathHistoryRedo.peek();      // NOTE: doesn't pop, since that is done in userMove()
-                userMove(newNode.x-currentNode.x, newNode.y-currentNode.y);
+
+                KeyHandler.ActionKey action = KeyHandler.ActionKey.getActionFromMovement(lastNode, newNode);
+                userMove(action);
                 
-                return get(oldNode);
+                return action;
             }
         }
         
