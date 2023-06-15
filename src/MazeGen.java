@@ -277,11 +277,6 @@ public class MazeGen {
                 }
             }
 
-            // prevent endNode from ending up right next to startNode
-            if (currentNode.nextTo(startNode) && creationPath.size() > 2) {
-                currentNode = creationPath.pop();
-            }
-            
             count++;
         }
         
