@@ -40,7 +40,7 @@ public class MazeGen {
     public static void main(String[] args) {
 
         // generate maze
-        MazeGen.generate(3, 3);
+        MazeGen.generate(1, 5);
 
         System.out.println("invalid paths: " + invalidPathsCount);
 
@@ -277,28 +277,34 @@ public class MazeGen {
          * both x and y of startNode are not odd:
          * 
          * the path will always be one node too short.
-         * Therefore, a new startNode is determined (unless one the dimensions are like 1x1).
+         * Therefore, a new startNode is determined.
          */
 
-        if (desiredPathLength == width * height && 
-            odd(width) && odd(height) &&
-            ((odd(startNode.x) && !odd(startNode.y)) || (!odd(startNode.x)  && odd(startNode.y)))) {
 
-            Node oldStart = startNode;
-            if (startNode.x - 1 > 0) {
-                startNode = new Node(startNode.x - 1, startNode.y);
-            }
-            else if (startNode.x + 1 < width) {
-                startNode = new Node(startNode.x + 1, startNode.y);
-            }
-            else if (startNode.y - 1 > 0) {
-                startNode = new Node(startNode.x, startNode.y - 1);
-            }
-            else if (startNode.y + 1 < height) {
-                startNode = new Node(startNode.x, startNode.y + 1);
-            }
+        if (desiredPathLength == width * height && odd(width) && odd(height)) {
 
-            System.out.println("start changed from " + oldStart + " to " + startNode);
+            while ((odd(startNode.x) && !odd(startNode.y)) || (!odd(startNode.x)  && odd(startNode.y))) {
+              
+                // sets startNode to the next possible node by going right, then
+                // a row down, and moving to top left if hit bottom right
+
+                if (startNode.x + 1 < width) {
+                    // move right one step
+                    startNode = new Node(startNode.x + 1, startNode.y);
+                }
+
+                else {
+
+                    if (startNode.y + 1 < height) {
+                        // new row, start from left
+                        startNode = new Node(0, startNode.y + 1);
+                    }
+                    else {
+                        // start from top left
+                        startNode = new Node(0, 0);
+                    }
+                }
+            }
         }
         set(startNode, Node.Type.START);
     }
