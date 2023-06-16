@@ -237,34 +237,51 @@ public class MazeGen {
         return neighbors;
     }
 
-    // setup generation process and begin generating
-    public void generate() {
+    private boolean odd(int v) {
+        return v % 2 != 0;
+    }
 
-        // clear all
-        maze = new Node.Type[height][width];
-        creationPath.clear();
-        doubles.clear();
-        invalidPathsCount = 0;
-        complete = false;
-        
-        // set random start
+    private void setRandomStartNode() {
+
         startNode = new Node(rand.nextInt(width), rand.nextInt(height));
+
+        /*
+         * If desiredPathLength is the same as max path length, and
+         * both dimensions are odd, and
+         * both x and y of startNode are not odd:
+         * 
+         * the path will always be one node too short.
+         * Therefore, a new startNode is determined (unless one the dimensions are like 1x1).
+         */
+
+        if (desiredPathLength == width * height && 
+            odd(width) && odd(height) &&
+            ((odd(startNode.x) && !odd(startNode.y)) || (!odd(startNode.x)  && odd(startNode.y)))) {
+
+            Node oldStart = startNode;
+            if (startNode.x - 1 > 0) {
+                startNode = new Node(startNode.x - 1, startNode.y);
+            }
+            else if (startNode.x + 1 < width) {
+                startNode = new Node(startNode.x + 1, startNode.y);
+            }
+            else if (startNode.y - 1 > 0) {
+                startNode = new Node(startNode.x, startNode.y - 1);
+            }
+            else if (startNode.y + 1 < height) {
+                startNode = new Node(startNode.x, startNode.y + 1);
+            }
+
+            System.out.println("start changed from " + oldStart + " to " + startNode);
+        }
         set(startNode, Node.Type.START);
-        
-        // add to record
-        creationPath.add(startNode);
-        pathHistory.add(startNode);
-        pathHistoryTypes.add(Node.Type.START);
+    }
 
-        // start recursive generation
-        generateHelper(startNode);
-
-        // get endNode from creationPath
-        endNode = creationPath.getLast();
-        set(endNode, Node.Type.END);
+    private void setNodeTypes() {
 
         for (int y=0; y<height; y++) {
             for (int x=0; x<width; x++) {
+
                 Node.Type type = get(x, y);
                 
                 // change all nodes that are of type null to wall
@@ -273,7 +290,7 @@ public class MazeGen {
                 }
 
                 // otherwise to either ground or 2x
-                else if (type != Node.Type.START && type != Node.Type.END) {
+                else {
                     Node.Type newType = getRandomNodeType();
 
                     if (newType == Node.Type.DOUBLE) {
@@ -284,6 +301,36 @@ public class MazeGen {
                 }
             }
         }
+
+        set(startNode, Node.Type.START);
+        set(endNode, Node.Type.END);
+
+    }
+
+    // setup generation process and begin generating
+    public void generate() {
+
+        // clear all
+        maze = new Node.Type[height][width];
+        creationPath.clear();
+        doubles.clear();
+        invalidPathsCount = 0;
+        complete = false;
+        
+        setRandomStartNode();
+
+        // add to record
+        creationPath.add(startNode);
+        pathHistory.add(startNode);
+        pathHistoryTypes.add(Node.Type.START);
+        
+        // start recursive generation
+        generateHelper(startNode);
+        
+        // get endNode from creationPath
+        endNode = creationPath.getLast();
+
+        setNodeTypes();
 
         currentNode = startNode;
     }
