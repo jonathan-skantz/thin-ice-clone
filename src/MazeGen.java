@@ -1,11 +1,3 @@
-/*
-
-* maze ends only at edge of maze or when colliding with a path node
-* no dead ends
-
-
-
-*/
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -13,7 +5,9 @@ import java.util.Random;
 import java.util.Stack;
 
 public class MazeGen {
- 
+
+    private int invalidPathsCount = 0;
+
     public boolean complete = false;       // is set to true when currentNode == endNode
 
     public LinkedList<Node> creationPath = new LinkedList<>();
@@ -29,7 +23,7 @@ public class MazeGen {
     // keep track of doubles, only to know where they were when resetting
     private ArrayList<Node> doubles = new ArrayList<>();
     
-    private Random rand = new Random();
+    private Random rand = new Random(0);
     public Node.Type[][] maze;
     
     public int width;
@@ -37,29 +31,21 @@ public class MazeGen {
     
     public Node startNode;
     public Node endNode;
-    
-    // used to generate the maze as well as keep track of the player
-    public Node currentNode;
+    public Node currentNode;    // used to keep track of the player
 
-    // up, down, left, right
-    private ArrayList<int[]> directions = new ArrayList<>(){{
-        add(new int[] {0, -1});
-        add(new int[] {0, 1});
-        add(new int[] {-1, 0});
-        add(new int[] {1, 0});
-    }};
-
-    public int minPathLength = 100;
+    public int desiredPathLength = 10;
     public float chanceDouble = 0.25f;
 
     public static void main(String[] args) {
 
         // generate maze
-        MazeGen mg = new MazeGen(3, 1);
+        MazeGen mg = new MazeGen(5, 5);
         mg.generate();
 
-        // print path and tpyes
-        System.out.println("Maze with path: ");
+        System.out.println("invalid paths: " + mg.invalidPathsCount);
+
+        // print path and types
+        System.out.println("\nMaze with path: ");
         MazePrinter.printMazeWithPath(mg.maze, mg.creationPath);
 
         System.out.println("Maze with types:");
@@ -70,9 +56,9 @@ public class MazeGen {
         width = w;
         height = h;
 
-        // prevent maze generation from taking too long
-        if (minPathLength > width * height * 0.9 ) {
-            minPathLength = (int) (width * height * 0.5);
+        // prevent desiredPathLength from being larger than possible
+        if (desiredPathLength > width * height) {
+            desiredPathLength = width * height;
         }
     }
 
@@ -143,7 +129,7 @@ public class MazeGen {
         pathHistoryRedo.clear();
         
         pathHistory.add(startNode);
-        pathHistoryTypes.add(get(startNode));
+        pathHistoryTypes.add(Node.Type.START);
 
         complete = false;
 
@@ -218,101 +204,136 @@ public class MazeGen {
         return null;
     }
 
+
+    // returns list of neighbors of `node` in a random order
+    private ArrayList<Node> getUnsetNeighborsTo(Node node) {
+
+        ArrayList<Node> neighbors = new ArrayList<>(4);
+
+        // up
+        Node newNode = new Node(node.x, node.y - 1);
+        if (newNode.y >= 0 && get(newNode) == null) neighbors.add(newNode);
+
+        // down
+        newNode = new Node(node.x, node.y + 1);
+        if (newNode.y < height && get(newNode) == null) neighbors.add(newNode);
+
+        // left
+        newNode = new Node(node.x - 1, node.y);
+        if (newNode.x >= 0 && get(newNode) == null) neighbors.add(newNode);
+        
+        // right
+        newNode = new Node(node.x + 1, node.y);
+        if (newNode.x < width && get(newNode) == null) neighbors.add(newNode);
+        
+        /*
+         * The shuffle randomizes the maze generation.
+         * All neighbors will be visited until a path is found.
+         * If no maze is found, all permutations of possible paths
+         * will be traversed (theoretically, since a maze is always found).
+         */
+        Collections.shuffle(neighbors, rand);
+
+        return neighbors;
+    }
+
+    // setup generation process and begin generating
     public void generate() {
 
+        // clear all
+        maze = new Node.Type[height][width];
+        creationPath.clear();
+        doubles.clear();
+        invalidPathsCount = 0;
         complete = false;
+        
+        // set random start
+        startNode = new Node(rand.nextInt(width), rand.nextInt(height));
+        set(startNode, Node.Type.START);
+        
+        // add to record
+        creationPath.add(startNode);
+        pathHistory.add(startNode);
+        pathHistoryTypes.add(Node.Type.START);
 
-        int count = 0;
+        // start recursive generation
+        generateHelper(startNode);
 
-        do {
+        // get endNode from creationPath
+        endNode = creationPath.getLast();
+        set(endNode, Node.Type.END);
 
-            // reset maze
-            maze = new Node.Type[height][width];
-            creationPath.clear();
-            doubles.clear();
-
-            pathHistory.clear();
-            pathHistoryTypes.clear();
-            pathHistoryRedo.clear();
-
-            // set random start
-            int startX = rand.nextInt(width);
-            int startY = rand.nextInt(height);
-            startNode = new Node(startX, startY);
-
-            // add startNode to path
-            pathHistory.add(startNode);
-            pathHistoryTypes.add(get(startNode));
-            
-            currentNode = startNode;
-            boolean stuck = false;
-
-            while (!stuck) {
-
-                Node.Type nextType = getNextNodeType();
-                set(currentNode, nextType);
-                creationPath.add(currentNode);
-
-                // try all directions randomly
-                Collections.shuffle(directions, rand);
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                Node.Type type = get(x, y);
                 
-                stuck = true;
-                for (int[] change : directions) {
-                    Node nextNode = new Node(currentNode.x + change[0], currentNode.y + change[1]);
-                    
-                    if (nodeWithinBounds(nextNode) && get(nextNode) == null) {
-                        currentNode = nextNode;
-                        stuck = false;
-                        break;
+                // change all nodes that are of type null to wall
+                if (type == null) {
+                    set(x, y, Node.Type.WALL);
+                }
+
+                // otherwise to either ground or 2x
+                else if (type != Node.Type.START && type != Node.Type.END) {
+                    Node.Type newType = getRandomNodeType();
+
+                    if (newType == Node.Type.DOUBLE) {
+                        doubles.add(new Node(x, y));
                     }
+
+                    set(x, y, newType);
                 }
             }
+        }
 
-            // change default from null to Node.Type.WALL
-            for (int y=0; y<height; y++) {
-                for (int x=0; x<width; x++) {
-                    if (get(x, y) == null) {
-                        set(x, y, Node.Type.WALL);
-                    }
-                }
-            }
+        currentNode = startNode;
+    }
 
-            count++;
+    // generate with breadth-first-search by checking neighbors in a random order
+    private boolean generateHelper(Node current) {
+
+        if (creationPath.size() == desiredPathLength) {
+            return true;    // signals to stop traversing
         }
         
-        // prevent too short mazes, and prevent startNode from being endNode
-        while (creationPath.size() < minPathLength || currentNode.same(startNode));
+        for (Node neighbor : getUnsetNeighborsTo(current)) {
+        
+            // add this neighbor
+            creationPath.add(neighbor);
+            set(neighbor, Node.Type.BLOCKED);
+            
+            // check neighbors of this neighbor
+            boolean done = generateHelper(neighbor);
+            if (done) {
+                return true;
+            }
 
-        endNode = currentNode;
-        currentNode = startNode;
+            // remove this neighbor
+            creationPath.removeLast();
+            set(neighbor, null);
+        }
+        
+        // All unset neighbors have been traversed but still no appropriate maze is found.
+        // Therefore, increase counter and return false to continue searching.
 
-        maze[startNode.y][startNode.x] = Node.Type.START;
-        maze[endNode.y][endNode.x] = Node.Type.END;
+        invalidPathsCount++;
 
-        System.out.println("mazes generated: " + count);
+        return false;
     }
 
     // TODO: prevent creating double in corner
-    private Node.Type getNextNodeType() {
+    private Node.Type getRandomNodeType() {
         
         double chance = rand.nextDouble();
 
         if (chance <= chanceDouble) {
-            doubles.add(currentNode);
-
             return Node.Type.DOUBLE;
         }
 
         return Node.Type.GROUND;
     }
 
-
     public boolean nodeTypeWalkable(Node node) {
         return get(node) != Node.Type.WALL && get(node) != Node.Type.BLOCKED;
-    }
-
-    private boolean nodeWithinBounds(Node node) {
-        return node.x >= 0 && node.x < width && node.y >= 0 && node.y < height;
     }
 
 }

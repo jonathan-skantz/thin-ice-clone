@@ -204,12 +204,12 @@ public class UI {
         panel.add(labelHeight, gbc);
         panel.add(sliderHeight, gbc);
 
-        // slider for min maze length
-        JLabel labelLen = new JLabel("Min path length: " + Config.mazeGen.minPathLength);
-        JSlider sliderLen = getNewSlider(100, Config.mazeGen.minPathLength);
+        // slider for maze length
+        JLabel labelLen = new JLabel("Min path length: " + Config.mazeGen.desiredPathLength);
+        JSlider sliderLen = getNewSlider(100, Config.mazeGen.desiredPathLength);
         sliderLen.addChangeListener(e -> {
             int newVal = sliderLen.getValue();
-            Config.setMazeMinPathLength(newVal);
+            Config.setMazeDesiredPathLength(newVal);
             labelLen.setText("Min path length: " + newVal);
 
             mazeConfigIsNew = true;
@@ -219,7 +219,7 @@ public class UI {
 
         // slider for max hint size
         JLabel labelHint = new JLabel("Hint length: " + Config.hintMax);
-        JSlider sliderHint = getNewSlider(100, Config.mazeGen.minPathLength);
+        JSlider sliderHint = getNewSlider(100, Config.mazeGen.desiredPathLength);
         sliderHint.addChangeListener(e -> {
             int newVal = sliderHint.getValue();
             Config.setHintMax(newVal);

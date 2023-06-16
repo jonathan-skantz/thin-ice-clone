@@ -58,8 +58,8 @@ public class Config {
         newHintMax = true;
     }
 
-    public static void setMazeMinPathLength(int v) {
-        mazeGen.minPathLength = v;
+    public static void setMazeDesiredPathLength(int v) {
+        mazeGen.desiredPathLength = v;
     }
 
     public static void setBlockColor(Node.Type block, Color color) {
