@@ -6,8 +6,6 @@ import javax.swing.border.Border;
 
 public class Config {
     
-    public static MazeGen mazeGen = new MazeGen(Config.MAZE_DEFAULT_WIDTH, Config.MAZE_DEFAULT_HEIGHT);
-
     public static final int MAZE_DEFAULT_WIDTH = 5;
     public static final int MAZE_DEFAULT_HEIGHT = 5;
     
@@ -39,27 +37,12 @@ public class Config {
     public static boolean hintTypeLongest = true;   // either longest or shortest
 
     // flags for updates
-    public static boolean newSize = false;
     public static boolean newHintMax = false;
     public static boolean newBlockColor = false;
-
-    public static void setMazeWidth(int w) {
-        mazeGen.width = w;
-        newSize = true;
-    }
-
-    public static void setMazeHeight(int h) {
-        mazeGen.height = h;
-        newSize = true;
-    }
 
     public static void setHintMax(int v) {
         hintMax = v;
         newHintMax = true;
-    }
-
-    public static void setMazeDesiredPathLength(int v) {
-        mazeGen.desiredPathLength = v;
     }
 
     public static void setBlockColor(Node.Type block, Color color) {

@@ -6,64 +6,90 @@ import java.util.Stack;
 
 public class MazeGen {
 
-    private int invalidPathsCount = 0;
+    private static int invalidPathsCount = 0;
 
-    public boolean complete = false;       // is set to true when currentNode == endNode
+    public static boolean complete = false;       // is set to true when currentNode == endNode
 
-    public LinkedList<Node> creationPath = new LinkedList<>();
+    public static LinkedList<Node> creationPath = new LinkedList<>();
 
     // keep track of the user's path, in order to be able to backtrack
-    private Stack<Node> pathHistory = new Stack<>();
-    private Stack<Node.Type> pathHistoryTypes = new Stack<>();
+    private static Stack<Node> pathHistory = new Stack<>();
+    private static Stack<Node.Type> pathHistoryTypes = new Stack<>();
     
-    private Stack<Node> pathHistoryRedo = new Stack<>();
+    private static Stack<Node> pathHistoryRedo = new Stack<>();
     // pathHistoryRedoTypes are not necessary to track since when redoing,
     // the system thinks the player is moving just like normal
 
     // keep track of doubles, only to know where they were when resetting
-    private ArrayList<Node> doubles = new ArrayList<>();
+    private static ArrayList<Node> doubles = new ArrayList<>();
     
-    private Random rand = new Random(0);
-    public Node.Type[][] maze;
+    private static Random rand = new Random(0);
+    public static Node.Type[][] maze;
     
-    public int width;
-    public int height;
+    private static int width = Config.MAZE_DEFAULT_WIDTH;
+    private static int height = Config.MAZE_DEFAULT_HEIGHT;
     
-    public Node startNode;
-    public Node endNode;
-    public Node currentNode;    // used to keep track of the player
+    public static Node startNode;
+    public static Node endNode;
+    public static Node currentNode;    // used to keep track of the player
 
-    public int desiredPathLength = 10;
-    public float chanceDouble = 0.25f;
+    public static int desiredPathLength = 10;
+    public static int maxPathLength;           // will be set to width * height
+    public static float chanceDouble = 0.25f;
 
     public static void main(String[] args) {
 
         // generate maze
-        MazeGen mg = new MazeGen(5, 5);
-        mg.generate();
+        MazeGen.generate(3, 3);
 
-        System.out.println("invalid paths: " + mg.invalidPathsCount);
+        System.out.println("invalid paths: " + invalidPathsCount);
 
         // print path and types
         System.out.println("\nMaze with path: ");
-        MazePrinter.printMazeWithPath(mg.maze, mg.creationPath);
+        MazePrinter.printMazeWithPath(creationPath);
 
         System.out.println("Maze with types:");
-        MazePrinter.printMazeWithTypes(mg.maze);
+        MazePrinter.printMazeWithTypes();
     }
 
-    public MazeGen(int w, int h) {
+    public static void setWidth(int w) {
         width = w;
-        height = h;
+        maxPathLength = w * height;
 
-        // prevent desiredPathLength from being larger than possible
-        if (desiredPathLength > width * height) {
-            desiredPathLength = width * height;
+        if (desiredPathLength > maxPathLength) {
+            desiredPathLength = maxPathLength;
         }
+    }
+    
+    public static void setHeight(int h) {
+        height = h;
+        maxPathLength = width * height;
+
+        if (desiredPathLength > maxPathLength) {
+            desiredPathLength = maxPathLength;
+        }
+    }
+    
+    // returns `v` but potentially capped
+    public static int setDesiredPathLength(int v) {
+        
+        // prevent desiredPathLength from being larger than possible
+        if (v < maxPathLength) {
+            desiredPathLength = v;
+        }
+        return v;
+    }
+
+    public static int getWidth() {
+        return width;
+    }
+
+    public static int getHeight() {
+        return height;
     }
 
     // returns true if valid move, false if invalid move
-    public boolean userMove(KeyHandler.ActionKey action) {
+    public static boolean userMove(KeyHandler.ActionKey action) {
 
         int[] change = action.getMovement();
         Node newNode = new Node(currentNode.x + change[0], currentNode.y + change[1]);
@@ -101,28 +127,28 @@ public class MazeGen {
         return false;
     }
 
-    public void set(Node node, Node.Type type) {
+    public static void set(Node node, Node.Type type) {
         maze[node.y][node.x] = type;
     }
     
-    public void set(int x, int y, Node.Type type) {
+    public static void set(int x, int y, Node.Type type) {
         maze[y][x] = type;
     }
 
-    public Node.Type get(Node node) {
+    public static Node.Type get(Node node) {
         return maze[node.y][node.x];
     }
 
-    public Node.Type get(int x, int y) {
+    public static Node.Type get(int x, int y) {
         return maze[y][x];
     }
 
     // TEMP
-    public boolean pointOnGrid(int x, int y) {
+    public static boolean pointOnGrid(int x, int y) {
         return x >= 0 && y >= 0 && x < width && y < height;
     }
 
-    public void reset() {
+    public static void reset() {
         
         pathHistory.clear();
         pathHistoryTypes.clear();
@@ -149,7 +175,7 @@ public class MazeGen {
         }
     }
 
-    public void nodeReset(Node node) {
+    public static void nodeReset(Node node) {
 
         if (node.same(startNode)) {
             set(node, Node.Type.START);
@@ -171,7 +197,7 @@ public class MazeGen {
     }
 
     // returns ActionKey in which grid direction the step occured
-    public KeyHandler.ActionKey step(int direction){
+    public static KeyHandler.ActionKey step(int direction){
         
         if (direction == -1) {
             
@@ -206,7 +232,7 @@ public class MazeGen {
 
 
     // returns list of neighbors of `node` in a random order
-    private ArrayList<Node> getUnsetNeighborsTo(Node node) {
+    private static ArrayList<Node> getUnsetNeighborsTo(Node node) {
 
         ArrayList<Node> neighbors = new ArrayList<>(4);
 
@@ -237,11 +263,11 @@ public class MazeGen {
         return neighbors;
     }
 
-    private boolean odd(int v) {
+    private static boolean odd(int v) {
         return v % 2 != 0;
     }
 
-    private void setRandomStartNode() {
+    private static void setRandomStartNode() {
 
         startNode = new Node(rand.nextInt(width), rand.nextInt(height));
 
@@ -277,7 +303,7 @@ public class MazeGen {
         set(startNode, Node.Type.START);
     }
 
-    private void setNodeTypes() {
+    private static void setNodeTypes() {
 
         for (int y=0; y<height; y++) {
             for (int x=0; x<width; x++) {
@@ -307,8 +333,22 @@ public class MazeGen {
 
     }
 
+    public static void generate(int width, int height) {
+
+        MazeGen.width = width;
+        MazeGen.height = height;
+
+        maxPathLength = width * height;
+
+        if (desiredPathLength > maxPathLength) {
+            desiredPathLength = maxPathLength;
+        }
+
+        generate();
+    }
+
     // setup generation process and begin generating
-    public void generate() {
+    public static void generate() {
 
         // clear all
         maze = new Node.Type[height][width];
@@ -336,7 +376,7 @@ public class MazeGen {
     }
 
     // generate with breadth-first-search by checking neighbors in a random order
-    private boolean generateHelper(Node current) {
+    private static boolean generateHelper(Node current) {
 
         if (creationPath.size() == desiredPathLength) {
             return true;    // signals to stop traversing
@@ -368,7 +408,7 @@ public class MazeGen {
     }
 
     // TODO: prevent creating double in corner
-    private Node.Type getRandomNodeType() {
+    private static Node.Type getRandomNodeType() {
         
         double chance = rand.nextDouble();
 
@@ -379,7 +419,7 @@ public class MazeGen {
         return Node.Type.GROUND;
     }
 
-    public boolean nodeTypeWalkable(Node node) {
+    public static boolean nodeTypeWalkable(Node node) {
         return get(node) != Node.Type.WALL && get(node) != Node.Type.BLOCKED;
     }
 

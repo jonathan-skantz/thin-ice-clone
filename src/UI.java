@@ -163,13 +163,13 @@ public class UI {
         gbc.anchor = GridBagConstraints.CENTER;
 
         // label and slider for chance of double
-        int valDouble = (int)(Config.mazeGen.chanceDouble * 100);
+        int valDouble = (int)(MazeGen.chanceDouble * 100);
         JLabel labelDouble = new JLabel("Chance of double: " + valDouble + "%");
         JSlider sliderDouble = getNewSlider(100, valDouble);
 
         sliderDouble.addChangeListener(e -> {
             int newVal = sliderDouble.getValue();
-            Config.mazeGen.chanceDouble = (float)newVal / 100;
+            MazeGen.chanceDouble = (float)newVal / 100;
             labelDouble.setText("Chance of double: " + newVal + "%");
             mazeConfigIsNew = true;
         });
@@ -178,22 +178,22 @@ public class UI {
         panel.add(sliderDouble, gbc);
 
         // label and slider for width and height
-        JSlider sliderWidth = getNewSlider(20, Config.mazeGen.width);
-        JSlider sliderHeight = getNewSlider(20, Config.mazeGen.height);
+        JSlider sliderWidth = getNewSlider(20, MazeGen.getWidth());
+        JSlider sliderHeight = getNewSlider(20, MazeGen.getHeight());
 
-        JLabel labelWidth = new JLabel("Width: " + Config.mazeGen.width);
-        JLabel labelHeight = new JLabel("Height: " + Config.mazeGen.height);
+        JLabel labelWidth = new JLabel("Width: " + MazeGen.getWidth());
+        JLabel labelHeight = new JLabel("Height: " + MazeGen.getHeight());
 
         sliderWidth.addChangeListener(e -> {
             int val = sliderWidth.getValue();
-            Config.setMazeWidth(val);
+            MazeGen.setWidth(val);
             labelWidth.setText("Width: " + val);
             mazeConfigIsNew = true;
         });
         
         sliderHeight.addChangeListener(e -> {
             int val = sliderHeight.getValue();
-            Config.setMazeHeight(val);
+            MazeGen.setHeight(val);
             labelHeight.setText("Height: " + val);
             mazeConfigIsNew = true;
         });
@@ -205,21 +205,27 @@ public class UI {
         panel.add(sliderHeight, gbc);
 
         // slider for maze length
-        JLabel labelLen = new JLabel("Min path length: " + Config.mazeGen.desiredPathLength);
-        JSlider sliderLen = getNewSlider(100, Config.mazeGen.desiredPathLength);
+        JLabel labelLen = new JLabel("Path length: " + MazeGen.desiredPathLength);
+        JSlider sliderLen = getNewSlider(100, MazeGen.desiredPathLength);
         sliderLen.addChangeListener(e -> {
             int newVal = sliderLen.getValue();
-            Config.setMazeDesiredPathLength(newVal);
-            labelLen.setText("Min path length: " + newVal);
+            int valBefore = MazeGen.desiredPathLength;
 
-            mazeConfigIsNew = true;
+            newVal = MazeGen.setDesiredPathLength(newVal);
+
+            if (newVal != valBefore) {
+                sliderLen.setValue(newVal);
+                labelLen.setText("Path length: " + newVal);
+                mazeConfigIsNew = true;
+            }
         });
+
         panel.add(labelLen, gbc);
         panel.add(sliderLen, gbc);
 
         // slider for max hint size
         JLabel labelHint = new JLabel("Hint length: " + Config.hintMax);
-        JSlider sliderHint = getNewSlider(100, Config.mazeGen.desiredPathLength);
+        JSlider sliderHint = getNewSlider(100, MazeGen.desiredPathLength);
         sliderHint.addChangeListener(e -> {
             int newVal = sliderHint.getValue();
             Config.setHintMax(newVal);
