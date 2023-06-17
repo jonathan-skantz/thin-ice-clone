@@ -36,10 +36,32 @@ public class UI {
         gbcCol2.insets = insets;
     }
 
-    public static void setUpKeyConfig() {
-        
+    public static void setupConfigs() {
+        setupKeyConfig();
+        setupColorConfig();
+        setupMazeConfig();
+    }
+
+
+
+    // ---------- KEY CONFIG ----------
+
+    private static void setupKeyConfig() {
+
         JPanel panel = new JPanel(new GridBagLayout());
 
+        setupKeyConfigKeybinds(panel);
+        setupKeyConfigContinuousMovement(panel);
+
+        // add config button to bottom left
+        JButton btnConfig = getConfigPopupButton("Key config", panel);
+        int pad = 10;
+        int y = Window.height - btnConfig.getHeight() - pad;
+        btnConfig.setLocation(pad, y);
+    }
+
+    private static void setupKeyConfigKeybinds(JPanel panel) {
+      
         // new label in 1st column, new btn in 2nd column
         for (KeyHandler.ActionKey key : KeyHandler.ActionKey.values()) {
 
@@ -66,9 +88,12 @@ public class UI {
                     }
                 });
             });
-
         }
 
+    }
+
+    private static void setupKeyConfigContinuousMovement(JPanel panel) {
+        
         // checkbox for continous key presses
         JLabel label = new JLabel("Allow continuous");
         label.setPreferredSize(new Dimension(125, label.getPreferredSize().height));
@@ -82,17 +107,13 @@ public class UI {
 
         panel.add(label, gbcCol1);
         panel.add(cb, gbcCol2);
-
-        JButton btnConfig = getConfigPopupButton("Key config", panel);
-        
-        // move to bottomleft
-        int pad = 10;
-        int y = Window.height - btnConfig.getHeight() - pad;
-        btnConfig.setLocation(pad, y);
-
     }
 
-    public static void setUpColorConfig() {
+    
+    
+    // ---------- COLOR CONFIG ----------
+
+    private static void setupColorConfig() {
           
         JPanel panel = new JPanel(new GridBagLayout());
 
@@ -123,8 +144,8 @@ public class UI {
 
         }
 
+        // add config button to bottom mid
         JButton btnConfig = getConfigPopupButton("Color config", panel);
-        
         int pad = 10;
         int x = (Window.width - btnConfig.getWidth()) / 2;
         int y = Window.height - btnConfig.getHeight() - pad;
@@ -132,29 +153,11 @@ public class UI {
 
     }
 
-    public static JSlider getNewSlider(int max, int currentVal) {
 
-        JSlider slider = new JSlider(JSlider.HORIZONTAL, 0, max, currentVal);
 
-        if (max == 100) {
-            slider.setMajorTickSpacing(10);
-            slider.setMinorTickSpacing(5);
-            slider.setSnapToTicks(true);
-        }
-        else {
-            slider.setMajorTickSpacing(5);
-            slider.setMinorTickSpacing(1);
-        }
-        
-        slider.setPaintTicks(true);
-        slider.setPaintLabels(true);
-        slider.setPreferredSize(new Dimension(500, 100));
-        slider.setBorder(BorderFactory.createEmptyBorder(5, 5, 50, 5));
+    // ---------- MAZE CONFIG ----------
 
-        return slider;
-    }
-
-    public static void setUpMazeConfig() {
+    private static void setupMazeConfig() {
 
         JPanel panel = new JPanel(new GridBagLayout());
         
@@ -162,6 +165,22 @@ public class UI {
         gbc.gridx = 0;
         gbc.anchor = GridBagConstraints.CENTER;
 
+        setupMazeConfigChanceDouble(panel, gbc);
+        setupMazeConfigSize(panel, gbc);
+        setupMazeConfigPathLength(panel, gbc);
+        setupMazeConfigHintMax(panel, gbc);
+        setupMazeConfigHintType(panel, gbc);
+        
+        // add config button to bottom right
+        JButton btn = getConfigPopupButton("Maze config", panel);
+        int pad = 10;
+        int x = Window.width - btn.getWidth() - pad;
+        int y = Window.height - btn.getHeight() - pad;
+        btn.setLocation(x, y);
+    }
+
+    private static void setupMazeConfigChanceDouble(JPanel panel, GridBagConstraints gbc) {
+        
         // label and slider for chance of double
         int valDouble = (int)(MazeGen.chanceDouble * 100);
         JLabel labelDouble = new JLabel("Chance of double: " + valDouble + "%");
@@ -176,7 +195,10 @@ public class UI {
 
         panel.add(labelDouble, gbc);
         panel.add(sliderDouble, gbc);
+    }
 
+    private static void setupMazeConfigSize(JPanel panel, GridBagConstraints gbc) {
+        
         // label and slider for width and height
         JSlider sliderWidth = getNewSlider(20, MazeGen.getWidth());
         JSlider sliderHeight = getNewSlider(20, MazeGen.getHeight());
@@ -203,7 +225,10 @@ public class UI {
         
         panel.add(labelHeight, gbc);
         panel.add(sliderHeight, gbc);
+    }
 
+    private static void setupMazeConfigPathLength(JPanel panel, GridBagConstraints gbc) {
+        
         // slider for maze length
         JLabel labelLen = new JLabel("Path length: " + MazeGen.desiredPathLength);
         JSlider sliderLen = getNewSlider(100, MazeGen.desiredPathLength);
@@ -222,6 +247,9 @@ public class UI {
 
         panel.add(labelLen, gbc);
         panel.add(sliderLen, gbc);
+    }
+
+    private static void setupMazeConfigHintMax(JPanel panel, GridBagConstraints gbc) {
 
         // slider for max hint size
         JLabel labelHint = new JLabel("Hint length: " + Config.hintMax);
@@ -235,7 +263,10 @@ public class UI {
         });
         panel.add(labelHint, gbc);
         panel.add(sliderHint, gbc);
+    }
 
+    private static void setupMazeConfigHintType(JPanel panel, GridBagConstraints gbc) {
+        
         // button for hint types
         JButton btnHintType = new JButton();
         if (Config.hintTypeLongest) {
@@ -256,17 +287,34 @@ public class UI {
                 btnHintType.setText("Hint path type: Shortest path");
             }
         });
-
-        JButton btn = getConfigPopupButton("Maze config", panel);
-
-        // move to bottomright
-        int pad = 10;
-        int x = Window.width - btn.getWidth() - pad;
-        int y = Window.height - btn.getHeight() - pad;
-        btn.setLocation(x, y);
     }
 
-    public static JButton getConfigPopupButton(String title, JPanel contentPane) {
+
+
+    
+    private static JSlider getNewSlider(int max, int currentVal) {
+
+        JSlider slider = new JSlider(JSlider.HORIZONTAL, 0, max, currentVal);
+
+        if (max == 100) {
+            slider.setMajorTickSpacing(10);
+            slider.setMinorTickSpacing(5);
+            slider.setSnapToTicks(true);
+        }
+        else {
+            slider.setMajorTickSpacing(5);
+            slider.setMinorTickSpacing(1);
+        }
+        
+        slider.setPaintTicks(true);
+        slider.setPaintLabels(true);
+        slider.setPreferredSize(new Dimension(500, 100));
+        slider.setBorder(BorderFactory.createEmptyBorder(5, 5, 50, 5));
+
+        return slider;
+    }
+
+    private static JButton getConfigPopupButton(String title, JPanel contentPane) {
         
         // setup button that opens a dialog
         JButton btn = new JButton(title);

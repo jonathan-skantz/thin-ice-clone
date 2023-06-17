@@ -43,9 +43,7 @@ public class Main {
         textNextLevel.setLocation(x, y);
         window.sprites.add(textNextLevel);
         
-        UI.setUpKeyConfig();
-        UI.setUpColorConfig();
-        UI.setUpMazeConfig();
+        UI.setupConfigs();
 
         // generate maze and reset graphics
         generateNewMaze();
