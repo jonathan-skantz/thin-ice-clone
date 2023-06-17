@@ -22,6 +22,13 @@ public class UI {
  
     private static boolean mazeConfigIsNew = false;
 
+    // save as fields in order to modify when setting size
+    private static JLabel pathLengthLabel;
+    private static JSlider pathLengthSlider;
+
+    private static JSlider hintMaxSlider;
+    private static JLabel hintMaxLabel;
+
     // constraints
     private static Insets insets = new Insets(5, 5, 5, 5);
 
@@ -208,16 +215,20 @@ public class UI {
 
         sliderWidth.addChangeListener(e -> {
             int val = sliderWidth.getValue();
-            MazeGen.setWidth(val);
             labelWidth.setText("Width: " + val);
             mazeConfigIsNew = true;
+            
+            boolean pathLengthDecreased = MazeGen.setWidth(val);
+            limitAfterNewSize(pathLengthDecreased);
         });
         
         sliderHeight.addChangeListener(e -> {
             int val = sliderHeight.getValue();
-            MazeGen.setHeight(val);
             labelHeight.setText("Height: " + val);
             mazeConfigIsNew = true;
+            
+            boolean pathLengthDecreased = MazeGen.setHeight(val);
+            limitAfterNewSize(pathLengthDecreased);
         });
 
         panel.add(labelWidth, gbc);
@@ -227,42 +238,56 @@ public class UI {
         panel.add(sliderHeight, gbc);
     }
 
+    private static void limitAfterNewSize(boolean pathLengthDecreased) {
+        // new width or height should also update labels and sliders of pathLengthMax and hintMax
+
+        // update pathLengthMax
+        if (pathLengthDecreased) {
+            pathLengthLabel.setText("Path length: " + MazeGen.pathLengthMax);
+        }
+        pathLengthSlider.setMajorTickSpacing((int)(MazeGen.pathLengthMax * 0.10));
+        pathLengthSlider.setMaximum(MazeGen.pathLengthMax);
+        
+        // update hintMax
+        if (MazeGen.pathLengthMax < Config.hintMax) {
+            Config.hintMax = MazeGen.pathLengthMax;
+            hintMaxLabel.setText("Hint length: " + Config.hintMax);
+        }
+        hintMaxSlider.setMajorTickSpacing((int)(MazeGen.pathLengthMax * 0.10));
+        hintMaxSlider.setMaximum(MazeGen.pathLengthMax);
+
+    }
+
     private static void setupMazeConfigPathLength(JPanel panel, GridBagConstraints gbc) {
         
         // slider for maze length
-        JLabel labelLen = new JLabel("Path length: " + MazeGen.desiredPathLength);
-        JSlider sliderLen = getNewSlider(100, MazeGen.desiredPathLength);
-        sliderLen.addChangeListener(e -> {
-            int newVal = sliderLen.getValue();
-            int valBefore = MazeGen.desiredPathLength;
-
-            newVal = MazeGen.setDesiredPathLength(newVal);
-
-            if (newVal != valBefore) {
-                sliderLen.setValue(newVal);
-                labelLen.setText("Path length: " + newVal);
-                mazeConfigIsNew = true;
-            }
+        pathLengthLabel = new JLabel("Path length: " + MazeGen.pathLength);
+        pathLengthSlider = getNewSlider(MazeGen.pathLengthMax, MazeGen.pathLength);
+        pathLengthSlider.addChangeListener(e -> {
+            int newVal = pathLengthSlider.getValue();
+            MazeGen.setPathLength(newVal);
+            pathLengthLabel.setText("Path length: " + newVal);
+            mazeConfigIsNew = true;
         });
 
-        panel.add(labelLen, gbc);
-        panel.add(sliderLen, gbc);
+        panel.add(pathLengthLabel, gbc);
+        panel.add(pathLengthSlider, gbc);
     }
 
     private static void setupMazeConfigHintMax(JPanel panel, GridBagConstraints gbc) {
 
         // slider for max hint size
-        JLabel labelHint = new JLabel("Hint length: " + Config.hintMax);
-        JSlider sliderHint = getNewSlider(100, MazeGen.desiredPathLength);
-        sliderHint.addChangeListener(e -> {
-            int newVal = sliderHint.getValue();
+        hintMaxLabel = new JLabel("Hint length: " + Config.hintMax);
+        hintMaxSlider = getNewSlider(MazeGen.pathLengthMax, Config.hintMax);
+        hintMaxSlider.addChangeListener(e -> {
+            int newVal = hintMaxSlider.getValue();
             Config.setHintMax(newVal);
-            labelHint.setText("Hint length: " + Config.hintMax);
+            hintMaxLabel.setText("Hint length: " + Config.hintMax);
 
             mazeConfigIsNew = true;
         });
-        panel.add(labelHint, gbc);
-        panel.add(sliderHint, gbc);
+        panel.add(hintMaxLabel, gbc);
+        panel.add(hintMaxSlider, gbc);
     }
 
     private static void setupMazeConfigHintType(JPanel panel, GridBagConstraints gbc) {
@@ -296,16 +321,9 @@ public class UI {
 
         JSlider slider = new JSlider(JSlider.HORIZONTAL, 0, max, currentVal);
 
-        if (max == 100) {
-            slider.setMajorTickSpacing(10);
-            slider.setMinorTickSpacing(5);
-            slider.setSnapToTicks(true);
-        }
-        else {
-            slider.setMajorTickSpacing(5);
-            slider.setMinorTickSpacing(1);
-        }
-        
+        slider.setMajorTickSpacing((int)(max * 0.10));
+        slider.setMinorTickSpacing((int)(max * 0.05));
+        slider.setSnapToTicks(true);       
         slider.setPaintTicks(true);
         slider.setPaintLabels(true);
         slider.setPreferredSize(new Dimension(500, 100));

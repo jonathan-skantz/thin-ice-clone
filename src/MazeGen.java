@@ -33,8 +33,8 @@ public class MazeGen {
     public static Node endNode;
     public static Node currentNode;    // used to keep track of the player
 
-    public static int desiredPathLength = 10;
-    public static int maxPathLength;           // will be set to width * height
+    public static int pathLength = 10;
+    public static int pathLengthMax = Config.MAZE_DEFAULT_WIDTH * Config.MAZE_DEFAULT_HEIGHT;
     public static float chanceDouble = 0.25f;
 
     public static void main(String[] args) {
@@ -52,32 +52,39 @@ public class MazeGen {
         MazePrinter.printMazeWithTypes();
     }
 
-    public static void setWidth(int w) {
+    // returns true if pathLength is decreased
+    public static boolean setWidth(int w) {
         width = w;
-        maxPathLength = w * height;
+        pathLengthMax = w * height;
 
-        if (desiredPathLength > maxPathLength) {
-            desiredPathLength = maxPathLength;
+        if (pathLength > pathLengthMax) {
+            pathLength = pathLengthMax;
+            return true;
         }
+        return false;
     }
     
-    public static void setHeight(int h) {
+    // returns true if pathLength is decreased
+    public static boolean setHeight(int h) {
         height = h;
-        maxPathLength = width * height;
+        pathLengthMax = width * height;
 
-        if (desiredPathLength > maxPathLength) {
-            desiredPathLength = maxPathLength;
+        if (pathLength > pathLengthMax) {
+            pathLength = pathLengthMax;
+            return true;
         }
+        return true;
     }
     
-    // returns `v` but potentially capped
-    public static int setDesiredPathLength(int v) {
+    // returns true if `v` is accepted (not too long)
+    public static boolean setPathLength(int v) {
         
-        // prevent desiredPathLength from being larger than possible
-        if (v < maxPathLength) {
-            desiredPathLength = v;
+        if (v > pathLengthMax) {
+            return false;
         }
-        return v;
+
+        pathLength = v;
+        return true;
     }
 
     public static int getWidth() {
@@ -272,7 +279,7 @@ public class MazeGen {
         startNode = new Node(rand.nextInt(width), rand.nextInt(height));
 
         /*
-         * If desiredPathLength is the same as max path length, and
+         * If pathLength is the same as pathLengthMax, and
          * both dimensions are odd, and
          * both x and y of startNode are not odd:
          * 
@@ -281,7 +288,7 @@ public class MazeGen {
          */
 
 
-        if (desiredPathLength == width * height && odd(width) && odd(height)) {
+        if (pathLength == width * height && odd(width) && odd(height)) {
 
             while ((odd(startNode.x) && !odd(startNode.y)) || (!odd(startNode.x)  && odd(startNode.y))) {
               
@@ -344,10 +351,10 @@ public class MazeGen {
         MazeGen.width = width;
         MazeGen.height = height;
 
-        maxPathLength = width * height;
+        pathLengthMax = width * height;
 
-        if (desiredPathLength > maxPathLength) {
-            desiredPathLength = maxPathLength;
+        if (pathLength > pathLengthMax) {
+            pathLength = pathLengthMax;
         }
 
         generate();
@@ -384,7 +391,7 @@ public class MazeGen {
     // generate with breadth-first-search by checking neighbors in a random order
     private static boolean generateHelper(Node current) {
 
-        if (creationPath.size() == desiredPathLength) {
+        if (creationPath.size() == pathLength) {
             return true;    // signals to stop traversing
         }
         
