@@ -44,11 +44,12 @@ public class MazeGen {
 
         // generate maze
         MazeGen.generate(5, 5);
-
+        
+        // print info
         System.out.println("\ninvalid paths: " + invalidPathsCount);
+        System.out.println("doubleNodes (" + doubleNodes.size() + "): " + doubleNodes);
+        System.out.println("creationPath (" + creationPath.size() + "): " + creationPath);
 
-        // print path and types
-        System.out.println("creationPath: " + creationPath);
         System.out.println("Maze with path: ");
         MazePrinter.printMazeWithPath(creationPath);
 
@@ -366,19 +367,18 @@ public class MazeGen {
     }
 
     private static void setAmountDoubles() {
-        amountDoubles = (int)(pathLength * fractionDoubleNodes);
+        
+        int amountWalkable = pathLength - 2;
+        int maxDoubles = amountWalkable / 2;
 
-        int maxDoubles;
-        if (odd(pathLength)) {
-            maxDoubles = pathLength / 2;
-        }
-        else {
-            maxDoubles = pathLength / 2 - 1;
+        amountDoubles = (int)(maxDoubles * fractionDoubleNodes);
+        
+        // increment amountDoubles if too few (due to pathLength)
+        int amountNodes = amountWalkable - amountDoubles;
+        if (amountDoubles/amountNodes < fractionDoubleNodes) {
+            amountDoubles++;
         }
 
-        if (amountDoubles > maxDoubles) {
-            amountDoubles = maxDoubles;
-        }
     }
 
     // setup generation process and begin generating
@@ -410,9 +410,7 @@ public class MazeGen {
         currentNode = startNode;
     }
 
-    // generate with breadth-first-search by checking neighbors in a random order
-    private static boolean generateHelper(Node current) {
-
+    private static boolean validPath() {
         if (creationPath.size() == pathLength) {
 
             // too few double nodes
@@ -434,6 +432,15 @@ public class MazeGen {
             }
 
             return true;    // signals to stop traversing
+        }
+        return false;
+    }
+
+    // generate with breadth-first-search by checking neighbors in a random order
+    private static boolean generateHelper(Node current) {
+
+        if (validPath()) {
+            return true;
         }
         
         for (Node neighbor : getWalkableNeighborsTo(current)) {

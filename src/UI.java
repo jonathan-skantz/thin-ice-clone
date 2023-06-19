@@ -189,14 +189,15 @@ public class UI {
     private static void setupMazeConfigChanceDouble(JPanel panel, GridBagConstraints gbc) {
         
         // label and slider for chance of double
-        int valDouble = (int)(MazeGen.chanceDouble * 100);
-        JLabel labelDouble = new JLabel("Chance of double: " + valDouble + "%");
-        JSlider sliderDouble = getNewSlider(100, valDouble);
+        int val = (int)(MazeGen.fractionDoubleNodes * 100);
+        JLabel labelDouble = new JLabel("Double node frequency: " + val + "%");
+        JSlider sliderDouble = getNewSlider(100, val);
 
         sliderDouble.addChangeListener(e -> {
             int newVal = sliderDouble.getValue();
-            MazeGen.chanceDouble = (float)newVal / 100;
-            labelDouble.setText("Chance of double: " + newVal + "%");
+            MazeGen.fractionDoubleNodes = (float)newVal / 100;  // amountDoubles is set in .generate()
+
+            labelDouble.setText("Double node frequency: " + newVal + "%");
             mazeConfigIsNew = true;
         });
 
