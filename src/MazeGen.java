@@ -419,9 +419,11 @@ public class MazeGen {
             }
 
             // endNode cannot be a double
-            Node lastDouble = doubleNodes.get(doubleNodes.size()-1);
-            if (lastDouble.same(creationPath.getLast())) {
-                return false;
+            Node lastNode = creationPath.getLast();
+            for (Node doubleNode : doubleNodes) {
+                if (lastNode.same(doubleNode)) {
+                    return false;
+                }
             }
 
             // check for uncleared doubles
