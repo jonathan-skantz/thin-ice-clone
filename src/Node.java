@@ -9,7 +9,8 @@ public class Node {
         START("S"),
         END("E"),
         BLOCKED("B"),
-        DOUBLE("2x");
+        DOUBLE("2x"),
+        TOUCHED("x");   // represents a double that has been stepped on once
 
         public String strRep;
 

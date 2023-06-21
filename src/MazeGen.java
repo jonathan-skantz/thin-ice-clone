@@ -9,6 +9,17 @@ public class MazeGen {
     private static int invalidPathsCount = 0;
 
     public static boolean complete = false;       // is set to true when currentNode == endNode
+    
+    // true: usually slower, but will definitely result in a maze
+    // false: usually faster, but may not result in a maze
+    private static final boolean TRY_CHANGE_NODE_TYPE = true;
+
+    // true: faster, but creates more stepbacks and possibly easy maze
+    // false: slower, but possibly more spread out double nodes
+    private static final boolean DOUBLES_AT_START = false;
+
+    // NOTE: if DOUBLES_AT_START is true, TRY_CHANGE_NODE_TYPE may not have any effect
+    // (if the path is not cut off by itself during generation)
 
     public static LinkedList<Node> creationPath = new LinkedList<>();
 
@@ -23,7 +34,7 @@ public class MazeGen {
     // keep track of doubles (used during creation and reset)
     private static ArrayList<Node> doubleNodes = new ArrayList<>();
     
-    private static Random rand = new Random();
+    private static Random rand = new Random(1);
     public static Node.Type[][] maze;
     
     private static int width = Config.MAZE_DEFAULT_WIDTH;
@@ -36,8 +47,8 @@ public class MazeGen {
     public static int pathLength = 10;
     public static int pathLengthMax = Config.MAZE_DEFAULT_WIDTH * Config.MAZE_DEFAULT_HEIGHT;
 
-    public static float fractionDoubleNodes = 0.25f;    // used to set `amountDoubles`
-    
+    // NOTE: the more doubles, the longer the generation time
+    public static float fractionDoubleNodes = 0.5f;    // used to set `amountDoubles`
     private static int amountDoubles;   // may be limited despite value of `fractionDoubleNodes`
 
     public static void main(String[] args) {
@@ -50,7 +61,7 @@ public class MazeGen {
         System.out.println("doubleNodes (" + doubleNodes.size() + "): " + doubleNodes);
         System.out.println("creationPath (" + creationPath.size() + "): " + creationPath);
 
-        System.out.println("Maze with path: ");
+        System.out.println("\nMaze with path: ");
         MazePrinter.printMazeWithPath(creationPath);
 
         System.out.println("Maze with types:");
@@ -243,9 +254,9 @@ public class MazeGen {
     }
 
     private static boolean walkableType(Node node) {
-        // walkable meaning either null (unwalked) or GROUND (after stepped on double)
+        // walkable meaning either null (unwalked) or TOUCHED (after stepped on double)
         // (not END since end is not determined yet)
-        return get(node) == null || get(node) == Node.Type.GROUND;
+        return get(node) == null || get(node) == Node.Type.TOUCHED;
     }
 
     // returns list of neighbors of `node` in a random order
@@ -375,10 +386,9 @@ public class MazeGen {
         
         // increment amountDoubles if too few (due to pathLength)
         int amountNodes = amountWalkable - amountDoubles;
-        if (amountDoubles/amountNodes < fractionDoubleNodes) {
+        if (amountDoubles/amountNodes < fractionDoubleNodes && (amountDoubles + 1) * 2 <= amountWalkable) {
             amountDoubles++;
         }
-
     }
 
     // setup generation process and begin generating
@@ -410,30 +420,35 @@ public class MazeGen {
         currentNode = startNode;
     }
 
-    private static boolean validPath() {
-        if (creationPath.size() == pathLength) {
+    private static boolean pathHasValidTypes() {
 
-            // too few double nodes
-            if (doubleNodes.size() < amountDoubles) {
+        // too few double nodes
+        if (doubleNodes.size() < amountDoubles) {
+            return false;
+        }
+
+        // endNode cannot be a double
+        Node lastNode = creationPath.getLast();
+        if (alreadyDouble(lastNode)) {
+            return false;
+        }
+
+        // check for uncleared doubles
+        for (Node node : doubleNodes) {
+            if (get(node) != Node.Type.BLOCKED) {
                 return false;
             }
+        }
 
-            // endNode cannot be a double
-            Node lastNode = creationPath.getLast();
-            for (Node doubleNode : doubleNodes) {
-                if (lastNode.same(doubleNode)) {
-                    return false;
-                }
+        return true;    // signals to stop traversing
+
+    }
+
+    private static boolean alreadyDouble(Node node) {
+        for (Node n : doubleNodes) {
+            if (n.same(node)) {
+                return true;
             }
-
-            // check for uncleared doubles
-            for (Node node : doubleNodes) {
-                if (walkableType(node)) {   // TODO: for some reason some doubles are left as null
-                    return false;
-                }
-            }
-
-            return true;    // signals to stop traversing
         }
         return false;
     }
@@ -441,50 +456,103 @@ public class MazeGen {
     // generate with breadth-first-search by checking neighbors in a random order
     private static boolean generateHelper(Node current) {
 
-        if (validPath()) {
-            return true;
+        if (creationPath.size() > pathLength) {
+            return false;
         }
-        
-        for (Node neighbor : getWalkableNeighborsTo(current)) {
-        
-            // add this neighbor
-            creationPath.add(neighbor);
+        else if (creationPath.size() == pathLength) {
+            return pathHasValidTypes();
+        }
 
-            Node.Type type = getRandomNodeType();
+        boolean hasBeenBlocked = false;
+        boolean hasBeenDouble = false;
+        
+        boolean next = true;
+        
+        Node neighbor = null;
+        Node.Type type = Node.Type.BLOCKED;
+
+        int i = 0;
+        ArrayList<Node> neighbors = getWalkableNeighborsTo(current);
+        
+        while (i < neighbors.size()) {
             
-            if (type == Node.Type.GROUND) {
+            if (next) {
 
-                for (Node node : doubleNodes) {
-                    if (node.same(neighbor)) {
-                        // node already set as double
+                neighbor = neighbors.get(i);
+                creationPath.add(neighbor);    
+                
+                type = getRandomNodeType();
+                
+                if (type == Node.Type.TOUCHED) {
+                    
+                    if (!hasBeenDouble && !alreadyDouble(neighbor)) {
+                        hasBeenDouble = true;
+                        doubleNodes.add(neighbor);
+                        // type = Node.Type.TOUCHED;
+                    }
+                    else {
+                        hasBeenBlocked = true;
                         type = Node.Type.BLOCKED;
-                        break;
                     }
                 }
-                
-                if (type == Node.Type.GROUND) {
-                    doubleNodes.add(neighbor);
+
+                else {
+                    hasBeenBlocked = true;
                 }
             }
-            
+
             set(neighbor, type);
-            
-            // check neighbors of this neighbor
-            boolean done = generateHelper(neighbor);
-            if (done) {
+
+            if (generateHelper(neighbor)) {
                 return true;
             }
+            else {
 
-            // remove this neighbor
-            creationPath.removeLast();
+                // try the same path but switch this neighbor's type
+                if (TRY_CHANGE_NODE_TYPE && (!hasBeenBlocked || !hasBeenDouble)) {
 
-            if (type == Node.Type.GROUND) {
-                // doubleNodes.remove(neighbor);   // aka last element
-                doubleNodes.remove(doubleNodes.size()-1);
-                // set(neighbor, Node.Type.BLOCKED);
-                // System.out.println("left " + neighbor + " as blocked");
+                    if (type == Node.Type.BLOCKED) {
+
+                        if (!hasBeenDouble && doubleNodes.size() < amountDoubles && !alreadyDouble(neighbor)) {
+                            // "force" a double
+                            hasBeenDouble = true;
+                            type = Node.Type.TOUCHED;
+                            doubleNodes.add(neighbor);
+                            next = false;
+                            continue;
+                        }
+                    }
+
+                    else if (type == Node.Type.TOUCHED) {
+
+                        if (!hasBeenBlocked) {
+                            // "force" a normal ground
+                            hasBeenBlocked = true;
+                            type = Node.Type.BLOCKED;
+                            doubleNodes.remove(neighbor);
+                            next = false;
+                            continue;
+                        }
+                    }
+                }
+                    
+                // Finally, this neighbor has (potentially) tried both types but none worked.
+                // Therefore, try building the path onto the next neighbor.
+
+                creationPath.removeLast();
+                
+                if (hasBeenDouble) {
+                    doubleNodes.remove(neighbor);
+                }
+                
+                next = true;
+                hasBeenBlocked = false;
+                hasBeenDouble = false;
+                
+                set(neighbor, null);
+                i++;
             }
-            set(neighbor, null);    // neighbor did not lead to a valid path
+
         }
         
         // All unset neighbors have been traversed but still no appropriate maze is found.
@@ -496,19 +564,15 @@ public class MazeGen {
     }
 
     private static Node.Type getRandomNodeType() {
-        // NOTE: GROUND is treated as a double that was just stepped on
-        
-        // TODO: backtrack and set to double if was ground before,
-        // in order to reuse the path that is leading up to this neighbor
+        // NOTE: TOUCHED is treated as a double that was just stepped on
         
         if (doubleNodes.size() < amountDoubles) {
-            if (rand.nextFloat() <= 0.5) {
+            if (DOUBLES_AT_START) 
                 return Node.Type.GROUND;
-            }
-            else if (amountDoubles - doubleNodes.size() == pathLength - creationPath.size()) {
-                // "force" a node to be double
-                // TODO: "unforced" in generate() if already double
-                return Node.Type.GROUND;
+
+            else if (rand.nextFloat() <= 0.5 || amountDoubles - doubleNodes.size() == pathLength - creationPath.size()) {
+                // 50 % or "force" a node to be double
+                return Node.Type.TOUCHED;
             }
         }
 
