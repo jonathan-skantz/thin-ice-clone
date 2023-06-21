@@ -27,9 +27,20 @@ public class Config {
             put(Node.Type.START, Color.GREEN);
             put(Node.Type.END, Color.MAGENTA);
             put(Node.Type.BLOCKED, new Color(0, 50, 255));
-            put(Node.Type.DOUBLE, new Color(0, 255, 255));
+            put(Node.Type.DOUBLE, new Color(255, 255, 255));    // NOTE: only the internal border
+            put(Node.Type.TOUCHED, get(Node.Type.GROUND));
         }
     };
+
+    public static Border BLOCK_DOUBLE_BORDER;
+    static {
+        Border empty = BorderFactory.createEmptyBorder(2, 2, 2, 2);
+        Border line = BorderFactory.createLineBorder(BLOCK_COLORS.get(Node.Type.DOUBLE), 4);
+
+        Border bord = BorderFactory.createCompoundBorder(empty, line);
+        Border comp = BorderFactory.createCompoundBorder(BLOCK_BORDER, bord);
+        BLOCK_DOUBLE_BORDER = comp;
+    }
 
     // hints
     public static int hintMax = 3;

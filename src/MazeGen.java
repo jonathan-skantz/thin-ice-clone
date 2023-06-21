@@ -25,7 +25,6 @@ public class MazeGen {
 
     // keep track of the user's path, in order to be able to backtrack
     private static Stack<Node> pathHistory = new Stack<>();
-    private static Stack<Node.Type> pathHistoryTypes = new Stack<>();
     
     private static Stack<Node> pathHistoryRedo = new Stack<>();
     // pathHistoryRedoTypes are not necessary to track since when redoing,
@@ -120,14 +119,13 @@ public class MazeGen {
         if (pointOnGrid(newNode.x, newNode.y) && nodeTypeWalkable(newNode)) {
             
             if (get(currentNode) == Node.Type.DOUBLE) {
-                set(currentNode, Node.Type.GROUND);
+                set(currentNode, Node.Type.TOUCHED);
             }
             else {
                 set(currentNode, Node.Type.BLOCKED);
             }
             
             pathHistory.add(newNode);
-            pathHistoryTypes.add(get(newNode));
     
             if (pathHistoryRedo.size() > 0) {
                 if (pathHistoryRedo.peek().same(newNode)) {
@@ -173,12 +171,12 @@ public class MazeGen {
 
     public static void reset() {
         
+        currentNode = startNode;
+
         pathHistory.clear();
-        pathHistoryTypes.clear();
         pathHistoryRedo.clear();
         
         pathHistory.add(startNode);
-        pathHistoryTypes.add(Node.Type.START);
 
         complete = false;
 
@@ -198,41 +196,49 @@ public class MazeGen {
         }
     }
 
-    public static void nodeReset(Node node) {
-
-        if (node.same(startNode)) {
-            set(node, Node.Type.START);
-        }
-
-        else if (get(node) == Node.Type.BLOCKED) {
-            set(node, Node.Type.GROUND);
-        }
-
-        else {
-
-            for (Node n : doubleNodes) {
-                if (n.same(node)) {
-                    set(node, Node.Type.DOUBLE);
-                    break;
-                }
-            }
-        }
-    }
-
     // returns ActionKey in which grid direction the step occured
     public static KeyHandler.ActionKey step(int direction){
         
         if (direction == -1) {
             
             if (pathHistory.size() > 1) {
-                nodeReset(currentNode);
                 
                 Node lastNode = pathHistory.pop();      // pops currentNode
-                pathHistoryTypes.pop();
-                
                 pathHistoryRedo.add(lastNode);
                 
                 currentNode = pathHistory.peek();
+
+                // adjust lastNode
+                if (get(lastNode) == Node.Type.TOUCHED) {
+                    boolean reset = true;
+
+                    // don't set to double since it was
+                    // just about to be set to GROUND when left
+                    for (Node node : pathHistory) {
+                        if (node.same(lastNode)) {
+                            reset = false;
+                        }
+                    }
+                    if (reset) {
+                        set(lastNode, Node.Type.DOUBLE);
+                    }
+                }
+
+                else if (get(lastNode) != Node.Type.DOUBLE) {
+                    set(lastNode, Node.Type.GROUND);
+                }
+
+                // adjust currentNode
+                if (currentNode.same(startNode)) {
+                    set(currentNode, Node.Type.START);
+                }
+                else if (nodeIsDouble(currentNode)) {
+                    set(currentNode, Node.Type.TOUCHED);
+                }
+                else {
+                    set(currentNode, Node.Type.GROUND);
+                }
+
                 
                 return KeyHandler.ActionKey.getActionFromMovement(lastNode, currentNode);
             }
@@ -398,6 +404,8 @@ public class MazeGen {
         maze = new Node.Type[height][width];
         creationPath.clear();
         doubleNodes.clear();
+        pathHistory.clear();
+
         invalidPathsCount = 0;
         complete = false;
         
@@ -407,7 +415,6 @@ public class MazeGen {
         // add to record
         creationPath.add(startNode);
         pathHistory.add(startNode);
-        pathHistoryTypes.add(Node.Type.START);
         
         // start recursive generation
         generateHelper(startNode);
@@ -429,7 +436,7 @@ public class MazeGen {
 
         // endNode cannot be a double
         Node lastNode = creationPath.getLast();
-        if (alreadyDouble(lastNode)) {
+        if (nodeIsDouble(lastNode)) {
             return false;
         }
 
@@ -444,7 +451,7 @@ public class MazeGen {
 
     }
 
-    private static boolean alreadyDouble(Node node) {
+    private static boolean nodeIsDouble(Node node) {
         for (Node n : doubleNodes) {
             if (n.same(node)) {
                 return true;
@@ -485,7 +492,7 @@ public class MazeGen {
                 
                 if (type == Node.Type.TOUCHED) {
                     
-                    if (!hasBeenDouble && !alreadyDouble(neighbor)) {
+                    if (!hasBeenDouble && !nodeIsDouble(neighbor)) {
                         hasBeenDouble = true;
                         doubleNodes.add(neighbor);
                         // type = Node.Type.TOUCHED;
@@ -513,7 +520,7 @@ public class MazeGen {
 
                     if (type == Node.Type.BLOCKED) {
 
-                        if (!hasBeenDouble && doubleNodes.size() < amountDoubles && !alreadyDouble(neighbor)) {
+                        if (!hasBeenDouble && doubleNodes.size() < amountDoubles && !nodeIsDouble(neighbor)) {
                             // "force" a double
                             hasBeenDouble = true;
                             type = Node.Type.TOUCHED;
