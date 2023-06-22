@@ -195,9 +195,15 @@ public class UI {
 
         sliderDouble.addChangeListener(e -> {
             int newVal = sliderDouble.getValue();
-            MazeGen.fractionDoubleNodes = (float)newVal / 100;  // amountDoubles is set in .generate()
 
             labelDouble.setText("Double node frequency: " + newVal + "%");
+            
+            MazeGen.setFractionDoubleNodes((float)newVal / 100);
+            
+            // potentially update pathLength slider and label
+            pathLengthSlider.setMaximum(MazeGen.pathLengthMax);
+            setPathLengthLabel();
+            
             mazeConfigIsNew = true;
         });
 
@@ -244,7 +250,7 @@ public class UI {
 
         // update pathLengthMax
         if (pathLengthDecreased) {
-            pathLengthLabel.setText("Path length: " + MazeGen.pathLengthMax);
+            setPathLengthLabel();
         }
         pathLengthSlider.setMajorTickSpacing((int)(MazeGen.pathLengthMax * 0.10));
         pathLengthSlider.setMaximum(MazeGen.pathLengthMax);
@@ -262,17 +268,25 @@ public class UI {
     private static void setupMazeConfigPathLength(JPanel panel, GridBagConstraints gbc) {
         
         // slider for maze length
-        pathLengthLabel = new JLabel("Path length: " + MazeGen.pathLength);
+        pathLengthLabel = new JLabel();
+        setPathLengthLabel();
+
         pathLengthSlider = getNewSlider(MazeGen.pathLengthMax, MazeGen.pathLength);
         pathLengthSlider.addChangeListener(e -> {
             int newVal = pathLengthSlider.getValue();
             MazeGen.setPathLength(newVal);
-            pathLengthLabel.setText("Path length: " + newVal);
+            setPathLengthLabel();
             mazeConfigIsNew = true;
         });
 
         panel.add(pathLengthLabel, gbc);
         panel.add(pathLengthSlider, gbc);
+    }
+
+    private static void setPathLengthLabel() {
+        String s = String.format("Path length: %d (start + %d ground + %d doubles + end)", 
+                                MazeGen.pathLength, MazeGen.groundAmount, MazeGen.doublesAmount);
+        pathLengthLabel.setText(s);
     }
 
     private static void setupMazeConfigHintMax(JPanel panel, GridBagConstraints gbc) {

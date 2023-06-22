@@ -14,21 +14,19 @@ public class MazeGen {
     // false: usually faster, but may not result in a maze
     private static final boolean TRY_CHANGE_NODE_TYPE = true;
 
-    // true: faster, but creates more stepbacks and possibly easy maze
-    // false: slower, but possibly more spread out double nodes
-    private static final boolean DOUBLES_AT_START = false;
-
-    // NOTE: if DOUBLES_AT_START is true, TRY_CHANGE_NODE_TYPE may not have any effect
+    // true: usually faster, but creates more stepbacks and possibly easy maze
+    // false: usually slower, but possibly more spread out double nodes
+    // NOTE: if false, doubles may still appear around start if needed
+    // to reach the doublesAmount
+    // NOTE: if DOUBLES_ARE_PLACED_FIRST is true, TRY_CHANGE_NODE_TYPE may not have any effect
     // (if the path is not cut off by itself during generation)
+    private static final boolean DOUBLES_ARE_PLACED_FIRST = false;
 
     public static LinkedList<Node> creationPath = new LinkedList<>();
 
     // keep track of the user's path, in order to be able to backtrack
     private static Stack<Node> pathHistory = new Stack<>();
-    
     private static Stack<Node> pathHistoryRedo = new Stack<>();
-    // pathHistoryRedoTypes are not necessary to track since when redoing,
-    // the system thinks the player is moving just like normal
 
     // keep track of doubles (used during creation and reset)
     private static ArrayList<Node> doubleNodes = new ArrayList<>();
@@ -42,19 +40,38 @@ public class MazeGen {
     public static Node startNode;
     public static Node endNode;
     public static Node currentNode;    // used to keep track of the player
-
-    public static int pathLength = 10;
-    public static int pathLengthMax = Config.MAZE_DEFAULT_WIDTH * Config.MAZE_DEFAULT_HEIGHT;
-
+    
     // NOTE: the more doubles, the longer the generation time
-    public static float fractionDoubleNodes = 0.5f;    // used to set `amountDoubles`
-    private static int amountDoubles;   // may be limited despite value of `fractionDoubleNodes`
+    // NOTE: fractionDoubleNodes does not refer to how many of the nodes that
+    // appear on screen are doubles, but rather how many of the possible doubles
+    // that are set to double.
+    // E.g.: 10 pathLength, 1f fractionDoubleNodes --> start + 4 doubles + 0 ground + end
+    // but 10 pathLength, 0.5f fractionDoubleNodes --> start + 2 doubles + 4 ground + end
+    // since the doubles are 50% of the max amount of doubles (which is determined by pathLength and the fraction)
+
+    public static float fractionDoubleNodes = 0.5f;    // used to set `doublesAmount`
+    public static int doublesAmount;
+    public static int groundAmount;
+    
+    public static int pathLength = width * height / 2;
+    public static int pathLengthMax;
+    private static int pathLengthMaxAllDoubles;
+
+    static {
+        updateDoublesAmount();
+        updatePathLengthMax();
+    }
 
     public static void main(String[] args) {
 
         // generate maze
-        MazeGen.generate(5, 5);
+        setWidth(5);
+        setHeight(5);
+        setFractionDoubleNodes(0.5f);
+        setPathLength(25);
         
+        MazeGen.generate();
+
         // print info
         System.out.println("\ninvalid paths: " + invalidPathsCount);
         System.out.println("doubleNodes (" + doubleNodes.size() + "): " + doubleNodes);
@@ -67,10 +84,90 @@ public class MazeGen {
         MazePrinter.printMazeWithTypes();
     }
 
+    public static void setFractionDoubleNodes(float f) {
+        if (f < 0 || f > 1) {
+            return;
+        }
+
+        fractionDoubleNodes = f;
+        updateDoublesAmount();
+        updatePathLengthMax();
+    }
+
+    // returns pathLengthMax
+    private static int updatePathLengthMax() {
+        pathLengthMax = (int)(width * height + fractionDoubleNodes * width * height);
+        pathLengthMaxAllDoubles = width * height * 2;
+        
+        if (odd(width) && odd(height)) {
+            pathLengthMax -= (int)(fractionDoubleNodes * 3);
+            pathLengthMaxAllDoubles -= 3;
+        }
+        else {
+            pathLengthMax -= (int)(fractionDoubleNodes * 2);
+            pathLengthMaxAllDoubles -= 2;
+        }
+        return pathLengthMax;
+    }
+
+    // should only be called when setting fractionDoubleNodes or pathLength (not pathLengthMax)
+    private static void updateDoublesAmount() {
+
+        /*
+            fractionDoubleNode = 1 yields (steps exlude start and end):
+            0 steps --> 0 2x, 0 G
+            1 steps --> 0 2x, 1 G
+            2 steps --> 0 2x, 2 G
+            3 steps --> 1 2x, 1 G
+            4 steps --> 2 2x, 0 G (max for 2x2)
+            5 steps --> 2 2x, 1 G
+            6 steps --> 2 2x, 2 G
+            7 steps --> 3 2x, 1 G
+            8 steps --> 4 2x, 0 G (max for 2x3 or 3x2)
+            9 steps --> 4 2x, 1 G
+            10 steps --> 4 2x, 2 G
+            11 steps --> 5 2x, 1 G
+            12 steps --> 6 2x, 0 G
+            13 steps --> 6 2x, 1 G (max for 3x3)
+            14 steps --> 6 2x, 2 G (impossible for 3x3 since 2 nodes must be start and end)
+            15 steps --> 7 2x, 1 G 
+            16 steps --> 8 2x, 0 G 
+            
+            fractionDoubleNode = 0.5f yields:
+            0 steps --> 0 2x, 0 G
+            1 steps --> 0 2x, 1 G
+            2 steps --> 0 2x, 2 G
+            3 steps --> 0 2x, 1 G
+            4 steps --> 1 2x, 2 G
+            5 steps --> 1 2x, 3 G
+            6 steps --> 2 2x, 2 G (this is visually 50% but actually 100% of possible doubles)
+        */
+
+        int maxSteps = pathLength - 2;      // excluding start and end
+        int doublesMax;
+
+        if (odd(maxSteps)) {
+            doublesMax = maxSteps / 2;
+        }
+        else {
+            if (maxSteps % 4 == 0) {
+                doublesMax = maxSteps / 2;
+            }
+            else {
+                // otherwise divisible by 2
+                doublesMax = maxSteps / 2 - 1;
+            }
+        }
+
+        doublesAmount = (int)(doublesMax * fractionDoubleNodes);
+        groundAmount = pathLength - 2 * doublesAmount - 2;
+    }
+
     // returns true if pathLength is decreased
     public static boolean setWidth(int w) {
         width = w;
-        pathLengthMax = w * height;
+
+        updatePathLengthMax();
 
         if (pathLength > pathLengthMax) {
             pathLength = pathLengthMax;
@@ -82,23 +179,28 @@ public class MazeGen {
     // returns true if pathLength is decreased
     public static boolean setHeight(int h) {
         height = h;
-        pathLengthMax = width * height;
+        
+        updatePathLengthMax();
 
         if (pathLength > pathLengthMax) {
             pathLength = pathLengthMax;
             return true;
         }
-        return true;
+        return false;
     }
     
     // returns true if `v` is accepted (not too long)
     public static boolean setPathLength(int v) {
         
         if (v > pathLengthMax) {
+            pathLength = pathLengthMax;
+            updateDoublesAmount();
             return false;
         }
 
         pathLength = v;
+        updateDoublesAmount();
+
         return true;
     }
 
@@ -309,35 +411,32 @@ public class MazeGen {
         startNode = new Node(rand.nextInt(width), rand.nextInt(height));
 
         /*
-         * If pathLength is the same as pathLengthMax, and
-         * both dimensions are odd, and
-         * both x and y of startNode are not odd:
+         * If pathLength is the same as max length with all doubles,
+         * and both dimensions are odd,
+         * and exactly one of x and y of startNode are even:
          * 
          * the path will always be one node too short.
-         * Therefore, a new startNode is determined.
+         * Therefore, a new startNode must be determined.
          */
 
-        if (pathLength == width * height && odd(width) && odd(height)) {
+        Node firstStartNode = startNode;
 
-            while ((odd(startNode.x) && !odd(startNode.y)) || (!odd(startNode.x)  && odd(startNode.y))) {
-              
-                // sets startNode to the next possible node by going right, then
-                // a row down, and moving to top left if hit bottom right
+        if (pathLength == pathLengthMaxAllDoubles && odd(width) && odd(height)) {
 
-                if (startNode.x + 1 < width) {
-                    // move right one step
-                    startNode = new Node(startNode.x + 1, startNode.y);
-                }
+            // try move up, down, left, right once until startNode is valid
 
-                else {
-
-                    if (startNode.y + 1 < height) {
-                        // new row, start from left
-                        startNode = new Node(0, startNode.y + 1);
-                    }
-                    else {
-                        // start from top left
-                        startNode = new Node(0, 0);
+            if (odd(startNode.x) ^ odd(startNode.y)) {  // NOTE: xor
+                startNode = new Node(firstStartNode.x, firstStartNode.y - 1);
+                
+                if (odd(startNode.x) ^ odd(startNode.y)) {
+                    startNode = new Node(firstStartNode.x, firstStartNode.y + 1);
+                    
+                    if (odd(startNode.x) ^ odd(startNode.y)) {
+                        startNode = new Node(firstStartNode.x - 1, firstStartNode.y);
+                        
+                        if (odd(startNode.x) ^ odd(startNode.y)) {
+                            startNode = new Node(firstStartNode.x + 1, firstStartNode.y);
+                        }
                     }
                 }
             }
@@ -374,27 +473,9 @@ public class MazeGen {
         MazeGen.width = width;
         MazeGen.height = height;
 
-        pathLengthMax = width * height;
-
-        if (pathLength > pathLengthMax) {
-            pathLength = pathLengthMax;
-        }
+        updatePathLengthMax();
 
         generate();
-    }
-
-    private static void setAmountDoubles() {
-        
-        int amountWalkable = pathLength - 2;
-        int maxDoubles = amountWalkable / 2;
-
-        amountDoubles = (int)(maxDoubles * fractionDoubleNodes);
-        
-        // increment amountDoubles if too few (due to pathLength)
-        int amountNodes = amountWalkable - amountDoubles;
-        if (amountDoubles/amountNodes < fractionDoubleNodes && (amountDoubles + 1) * 2 <= amountWalkable) {
-            amountDoubles++;
-        }
     }
 
     // setup generation process and begin generating
@@ -408,8 +489,7 @@ public class MazeGen {
 
         invalidPathsCount = 0;
         complete = false;
-        
-        setAmountDoubles();
+
         setRandomStartNode();
 
         // add to record
@@ -427,28 +507,27 @@ public class MazeGen {
         currentNode = startNode;
     }
 
-    private static boolean pathHasValidTypes() {
+    private static boolean validCreationPath() {
 
         // too few double nodes
-        if (doubleNodes.size() < amountDoubles) {
+        if (doubleNodes.size() < doublesAmount) {
             return false;
         }
 
         // endNode cannot be a double
-        Node lastNode = creationPath.getLast();
-        if (nodeIsDouble(lastNode)) {
+        if (nodeIsDouble(creationPath.getLast())) {
             return false;
         }
 
         // check for uncleared doubles
         for (Node node : doubleNodes) {
-            if (get(node) != Node.Type.BLOCKED) {
+            if (get(node) == Node.Type.TOUCHED || get(node) == null) {
+                // for some reason, some double nodes are left as null
                 return false;
             }
         }
 
         return true;    // signals to stop traversing
-
     }
 
     private static boolean nodeIsDouble(Node node) {
@@ -463,11 +542,8 @@ public class MazeGen {
     // generate with breadth-first-search by checking neighbors in a random order
     private static boolean generateHelper(Node current) {
 
-        if (creationPath.size() > pathLength) {
-            return false;
-        }
-        else if (creationPath.size() == pathLength) {
-            return pathHasValidTypes();
+        if (creationPath.size() == pathLength) {
+            return validCreationPath();
         }
 
         boolean hasBeenBlocked = false;
@@ -476,7 +552,7 @@ public class MazeGen {
         boolean next = true;
         
         Node neighbor = null;
-        Node.Type type = Node.Type.BLOCKED;
+        Node.Type type = Node.Type.GROUND;
 
         int i = 0;
         ArrayList<Node> neighbors = getWalkableNeighborsTo(current);
@@ -495,11 +571,10 @@ public class MazeGen {
                     if (!hasBeenDouble && !nodeIsDouble(neighbor)) {
                         hasBeenDouble = true;
                         doubleNodes.add(neighbor);
-                        // type = Node.Type.TOUCHED;
                     }
                     else {
                         hasBeenBlocked = true;
-                        type = Node.Type.BLOCKED;
+                        type = Node.Type.GROUND;
                     }
                 }
 
@@ -518,9 +593,9 @@ public class MazeGen {
                 // try the same path but switch this neighbor's type
                 if (TRY_CHANGE_NODE_TYPE && (!hasBeenBlocked || !hasBeenDouble)) {
 
-                    if (type == Node.Type.BLOCKED) {
+                    if (type == Node.Type.GROUND) {
 
-                        if (!hasBeenDouble && doubleNodes.size() < amountDoubles && !nodeIsDouble(neighbor)) {
+                        if (!hasBeenDouble && doubleNodes.size() < doublesAmount && !nodeIsDouble(neighbor)) {
                             // "force" a double
                             hasBeenDouble = true;
                             type = Node.Type.TOUCHED;
@@ -535,7 +610,7 @@ public class MazeGen {
                         if (!hasBeenBlocked) {
                             // "force" a normal ground
                             hasBeenBlocked = true;
-                            type = Node.Type.BLOCKED;
+                            type = Node.Type.GROUND;
                             doubleNodes.remove(neighbor);
                             next = false;
                             continue;
@@ -573,17 +648,18 @@ public class MazeGen {
     private static Node.Type getRandomNodeType() {
         // NOTE: TOUCHED is treated as a double that was just stepped on
         
-        if (doubleNodes.size() < amountDoubles) {
-            if (DOUBLES_AT_START) 
-                return Node.Type.GROUND;
+        if (doubleNodes.size() < doublesAmount) {
+            if (DOUBLES_ARE_PLACED_FIRST) {
+                return Node.Type.TOUCHED;
+            }
 
-            else if (rand.nextFloat() <= 0.5 || amountDoubles - doubleNodes.size() == pathLength - creationPath.size()) {
-                // 50 % or "force" a node to be double
+            else if (doublesAmount - doubleNodes.size() == pathLength - creationPath.size() || rand.nextFloat() <= 0.5) {
+                // "force" a node to be double if needed, otherwise 50% chance
                 return Node.Type.TOUCHED;
             }
         }
 
-        return Node.Type.BLOCKED;
+        return Node.Type.GROUND;
     }
 
     public static boolean nodeTypeWalkable(Node node) {
