@@ -169,7 +169,7 @@ public class MazeSolver {
 
         accumulatorPath.add(currentNode);
         
-        if (currentNode.same(MazeGen.endNode)) {
+        if (currentNode.equals(MazeGen.endNode)) {
             // if end node: check if longer than last saved path
 
             if (accumulatorPath.size() > longestPath.size()) {

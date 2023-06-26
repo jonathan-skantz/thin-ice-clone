@@ -231,7 +231,7 @@ public class MazeGen {
             pathHistory.add(newNode);
     
             if (pathHistoryRedo.size() > 0) {
-                if (pathHistoryRedo.peek().same(newNode)) {
+                if (pathHistoryRedo.peek().equals(newNode)) {
                     pathHistoryRedo.pop();
                 }
                 else {
@@ -240,7 +240,7 @@ public class MazeGen {
                 }
             }
             
-            if (newNode.same(endNode)) {
+            if (newNode.equals(endNode)) {
                 complete = true;
             }
     
@@ -312,16 +312,10 @@ public class MazeGen {
 
                 // adjust lastNode
                 if (get(lastNode) == Node.Type.TOUCHED) {
-                    boolean reset = true;
 
                     // don't set to double since it was
                     // just about to be set to GROUND when left
-                    for (Node node : pathHistory) {
-                        if (node.same(lastNode)) {
-                            reset = false;
-                        }
-                    }
-                    if (reset) {
+                    if (!pathHistory.contains(lastNode)) {
                         set(lastNode, Node.Type.DOUBLE);
                     }
                 }
@@ -331,10 +325,10 @@ public class MazeGen {
                 }
 
                 // adjust currentNode
-                if (currentNode.same(startNode)) {
+                if (currentNode.equals(startNode)) {
                     set(currentNode, Node.Type.START);
                 }
-                else if (nodeIsDouble(currentNode)) {
+                else if (doubleNodes.contains(currentNode)) {
                     set(currentNode, Node.Type.TOUCHED);
                 }
                 else {
@@ -520,7 +514,7 @@ public class MazeGen {
         }
 
         // endNode cannot be a double
-        if (nodeIsDouble(creationPath.getLast())) {
+        if (doubleNodes.contains(creationPath.getLast())) {
             return false;
         }
 
@@ -533,15 +527,6 @@ public class MazeGen {
         }
 
         return true;    // signals to stop traversing
-    }
-
-    private static boolean nodeIsDouble(Node node) {
-        for (Node n : doubleNodes) {
-            if (n.same(node)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     // generate with breadth-first-search by checking neighbors in a random order
@@ -573,7 +558,7 @@ public class MazeGen {
                 
                 if (type == Node.Type.TOUCHED) {
                     
-                    if (!hasBeenDouble && !nodeIsDouble(neighbor)) {
+                    if (!hasBeenDouble && !doubleNodes.contains(neighbor)) {
                         hasBeenDouble = true;
                         doubleNodes.add(neighbor);
                     }
@@ -600,7 +585,7 @@ public class MazeGen {
 
                     if (type == Node.Type.GROUND) {
 
-                        if (!hasBeenDouble && doubleNodes.size() < doublesAmount && !nodeIsDouble(neighbor)) {
+                        if (!hasBeenDouble && doubleNodes.size() < doublesAmount && !doubleNodes.contains(neighbor)) {
                             // "force" a double
                             hasBeenDouble = true;
                             type = Node.Type.TOUCHED;

@@ -35,18 +35,23 @@ public class Node {
     
     @Override
     public String toString() {
-        return "Node(" + x + "," + y + ")";
+        return String.format("Node(%d,%d)", x, y);
     }
 
-    public boolean same(Node node) {
+    // returns true if same x and y as `this`
+    @Override
+    public boolean equals(Object obj) {
+        
+        if (obj == this) {
+            return true;
+        }
+
+        if (obj == null || obj.getClass() != getClass()) {
+            return false;
+        }
+
+        Node node = (Node) obj;
         return x == node.x && y == node.y;
-    }
-
-    public boolean nextTo(Node node) {
-        boolean vertically = node.x == x && (node.y == y+1 || node.y == y-1);
-        boolean horizontally = node.y == y && (node.x == x+1 || node.x == x-1);
-
-        return vertically || horizontally;
     }
 
 }

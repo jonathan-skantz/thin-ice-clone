@@ -59,7 +59,7 @@ public class Main {
         for (Node n : hintNodes) {
             if (n != null) {
                 
-                if (MazeGen.get(n) != Node.Type.BLOCKED && !n.same(MazeGen.currentNode)) {
+                if (MazeGen.get(n) != Node.Type.BLOCKED && !n.equals(MazeGen.currentNode)) {
                     mazeSprites[n.y][n.x].setBackground(Config.BLOCK_COLORS.get(Node.Type.GROUND));
                 }
             }
