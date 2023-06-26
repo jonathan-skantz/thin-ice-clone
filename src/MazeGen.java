@@ -140,22 +140,23 @@ public class MazeGen {
             3 steps --> 0 2x, 1 G
             4 steps --> 1 2x, 2 G
             5 steps --> 1 2x, 3 G
-            6 steps --> 2 2x, 2 G (this is visually 50% but actually 100% of possible doubles)
+            6 steps --> 1 2x, 4 G (visually not 50% but actually 50% of possible doubles)
         */
+
+        // calculations are made according to the tables above
 
         int maxSteps = pathLength - 2;      // excluding start and end
         int doublesMax;
 
         if (odd(maxSteps)) {
-            doublesMax = maxSteps / 2;
+            doublesMax = (maxSteps - 1) / 2;
         }
         else {
             if (maxSteps % 4 == 0) {
                 doublesMax = maxSteps / 2;
             }
             else {
-                // otherwise divisible by 2
-                doublesMax = maxSteps / 2 - 1;
+                doublesMax = (maxSteps - 2) / 2;
             }
         }
 
@@ -218,7 +219,7 @@ public class MazeGen {
         int[] change = action.getMovement();
         Node newNode = new Node(currentNode.x + change[0], currentNode.y + change[1]);
 
-        if (pointOnGrid(newNode.x, newNode.y) && nodeTypeWalkable(newNode)) {
+        if (nodeWithinBounds(newNode) && nodeTypeWalkable(newNode)) {
             
             if (get(currentNode) == Node.Type.DOUBLE) {
                 set(currentNode, Node.Type.TOUCHED);
@@ -266,9 +267,8 @@ public class MazeGen {
         return maze[y][x];
     }
 
-    // TEMP
-    public static boolean pointOnGrid(int x, int y) {
-        return x >= 0 && y >= 0 && x < width && y < height;
+    public static boolean nodeWithinBounds(Node node) {
+        return node.x >= 0 && node.x < width && node.y >= 0 && node.y < height;
     }
 
     public static void reset() {
@@ -406,6 +406,11 @@ public class MazeGen {
         return v % 2 != 0;
     }
 
+    private static boolean validStartNode() {
+        // NOTE: xor (meaning: both must be even or both must be odd)
+        return nodeWithinBounds(startNode) && !(odd(startNode.x) ^ odd(startNode.y));
+    }
+
     private static void setRandomStartNode() {
 
         startNode = new Node(rand.nextInt(width), rand.nextInt(height));
@@ -419,22 +424,22 @@ public class MazeGen {
          * Therefore, a new startNode must be determined.
          */
 
-        Node firstStartNode = startNode;
-
         if (pathLength == pathLengthMaxAllDoubles && odd(width) && odd(height)) {
 
+            Node firstStartNode = startNode;
+            
             // try move up, down, left, right once until startNode is valid
 
-            if (odd(startNode.x) ^ odd(startNode.y)) {  // NOTE: xor
+            if (!validStartNode()) {
                 startNode = new Node(firstStartNode.x, firstStartNode.y - 1);
                 
-                if (odd(startNode.x) ^ odd(startNode.y)) {
+                if (!validStartNode()) {
                     startNode = new Node(firstStartNode.x, firstStartNode.y + 1);
                     
-                    if (odd(startNode.x) ^ odd(startNode.y)) {
+                    if (!validStartNode()) {
                         startNode = new Node(firstStartNode.x - 1, firstStartNode.y);
                         
-                        if (odd(startNode.x) ^ odd(startNode.y)) {
+                        if (!validStartNode()) {
                             startNode = new Node(firstStartNode.x + 1, firstStartNode.y);
                         }
                     }
