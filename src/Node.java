@@ -35,7 +35,7 @@ public class Node {
     
     @Override
     public String toString() {
-        return String.format("Node(%d,%d)", x, y);
+        return String.format("N(%d,%d)", x, y);
     }
 
     // returns true if same x and y as `this`
