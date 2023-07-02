@@ -24,10 +24,14 @@ public class UI {
 
     // save as fields in order to modify when setting size
     private static JLabel pathLengthLabel;
-    private static JSlider pathLengthSlider;
 
     private static JSlider hintMaxSlider;
     private static JLabel hintMaxLabel;
+
+    private static JSlider amountGroundSlider;
+    private static JLabel amountGroundLabel;
+    private static JSlider amountDoublesSlider;
+    private static JLabel amountDoublesLabel;
 
     // constraints
     private static Insets insets = new Insets(5, 5, 5, 5);
@@ -172,7 +176,8 @@ public class UI {
         gbc.gridx = 0;
         gbc.anchor = GridBagConstraints.CENTER;
 
-        setupMazeConfigChanceDouble(panel, gbc);
+        setupMazeConfigAmountDoubles(panel, gbc);
+        setupMazeConfigAmountGround(panel, gbc);
         setupMazeConfigSize(panel, gbc);
         setupMazeConfigPathLength(panel, gbc);
         setupMazeConfigHintMax(panel, gbc);
@@ -186,29 +191,61 @@ public class UI {
         btn.setLocation(x, y);
     }
 
-    private static void setupMazeConfigChanceDouble(JPanel panel, GridBagConstraints gbc) {
+    private static void setupMazeConfigAmountDoubles(JPanel panel, GridBagConstraints gbc) {
         
-        // label and slider for chance of double
-        int val = (int)(MazeGen.fractionDoubleNodes * 100);
-        JLabel labelDouble = new JLabel("Double node frequency: " + val + "%");
-        JSlider sliderDouble = getNewSlider(100, val);
+        // label and slider for amount of doubles
+        amountDoublesLabel = new JLabel("Amount of double nodes: " + MazeGen.amountDoubles);
+        amountDoublesSlider = getNewSlider(MazeGen.amountDoublesMax, MazeGen.amountDoubles);
 
-        sliderDouble.addChangeListener(e -> {
-            int newVal = sliderDouble.getValue();
+        amountDoublesSlider.addChangeListener(e -> {
+            int newVal = amountDoublesSlider.getValue();
 
-            labelDouble.setText("Double node frequency: " + newVal + "%");
+            amountDoublesLabel.setText("Amount of double nodes: " + newVal);
             
-            MazeGen.setFractionDoubleNodes((float)newVal / 100);
+            MazeGen.setAmountDoubles(newVal);
+
+            amountGroundLabel.setText("Amount of ground nodes: " + MazeGen.amountGround);
+            amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
             
-            // potentially update pathLength slider and label
-            pathLengthSlider.setMaximum(MazeGen.pathLengthMax);
+            // limit amountGround
+            if (MazeGen.amountGroundMinIsOne) {
+                amountGroundSlider.setMinimum(1);
+            }
+            else {
+                amountGroundSlider.setMinimum(0);
+            }
+            
             setPathLengthLabel();
+            limitHintMax();
             
             mazeConfigIsNew = true;
         });
 
-        panel.add(labelDouble, gbc);
-        panel.add(sliderDouble, gbc);
+        panel.add(amountDoublesLabel, gbc);
+        panel.add(amountDoublesSlider, gbc);
+    }
+
+    private static void setupMazeConfigAmountGround(JPanel panel, GridBagConstraints gbc) {
+        
+        // label and slider for amount of ground
+        amountGroundLabel = new JLabel("Amount of ground nodes: " + MazeGen.amountGround);
+        amountGroundSlider = getNewSlider(MazeGen.amountGroundMax, MazeGen.amountGround);
+
+        amountGroundSlider.addChangeListener(e -> {
+            int newVal = amountGroundSlider.getValue();
+
+            amountGroundLabel.setText("Amount of ground nodes: " + newVal);
+            
+            MazeGen.setAmountGround(newVal);
+            
+            setPathLengthLabel();
+            limitHintMax();
+            
+            mazeConfigIsNew = true;
+        });
+
+        panel.add(amountGroundLabel, gbc);
+        panel.add(amountGroundSlider, gbc);
     }
 
     private static void setupMazeConfigSize(JPanel panel, GridBagConstraints gbc) {
@@ -225,17 +262,17 @@ public class UI {
             labelWidth.setText("Width: " + val);
             mazeConfigIsNew = true;
             
-            boolean pathLengthDecreased = MazeGen.setWidth(val);
-            limitAfterNewSize(pathLengthDecreased);
+            MazeGen.setWidth(val);
+            limitAfterNewSize();
         });
         
         sliderHeight.addChangeListener(e -> {
             int val = sliderHeight.getValue();
             labelHeight.setText("Height: " + val);
             mazeConfigIsNew = true;
-            
-            boolean pathLengthDecreased = MazeGen.setHeight(val);
-            limitAfterNewSize(pathLengthDecreased);
+
+            MazeGen.setHeight(val);
+            limitAfterNewSize();
         });
 
         panel.add(labelWidth, gbc);
@@ -245,55 +282,45 @@ public class UI {
         panel.add(sliderHeight, gbc);
     }
 
-    private static void limitAfterNewSize(boolean pathLengthDecreased) {
-        // new width or height should also update labels and sliders of pathLengthMax and hintMax
-
-        // update pathLengthMax
-        if (pathLengthDecreased) {
-            setPathLengthLabel();
-        }
-        pathLengthSlider.setMajorTickSpacing((int)(MazeGen.pathLengthMax * 0.10));
-        pathLengthSlider.setMaximum(MazeGen.pathLengthMax);
+    private static void limitHintMax() {
         
-        // update hintMax
-        if (MazeGen.pathLengthMax < Config.hintMax) {
-            Config.hintMax = MazeGen.pathLengthMax;
+        if (MazeGen.amountNodesAll < Config.hintMax) {
+            Config.setHintMax(MazeGen.amountNodesAll);
             hintMaxLabel.setText("Hint length: " + Config.hintMax);
         }
-        hintMaxSlider.setMajorTickSpacing((int)(MazeGen.pathLengthMax * 0.10));
-        hintMaxSlider.setMaximum(MazeGen.pathLengthMax);
+        System.out.println("hintMaxSlider max set to: " + MazeGen.pathLength);
+        hintMaxSlider.setMaximum(MazeGen.pathLength);
+    }
 
+    private static void limitAfterNewSize() {
+
+        limitHintMax();
+
+        amountGroundLabel.setText("Amount of ground nodes: " + MazeGen.amountGround);
+        amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
+        
+        amountDoublesLabel.setText("Amount of double nodes: " + MazeGen.amountDoubles);
+        amountDoublesSlider.setMaximum(MazeGen.amountDoublesMax);
     }
 
     private static void setupMazeConfigPathLength(JPanel panel, GridBagConstraints gbc) {
         
         // slider for maze length
-        pathLengthLabel = new JLabel();
-        setPathLengthLabel();
-
-        pathLengthSlider = getNewSlider(MazeGen.pathLengthMax, MazeGen.pathLength);
-        pathLengthSlider.addChangeListener(e -> {
-            int newVal = pathLengthSlider.getValue();
-            MazeGen.setPathLength(newVal);
-            setPathLengthLabel();
-            mazeConfigIsNew = true;
-        });
+        pathLengthLabel = new JLabel("Path length: " + MazeGen.pathLength);
+        pathLengthLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 50, 0));
 
         panel.add(pathLengthLabel, gbc);
-        panel.add(pathLengthSlider, gbc);
     }
 
     private static void setPathLengthLabel() {
-        String s = String.format("Path length: %d (start + %d ground + %d doubles + end)", 
-                                MazeGen.pathLength, MazeGen.groundAmount, MazeGen.doublesAmount);
-        pathLengthLabel.setText(s);
+        pathLengthLabel.setText("Path length: " + MazeGen.pathLength);
     }
 
     private static void setupMazeConfigHintMax(JPanel panel, GridBagConstraints gbc) {
 
         // slider for max hint size
         hintMaxLabel = new JLabel("Hint length: " + Config.hintMax);
-        hintMaxSlider = getNewSlider(MazeGen.pathLengthMax, Config.hintMax);
+        hintMaxSlider = getNewSlider(MazeGen.pathLength, Config.hintMax);
         hintMaxSlider.addChangeListener(e -> {
             int newVal = hintMaxSlider.getValue();
             Config.setHintMax(newVal);

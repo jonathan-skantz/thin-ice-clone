@@ -17,7 +17,7 @@ public class MazeGen {
     // true: usually faster, but creates more stepbacks and possibly easy maze
     // false: usually slower, but possibly more spread out double nodes
     // NOTE: if false, doubles may still appear around start if needed
-    // to reach the doublesAmount
+    // to reach the amountDoubles
     // NOTE: if DOUBLES_ARE_PLACED_FIRST is true, TRY_CHANGE_NODE_TYPE may not have any effect
     // (if the path is not cut off by itself during generation)
     private static final boolean DOUBLES_ARE_PLACED_FIRST = false;
@@ -29,7 +29,7 @@ public class MazeGen {
     private static Stack<Node> pathHistoryRedo = new Stack<>();
 
     // keep track of doubles (used during creation and reset)
-    private static ArrayList<Node> doubleNodes = new ArrayList<>();
+    public static ArrayList<Node> doubleNodes = new ArrayList<>();
     private static ArrayList<Node> triedDouble = new ArrayList<>();
     
     private static Random rand = new Random(1);
@@ -42,41 +42,29 @@ public class MazeGen {
     public static Node endNode;
     public static Node currentNode;    // used to keep track of the player
     
-    // NOTE: the more doubles, the longer the generation time
-    // NOTE: fractionDoubleNodes does not refer to how many of the nodes that
-    // appear on screen are doubles, but rather how many of the possible doubles
-    // that are set to double.
-    // E.g.: 10 pathLength, 1f fractionDoubleNodes --> start + 4 doubles + 0 ground + end
-    // but 10 pathLength, 0.5f fractionDoubleNodes --> start + 2 doubles + 4 ground + end
-    // since the doubles are 50% of the max amount of doubles (which is determined by pathLength and the fraction)
+    public static int amountDoubles = 0;
+    public static int amountGround = width * height / 2;
+    // TODO: amountWalls?
 
-    public static float fractionDoubleNodes = 0.5f;    // used to set `doublesAmount`
-    public static int doublesAmount;
-    public static int groundAmount;
-    
-    // calculated based on current `fractionDoubleNodes` and full width and height (max pathLength)
-    private static int doublesAmountMax;
-    
-    public static int pathLength = width * height / 2;
-    public static int pathLengthMax;
+    public static int amountDoublesMax;
+    public static int amountGroundMax;
+
+    public static int amountNodesAll = width * height;
+
+    public static boolean amountGroundMinIsOne = false;
+
+    public static int pathLength;
+    public static int pathLengthMax;   // used to move startNode if necessary and to limit length of hints
 
     static {
-        updateDoublesAmount();
-        updatePathLengthMax();
+        update();
     }
 
     public static void main(String[] args) {
 
-        // generate maze
-        setWidth(5);
-        setHeight(5);
-        setFractionDoubleNodes(0.5f);
-        setPathLength(999);
-
-        System.out.println("pathLengthMax: " + pathLengthMax);
-        System.out.println("doublesAmount: " + doublesAmount);
-        System.out.println("pathLength: " + pathLength);
-        MazeGen.generate();
+        setSize(5, 5);
+        setAmountDoubles(5);
+        generate();
 
         // print info
         System.out.println("doubleNodes (" + doubleNodes.size() + "): " + doubleNodes);
@@ -89,125 +77,106 @@ public class MazeGen {
         MazePrinter.printMazeWithTypes();
     }
 
-    public static void setFractionDoubleNodes(float f) {
-        if (f < 0 || f > 1) {
+    private static void printInfo() {
+        System.out.println("maze: " + width + "x" + height);
+        System.out.println("amountDoublesMax: " + amountDoublesMax);
+        System.out.println("amountDoubles: " + amountDoubles);
+        System.out.println("amountGroundMax: " + amountGroundMax);
+        System.out.println("amountGround: " + amountGround);
+
+        if (width * height == 1) {
+            System.out.println("types: s + " + amountDoubles + "d + " + amountGround + "g (start == end)");
+        }
+        else {
+            System.out.println("types: s + " + amountDoubles + "d + " + amountGround + "g + e");
+        }
+        System.out.println("pathLength: " + pathLength);
+        System.out.println();
+    }
+
+    public static void setAmountDoubles(int v) {
+
+        if (v < 0) {
+            v = 0;
+        }
+        else if (v > amountDoublesMax) {
+            v = amountDoublesMax;
+        }
+        else if (even(amountNodesAll) && v == amountDoublesMax - 1) {
+            // impossible combination of doubles and ground (since end must be a double here)
             return;
         }
 
-        fractionDoubleNodes = f;
-        updateDoublesAmount();
-        updatePathLengthMax();
-    }
+        amountDoubles = v;
 
-    // Should be called when `width`, `height`, or `fractionDoubleNodes` is changed.
-    private static void updateDoublesAmount() {
-
-        /*  pathLength including start and end:
-             1 pL: 0 2x, 0 G --> doublesMax=0
-             2 pL: 0 2x, 0 G --> doublesMax=(pL-2)/2
-             3 pL: 0 2x, 1 G --> doublesMax=(pL-3)/2
-             4 pL: 0 2x, 2 G --> doublesMax=(pL-4)/2
-             5 pL: 1 2x, 1 G --> doublesMax=(pL-3)/2
-             6 pL: 2 2x, 0 G --> doublesMax=(pL-2)/2
-             7 pL: 2 2x, 1 G --> doublesMax=(pL-3)/2
-             8 pl: 2 2x, 2 G --> doublesMax=(pL-4)/2
-             9 pL: 3 2x, 1 G --> doublesMax=(pL-3)/2
-            10 pL: 4 2x, 0 G --> doublesMax=(pL-2)/2
-            11 pL: 4 2x, 1 G --> doublesMax=(pL-3)/2    
-            12 pL: 4 2x, 2 G --> doublesMax=(pL-4)/2
-            13 pL: 5 2x, 1 G --> doublesMax=(pL-3)/2
-            14 pL: 6 2x, 0 G --> doublesMax=(pL-2)/2
-            15 pL: 6 2x, 1 G --> doublesMax=(pL-3)/2
-        */ 
-
-        // calculations are made according to the table above
-        // (note that a pathLength of 1 is an exception)
-
-        if (pathLength == 1) {
-            // too small maze for any doubles
-            doublesAmount = 0;
-            doublesAmountMax = 0;
-            groundAmount = 0;
+        update();
+        
+        if (odd(amountDoubles)) {
+            amountGroundMinIsOne = true;
         }
         else {
-            int decr;
-
-            if (pathLength % 4 == 0) {
-                decr = 4;
-            }
-            else if (pathLength % 2 == 0) {
-                decr = 2;
-            }
-            else {
-                decr = 3;
-            }
-            
-            int doublesMax = (pathLength - decr) / 2;
-            int nodesMax = width * height - decr;
-
-            doublesAmount = (int)(doublesMax * fractionDoubleNodes);
-            doublesAmountMax = (int)(nodesMax * fractionDoubleNodes);
-            
-            // if one dimension is 1 and odd amount of doubles,
-            // at least one double will only be stepped on once (invalid path)
-            if ((width == 1 || height == 1) && odd(doublesAmount)) {
-                doublesAmount--;
-            }
-            groundAmount = pathLength - 2 - 2 * doublesAmount;
+            amountGroundMinIsOne = false;
         }
     }
 
-    // returns pathLengthMax.
-    // Should be called when `width`, `height`, or `fractionDoubleNodes` is changed.
-    private static int updatePathLengthMax() {      
-
-        pathLengthMax = width * height + doublesAmountMax;
-
-        if (pathLength > pathLengthMax) {
-            pathLength = pathLengthMax;
+    public static void setAmountGround(int v) {
+        
+        if (v < 0) {
+            v = 0;
+        }
+        else if (v > amountGroundMax) {
+            v = amountGroundMax;
         }
 
-        return pathLengthMax;
+        amountGround = v;
+
+        update();
     }
 
-    // returns true if pathLength is decreased
-    public static boolean setWidth(int w) {
+    private static void update() {
+
+        amountNodesAll = width * height;
+        
+        if (amountNodesAll == 1) {
+            amountGroundMax = 0;
+            amountDoublesMax = 0;
+        }
+
+        else {
+            amountDoublesMax = amountNodesAll - 2;
+
+            if (odd(amountNodesAll)) {
+                amountDoublesMax--;
+            }
+
+            if (amountDoubles > amountDoublesMax) {
+                amountDoubles = amountDoublesMax;
+            }
+
+            // NOTE: amountGround is limited by amountDoubles
+            amountGroundMax = width * height - 2 - amountDoubles;
+        }
+        
+        if (amountGround > amountGroundMax) {
+            amountGround = amountGroundMax;
+        }
+
+        pathLength = 2 + 2 * amountDoubles + amountGround;
+        pathLengthMax = amountNodesAll + amountDoublesMax;
+    }
+
+    public static void setSize(int w, int h) {
         width = w;
-
-        int pathLengthBefore = pathLength;
-
-        updatePathLengthMax();
-        updateDoublesAmount();
-        updatePathLengthMax();
-
-        return pathLength < pathLengthBefore;
-    }
-    
-    // returns true if pathLength is decreased
-    public static boolean setHeight(int h) {
-        
         height = h;
-        
-        int pathLengthBefore = pathLength;
-        
-        updatePathLengthMax();
-        updateDoublesAmount();
-        updatePathLengthMax();
-        
-        return pathLength < pathLengthBefore;
+        update();
     }
-    
-    // returns true if `v` is accepted (not too long)
-    public static boolean setPathLength(int v) {
 
-        if (v > pathLengthMax) {
-            v = pathLengthMax;
-        }
+    public static void setWidth(int w) {
+        setSize(w, height);
+    }
 
-        pathLength = v;
-        updateDoublesAmount();
-
-        return v <= pathLengthMax;
+    public static void setHeight(int h) {
+        setSize(width, h);
     }
 
     public static int getWidth() {
@@ -405,6 +374,10 @@ public class MazeGen {
         return v % 2 != 0;
     }
 
+    private static boolean even(int v) {
+        return v % 2 == 0;
+    }
+
     private static boolean validStartNode() {
         // NOTE: xor (meaning: both must be even or both must be odd)
         return nodeWithinBounds(startNode) && !(odd(startNode.x) ^ odd(startNode.y));
@@ -423,28 +396,48 @@ public class MazeGen {
          * Therefore, a new startNode must be determined.
          */
 
-        if (pathLength == pathLengthMax && odd(width) && odd(height)) {
+        if (pathLength == pathLengthMax) {
 
             Node firstStartNode = startNode;
             
-            // try move up, down, left, right once until startNode is valid
+            if (odd(width) && odd(height)) {
 
-            if (!validStartNode()) {
-                startNode = new Node(firstStartNode.x, firstStartNode.y - 1);
-                
+                // try move up, down, left, right once until startNode is valid
+
                 if (!validStartNode()) {
-                    startNode = new Node(firstStartNode.x, firstStartNode.y + 1);
+                    startNode = new Node(firstStartNode.x, firstStartNode.y - 1);
                     
                     if (!validStartNode()) {
-                        startNode = new Node(firstStartNode.x - 1, firstStartNode.y);
+                        startNode = new Node(firstStartNode.x, firstStartNode.y + 1);
                         
                         if (!validStartNode()) {
-                            startNode = new Node(firstStartNode.x + 1, firstStartNode.y);
+                            startNode = new Node(firstStartNode.x - 1, firstStartNode.y);
+                            
+                            if (!validStartNode()) {
+                                startNode = new Node(firstStartNode.x + 1, firstStartNode.y);
+                            }
                         }
                     }
                 }
             }
+            else if (width == 1 || height == 1) {
+                
+                if (rand.nextInt(2) == 0) {
+                    // set start at beginning
+                    startNode = new Node(0, 0);
+                }
+                else {
+                    // set start at end
+                    if (width == 1) {
+                        startNode = new Node(0, height-1);
+                    }
+                    else {
+                        startNode = new Node(width-1, 0);
+                    }
+                }
+            }
         }
+
         set(startNode, Node.Type.START);
     }
 
@@ -471,20 +464,11 @@ public class MazeGen {
         set(startNode, Node.Type.START);    // was just replaced during creationPath-loop
     }
 
-    public static void generate(int width, int height) {
-
-        setWidth(width);
-        setHeight(height);
-
-        generate();
-    }
-
     // setup generation process and begin generating
     public static void generate() {
 
-        System.out.println("generating maze size: " + width + "x" + height);
-        System.out.println("pathLength: " + pathLength);
-        System.out.println("doublesAmount: " + doublesAmount);
+        System.out.println("generating:");
+        printInfo();
 
         // clear all
         maze = new Node.Type[height][width];
@@ -517,7 +501,7 @@ public class MazeGen {
     private static boolean validCreationPath() {
 
         // too few double nodes
-        if (doubleNodes.size() < doublesAmount) {
+        if (doubleNodes.size() < amountDoubles) {
             return false;
         }
 
@@ -528,8 +512,7 @@ public class MazeGen {
 
         // check for uncleared doubles
         for (Node node : doubleNodes) {
-            if (get(node) == Node.Type.TOUCHED || get(node) == null) {
-                // for some reason, some double nodes are left as null
+            if (get(node) == Node.Type.TOUCHED) {
                 return false;
             }
         }
@@ -544,7 +527,7 @@ public class MazeGen {
             return false;
         }
 
-        int doublesLeft = doublesAmount - doubleNodes.size();
+        int doublesLeft = amountDoubles - doubleNodes.size();
 
         if (get(node) == Node.Type.TOUCHED) {
             // change from double to ground
@@ -581,7 +564,7 @@ public class MazeGen {
     // sets the first node type of a node
     private static void setNodeType(Node node) {
 
-        int doublesLeft = doublesAmount - doubleNodes.size();
+        int doublesLeft = amountDoubles - doubleNodes.size();
 
         if (get(node) == Node.Type.TOUCHED) {
             set(node, Node.Type.GROUND);
