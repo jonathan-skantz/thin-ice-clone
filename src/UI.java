@@ -36,15 +36,20 @@ public class UI {
     // constraints
     private static Insets insets = new Insets(5, 5, 5, 5);
 
-    private static GridBagConstraints gbcCol1 = new GridBagConstraints();
-    private static GridBagConstraints gbcCol2 = new GridBagConstraints();
+    private static GridBagConstraints horizontalGbcCol1 = new GridBagConstraints();
+    private static GridBagConstraints horizontalGbcCol2 = new GridBagConstraints();
+
+    private static GridBagConstraints verticalGbc = new GridBagConstraints();
     
     static {
-        gbcCol1.gridx = 0;
-        gbcCol1.insets = insets;
+        horizontalGbcCol1.gridx = 0;
+        horizontalGbcCol1.insets = insets;
 
-        gbcCol2.gridx = 1;
-        gbcCol2.insets = insets;
+        horizontalGbcCol2.gridx = 1;
+        horizontalGbcCol2.insets = insets;
+
+        verticalGbc.gridx = 0;
+        verticalGbc.anchor = GridBagConstraints.CENTER;
     }
 
     public static void setupConfigs() {
@@ -82,8 +87,8 @@ public class UI {
             label.setPreferredSize(new Dimension(125, label.getPreferredSize().height));
             btn.setPreferredSize(new Dimension(100, btn.getPreferredSize().height));
             
-            panel.add(label, gbcCol1);
-            panel.add(btn, gbcCol2);
+            panel.add(label, horizontalGbcCol1);
+            panel.add(btn, horizontalGbcCol2);
 
             btn.addActionListener(e -> {
                 // when clicked, change text to "?" and start listening for key press
@@ -116,8 +121,8 @@ public class UI {
             KeyHandler.allowContinuous = cb.isSelected();
         });
 
-        panel.add(label, gbcCol1);
-        panel.add(cb, gbcCol2);
+        panel.add(label, horizontalGbcCol1);
+        panel.add(cb, horizontalGbcCol2);
     }
 
     
@@ -139,8 +144,8 @@ public class UI {
             label.setPreferredSize(new Dimension(125, label.getPreferredSize().height));
             btn.setPreferredSize(new Dimension(30, 30));
             
-            panel.add(label, gbcCol1);
-            panel.add(btn, gbcCol2);
+            panel.add(label, horizontalGbcCol1);
+            panel.add(btn, horizontalGbcCol2);
 
             btn.addActionListener(e -> {
                 Color newColor = JColorChooser.showDialog(Main.window, "Color for " + type, currentColor);
@@ -172,16 +177,13 @@ public class UI {
 
         JPanel panel = new JPanel(new GridBagLayout());
         
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.anchor = GridBagConstraints.CENTER;
-
-        setupMazeConfigAmountDoubles(panel, gbc);
-        setupMazeConfigAmountGround(panel, gbc);
-        setupMazeConfigSize(panel, gbc);
-        setupMazeConfigPathLength(panel, gbc);
-        setupMazeConfigHintMax(panel, gbc);
-        setupMazeConfigHintType(panel, gbc);
+        setupMazeConfigEndCanBeDouble(panel);
+        setupMazeConfigAmountDoubles(panel);
+        setupMazeConfigAmountGround(panel);
+        setupMazeConfigPathLength(panel);
+        setupMazeConfigSize(panel);
+        setupMazeConfigHintMax(panel);
+        setupMazeConfigHintType(panel);
         
         // add config button to bottom right
         JButton btn = getConfigPopupButton("Maze config", panel);
@@ -191,41 +193,50 @@ public class UI {
         btn.setLocation(x, y);
     }
 
-    private static void setupMazeConfigAmountDoubles(JPanel panel, GridBagConstraints gbc) {
+    private static void updateAmountDoubles(int v) {
+
+        int lastVal = MazeGen.amountDoubles;
+        int convertedVal = MazeGen.setAmountDoubles(v);
+
+        if (convertedVal != v && v > lastVal) {
+            // increment instead of decrementing
+            convertedVal = MazeGen.setAmountDoubles(v+1);
+        }
+        
+        amountDoublesSlider.setValue(convertedVal);   // potentially decreased
+        amountDoublesLabel.setText("Amount of double nodes: " + convertedVal);
+    
+        amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
+        amountGroundLabel.setText("Amount of ground nodes: " + MazeGen.amountGround);
+        
+        // limit amountGround
+        amountGroundSlider.setMinimum(MazeGen.amountGroundMin);
+
+        int slideDiff = amountGroundSlider.getMaximum() - amountGroundSlider.getMinimum();
+        amountGroundSlider.setEnabled(slideDiff == 0 ? false : true);
+    
+        pathLengthLabel.setText("Path length: " + MazeGen.pathLength);
+
+        limitHintMax();
+        
+        mazeConfigIsNew = true;
+    }
+
+    private static void setupMazeConfigAmountDoubles(JPanel panel) {
         
         // label and slider for amount of doubles
         amountDoublesLabel = new JLabel("Amount of double nodes: " + MazeGen.amountDoubles);
         amountDoublesSlider = getNewSlider(MazeGen.amountDoublesMax, MazeGen.amountDoubles);
 
         amountDoublesSlider.addChangeListener(e -> {
-            int newVal = amountDoublesSlider.getValue();
-
-            amountDoublesLabel.setText("Amount of double nodes: " + newVal);
-            
-            MazeGen.setAmountDoubles(newVal);
-
-            amountGroundLabel.setText("Amount of ground nodes: " + MazeGen.amountGround);
-            amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
-            
-            // limit amountGround
-            if (MazeGen.amountGroundMinIsOne) {
-                amountGroundSlider.setMinimum(1);
-            }
-            else {
-                amountGroundSlider.setMinimum(0);
-            }
-            
-            setPathLengthLabel();
-            limitHintMax();
-            
-            mazeConfigIsNew = true;
+            updateAmountDoubles(amountDoublesSlider.getValue());
         });
 
-        panel.add(amountDoublesLabel, gbc);
-        panel.add(amountDoublesSlider, gbc);
+        panel.add(amountDoublesLabel, verticalGbc);
+        panel.add(amountDoublesSlider, verticalGbc);
     }
 
-    private static void setupMazeConfigAmountGround(JPanel panel, GridBagConstraints gbc) {
+    private static void setupMazeConfigAmountGround(JPanel panel) {
         
         // label and slider for amount of ground
         amountGroundLabel = new JLabel("Amount of ground nodes: " + MazeGen.amountGround);
@@ -238,17 +249,17 @@ public class UI {
             
             MazeGen.setAmountGround(newVal);
             
-            setPathLengthLabel();
+            pathLengthLabel.setText("Path length: " + MazeGen.pathLength);
             limitHintMax();
             
             mazeConfigIsNew = true;
         });
 
-        panel.add(amountGroundLabel, gbc);
-        panel.add(amountGroundSlider, gbc);
+        panel.add(amountGroundLabel, verticalGbc);
+        panel.add(amountGroundSlider, verticalGbc);
     }
 
-    private static void setupMazeConfigSize(JPanel panel, GridBagConstraints gbc) {
+    private static void setupMazeConfigSize(JPanel panel) {
         
         // label and slider for width and height
         JSlider sliderWidth = getNewSlider(20, MazeGen.getWidth());
@@ -263,6 +274,8 @@ public class UI {
             mazeConfigIsNew = true;
             
             MazeGen.setWidth(val);
+            System.out.println();
+            System.out.println("new width");
             limitAfterNewSize();
         });
         
@@ -275,11 +288,11 @@ public class UI {
             limitAfterNewSize();
         });
 
-        panel.add(labelWidth, gbc);
-        panel.add(sliderWidth, gbc);
+        panel.add(labelWidth, verticalGbc);
+        panel.add(sliderWidth, verticalGbc);
         
-        panel.add(labelHeight, gbc);
-        panel.add(sliderHeight, gbc);
+        panel.add(labelHeight, verticalGbc);
+        panel.add(sliderHeight, verticalGbc);
     }
 
     private static void limitHintMax() {
@@ -288,7 +301,6 @@ public class UI {
             Config.setHintMax(MazeGen.amountNodesAll);
             hintMaxLabel.setText("Hint length: " + Config.hintMax);
         }
-        System.out.println("hintMaxSlider max set to: " + MazeGen.pathLength);
         hintMaxSlider.setMaximum(MazeGen.pathLength);
     }
 
@@ -296,27 +308,23 @@ public class UI {
 
         limitHintMax();
 
-        amountGroundLabel.setText("Amount of ground nodes: " + MazeGen.amountGround);
         amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
+        amountGroundLabel.setText("Amount of ground nodes: " + MazeGen.amountGround);
         
-        amountDoublesLabel.setText("Amount of double nodes: " + MazeGen.amountDoubles);
         amountDoublesSlider.setMaximum(MazeGen.amountDoublesMax);
+        amountDoublesLabel.setText("Amount of double nodes: " + MazeGen.amountDoubles);
     }
 
-    private static void setupMazeConfigPathLength(JPanel panel, GridBagConstraints gbc) {
+    private static void setupMazeConfigPathLength(JPanel panel) {
         
         // slider for maze length
         pathLengthLabel = new JLabel("Path length: " + MazeGen.pathLength);
         pathLengthLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 50, 0));
 
-        panel.add(pathLengthLabel, gbc);
+        panel.add(pathLengthLabel, verticalGbc);
     }
 
-    private static void setPathLengthLabel() {
-        pathLengthLabel.setText("Path length: " + MazeGen.pathLength);
-    }
-
-    private static void setupMazeConfigHintMax(JPanel panel, GridBagConstraints gbc) {
+    private static void setupMazeConfigHintMax(JPanel panel) {
 
         // slider for max hint size
         hintMaxLabel = new JLabel("Hint length: " + Config.hintMax);
@@ -328,11 +336,11 @@ public class UI {
 
             mazeConfigIsNew = true;
         });
-        panel.add(hintMaxLabel, gbc);
-        panel.add(hintMaxSlider, gbc);
+        panel.add(hintMaxLabel, verticalGbc);
+        panel.add(hintMaxSlider, verticalGbc);
     }
 
-    private static void setupMazeConfigHintType(JPanel panel, GridBagConstraints gbc) {
+    private static void setupMazeConfigHintType(JPanel panel) {
         
         // button for hint types
         JButton btnHintType = new JButton();
@@ -343,7 +351,13 @@ public class UI {
             btnHintType.setText("Hint path type: Shortest path");
         }
 
-        panel.add(btnHintType, gbc);
+        JPanel container = new JPanel();
+        container.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        container.add(btnHintType);
+
+        panel.add(container, verticalGbc);
+
+        // panel.add(btnHintType, verticalGbc);
         btnHintType.addActionListener(e -> {
             Config.hintTypeLongest = !Config.hintTypeLongest;
 
@@ -357,14 +371,31 @@ public class UI {
     }
 
 
+    private static void setupMazeConfigEndCanBeDouble(JPanel panel) {
+        JButton btn = new JButton("End can be double: " + MazeGen.endCanBeDouble);
+        
+        JPanel container = new JPanel();
+        container.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        container.add(btn);
 
-    
+        panel.add(container, verticalGbc);
+
+        btn.addActionListener(e -> {
+            MazeGen.setEndCanBeDouble(!MazeGen.endCanBeDouble);
+            btn.setText("End can be double: " + MazeGen.endCanBeDouble);
+            mazeConfigIsNew = true;
+
+            updateAmountDoubles(MazeGen.amountDoubles);
+        });
+    }
+
+
     private static JSlider getNewSlider(int max, int currentVal) {
 
         JSlider slider = new JSlider(JSlider.HORIZONTAL, 0, max, currentVal);
 
-        slider.setMajorTickSpacing((int)(max * 0.10));
-        slider.setMinorTickSpacing((int)(max * 0.05));
+        slider.setMajorTickSpacing(3);
+        slider.setMinorTickSpacing(1);
         slider.setSnapToTicks(true);       
         slider.setPaintTicks(true);
         slider.setPaintLabels(true);

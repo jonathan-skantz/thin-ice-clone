@@ -22,6 +22,8 @@ public class MazeGen {
     // (if the path is not cut off by itself during generation)
     private static final boolean DOUBLES_ARE_PLACED_FIRST = false;
 
+    public static boolean endCanBeDouble = true;
+
     public static LinkedList<Node> creationPath = new LinkedList<>();
 
     // keep track of the user's path, in order to be able to backtrack
@@ -47,11 +49,11 @@ public class MazeGen {
     // TODO: amountWalls?
 
     public static int amountDoublesMax;
+    public static int amountGroundMin;
     public static int amountGroundMax;
 
     public static int amountNodesAll = width * height;
 
-    public static boolean amountGroundMinIsOne = false;
 
     public static int pathLength;
     public static int pathLengthMax;   // used to move startNode if necessary and to limit length of hints
@@ -84,85 +86,95 @@ public class MazeGen {
         System.out.println("amountGroundMax: " + amountGroundMax);
         System.out.println("amountGround: " + amountGround);
 
-        if (width * height == 1) {
+        if (amountNodesAll == 1) {
             System.out.println("types: s + " + amountDoubles + "d + " + amountGround + "g (start == end)");
         }
         else {
             System.out.println("types: s + " + amountDoubles + "d + " + amountGround + "g + e");
         }
         System.out.println("pathLength: " + pathLength);
+        System.out.println("pathLengthMax: " + pathLengthMax);
         System.out.println();
     }
 
-    public static void setAmountDoubles(int v) {
+    private static int convertToValidDoubleAmount(int possiblyInvalid) {
+        if (even(amountNodesAll) && possiblyInvalid == amountDoublesMax - 1 && !endCanBeDouble) {
+            possiblyInvalid--;
+        }
+        return possiblyInvalid;
+    }
 
-        if (v < 0) {
-            v = 0;
-        }
-        else if (v > amountDoublesMax) {
-            v = amountDoublesMax;
-        }
-        else if (even(amountNodesAll) && v == amountDoublesMax - 1) {
-            // impossible combination of doubles and ground (since end must be a double here)
-            return;
-        }
+    public static void setEndCanBeDouble(boolean v) {
 
-        amountDoubles = v;
+        endCanBeDouble = v;
+        
+        // may have resulted in one less double due to change of `endCanBeDouble`
+        amountDoubles = convertToValidDoubleAmount(amountDoubles);
 
         update();
-        
-        if (odd(amountDoubles)) {
-            amountGroundMinIsOne = true;
-        }
-        else {
-            amountGroundMinIsOne = false;
-        }
+    }
+
+    public static int setAmountDoubles(int v) {
+
+        v = Math.max(0, Math.min(v, amountDoublesMax));
+        amountDoubles = convertToValidDoubleAmount(v);
+
+        update();
+
+        return amountDoubles;
     }
 
     public static void setAmountGround(int v) {
-        
-        if (v < 0) {
-            v = 0;
-        }
-        else if (v > amountGroundMax) {
-            v = amountGroundMax;
-        }
-
-        amountGround = v;
-
+        amountGround = Math.max(0, Math.min(v, amountGroundMax));
         update();
     }
 
     private static void update() {
 
         amountNodesAll = width * height;
-        
+
         if (amountNodesAll == 1) {
             amountGroundMax = 0;
             amountDoublesMax = 0;
         }
-
+        else if (odd(amountNodesAll)) {
+            
+            if (endCanBeDouble) {
+                amountDoublesMax = amountNodesAll - 1;
+            }
+            else {
+                amountDoublesMax = amountNodesAll - 3;
+            }
+        }
         else {
             amountDoublesMax = amountNodesAll - 2;
-
-            if (odd(amountNodesAll)) {
-                amountDoublesMax--;
-            }
-
-            if (amountDoubles > amountDoublesMax) {
-                amountDoubles = amountDoublesMax;
-            }
-
-            // NOTE: amountGround is limited by amountDoubles
-            amountGroundMax = width * height - 2 - amountDoubles;
         }
-        
+
+        if (amountDoubles > amountDoublesMax) {
+            amountDoubles = amountDoublesMax;
+        }
+
+        // NOTE: amountGround is limited by amountDoubles
+        amountGroundMax = amountNodesAll - amountDoubles - 1;
         if (amountGround > amountGroundMax) {
             amountGround = amountGroundMax;
         }
 
-        pathLength = 2 + 2 * amountDoubles + amountGround;
+        pathLength = 1 + 2 * amountDoubles + amountGround;
         pathLengthMax = amountNodesAll + amountDoublesMax;
+        
+        if (amountDoubles == 0) {
+            amountGroundMin = 0;
+        }
+        else if (even(amountDoubles)) {
+            amountGroundMin = 1;
+        }
+        else if (endCanBeDouble) {
+            amountGroundMin = 1;
+        }
+        else {
+            amountGroundMin = 2;
+        }
     }
 
     public static void setSize(int w, int h) {
@@ -198,6 +210,9 @@ public class MazeGen {
             if (get(currentNode) == Node.Type.DOUBLE) {
                 set(currentNode, Node.Type.TOUCHED);
             }
+            else if (get(currentNode) == Node.Type.END_DOUBLE) {
+                set(currentNode, Node.Type.END);
+            }
             else {
                 set(currentNode, Node.Type.BLOCKED);
             }
@@ -214,7 +229,7 @@ public class MazeGen {
                 }
             }
             
-            if (newNode.equals(endNode)) {
+            if (newNode.equals(endNode) && get(newNode) == Node.Type.END) {
                 complete = true;
             }
     
@@ -270,6 +285,14 @@ public class MazeGen {
         for (Node n : doubleNodes) {
             set(n, Node.Type.DOUBLE);
         }
+
+        if (doubleNodes.contains(endNode)) {
+            set(endNode, Node.Type.END_DOUBLE);
+        }
+        else {
+            set(endNode, Node.Type.END);
+        }
+
     }
 
     // returns ActionKey in which grid direction the step occured
@@ -290,11 +313,16 @@ public class MazeGen {
                     // don't set to double since it was
                     // just about to be set to GROUND when left
                     if (!pathHistory.contains(lastNode)) {
-                        set(lastNode, Node.Type.DOUBLE);
+                        if (lastNode.equals(endNode)) {
+                            set(lastNode, Node.Type.END_DOUBLE);
+                        }
+                        else {
+                            set(lastNode, Node.Type.DOUBLE);
+                        }
                     }
                 }
 
-                else if (get(lastNode) != Node.Type.DOUBLE) {
+                else {
                     set(lastNode, Node.Type.GROUND);
                 }
 
@@ -396,43 +424,41 @@ public class MazeGen {
          * Therefore, a new startNode must be determined.
          */
 
-        if (pathLength == pathLengthMax) {
-
-            Node firstStartNode = startNode;
+        Node firstStartNode = startNode;
+        
+        if ((width == 1 || height == 1) && (startNode.x + 1 < pathLength || startNode.y + 1 < pathLength)) {
             
-            if (odd(width) && odd(height)) {
-
-                // try move up, down, left, right once until startNode is valid
-
-                if (!validStartNode()) {
-                    startNode = new Node(firstStartNode.x, firstStartNode.y - 1);
-                    
-                    if (!validStartNode()) {
-                        startNode = new Node(firstStartNode.x, firstStartNode.y + 1);
-                        
-                        if (!validStartNode()) {
-                            startNode = new Node(firstStartNode.x - 1, firstStartNode.y);
-                            
-                            if (!validStartNode()) {
-                                startNode = new Node(firstStartNode.x + 1, firstStartNode.y);
-                            }
-                        }
-                    }
-                }
+            if (rand.nextInt(2) == 0) {
+                // set start at beginning
+                startNode = new Node(0, 0);
             }
-            else if (width == 1 || height == 1) {
-                
-                if (rand.nextInt(2) == 0) {
-                    // set start at beginning
-                    startNode = new Node(0, 0);
+            else {
+                // set start at end
+                if (width == 1) {
+                    startNode = new Node(0, height-1);
                 }
                 else {
-                    // set start at end
-                    if (width == 1) {
-                        startNode = new Node(0, height-1);
-                    }
-                    else {
-                        startNode = new Node(width-1, 0);
+                    startNode = new Node(width-1, 0);
+                }
+            }
+        }
+
+        else if (pathLength == pathLengthMax && odd(width) && odd(height)) {
+
+            // try move up, down, left, right once until startNode is valid
+
+            if (!validStartNode()) {
+                startNode = new Node(firstStartNode.x, firstStartNode.y - 1);
+                
+                if (!validStartNode()) {
+                    startNode = new Node(firstStartNode.x, firstStartNode.y + 1);
+                    
+                    if (!validStartNode()) {
+                        startNode = new Node(firstStartNode.x - 1, firstStartNode.y);
+                        
+                        if (!validStartNode()) {
+                            startNode = new Node(firstStartNode.x + 1, firstStartNode.y);
+                        }
                     }
                 }
             }
@@ -460,7 +486,13 @@ public class MazeGen {
             set(node, Node.Type.DOUBLE);
         }
 
-        set(endNode, Node.Type.END);
+        if (doubleNodes.contains(endNode)) {
+            set(endNode, Node.Type.END_DOUBLE);
+        }
+        else {
+            set(endNode, Node.Type.END);
+        }
+
         set(startNode, Node.Type.START);    // was just replaced during creationPath-loop
     }
 
@@ -502,11 +534,13 @@ public class MazeGen {
 
         // too few double nodes
         if (doubleNodes.size() < amountDoubles) {
+            // TODO: place this check in setNodeType() and
+            // use return value as signal to (dis)continue branch
             return false;
         }
 
         // endNode cannot be a double
-        if (doubleNodes.contains(creationPath.getLast())) {
+        if (!endCanBeDouble && doubleNodes.contains(creationPath.getLast())) {
             return false;
         }
 
@@ -573,9 +607,14 @@ public class MazeGen {
 
         else if (doublesLeft > 0) {
 
-            int stepsLeft = pathLength - 1 - creationPath.size();
+            int nodesLeft = pathLength - 2 - creationPath.size();
+
+            int endCountsAs = 1;
+            if (endCanBeDouble) {
+                endCountsAs = 0;
+            }
             
-            if ((doublesLeft * 2 == stepsLeft || doublesLeft * 2 == stepsLeft - 1)
+            if ((nodesLeft - endCountsAs == doublesLeft)
                 || DOUBLES_ARE_PLACED_FIRST
                 || rand.nextFloat() <= 0.5) {
 

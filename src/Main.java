@@ -110,7 +110,7 @@ public class Main {
             
             block.setBackground(color);
             
-            if (lastNodeType == Node.Type.TOUCHED) {
+            if (lastNodeType == Node.Type.TOUCHED || lastNodeType == Node.Type.END) {
                 block.setBorder(Config.BLOCK_BORDER);
                 System.out.println(block.getBackground());
             }
@@ -212,6 +212,10 @@ public class Main {
        
         if (type == Node.Type.DOUBLE) {
             color = Config.BLOCK_COLORS.get(Node.Type.GROUND);
+            border = Config.BLOCK_DOUBLE_BORDER;
+        }
+        else if (type == Node.Type.END_DOUBLE) {
+            color = Config.BLOCK_COLORS.get(Node.Type.END);
             border = Config.BLOCK_DOUBLE_BORDER;
         }
         else {
