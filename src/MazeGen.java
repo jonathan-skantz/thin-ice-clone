@@ -23,6 +23,7 @@ public class MazeGen {
     public static boolean doublesArePlacedFirst = false;
 
     public static boolean endCanBeDouble = true;
+    public static boolean endMustBeDouble = false;
 
     public static LinkedList<Node> creationPath = new LinkedList<>();
 
@@ -104,9 +105,21 @@ public class MazeGen {
         return possiblyInvalid;
     }
 
+    // returns true if accepted, otherwise false
+    public static boolean setEndMustBeDouble(boolean v) {
+        
+        if (endCanBeDouble && amountDoubles > 0) {
+            endMustBeDouble = v;
+            return true;
+        }
+        
+        return false;
+    }
+
     public static void setEndCanBeDouble(boolean v) {
 
         endCanBeDouble = v;
+        endMustBeDouble = false;
         
         // may have resulted in one less double due to change of `endCanBeDouble`
         amountDoubles = convertToValidDoubleAmount(amountDoubles);
@@ -539,8 +552,13 @@ public class MazeGen {
             return false;
         }
 
-        // endNode cannot be a double
-        if (!endCanBeDouble && doubleNodes.contains(creationPath.getLast())) {
+        // check if endNode can/must be a double
+        if (doubleNodes.contains(creationPath.getLast())) {
+            if (!endCanBeDouble) {
+                return false;
+            }
+        }
+        else if (endMustBeDouble) {
             return false;
         }
 

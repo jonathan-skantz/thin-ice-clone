@@ -33,6 +33,8 @@ public class UI {
     private static JSlider amountDoublesSlider;
     private static JLabel amountDoublesLabel;
 
+    private static JButton endMustBeDouble;
+
     // constraints
     private static Insets insets = new Insets(5, 5, 5, 5);
 
@@ -178,6 +180,7 @@ public class UI {
         JPanel panel = new JPanel(new GridBagLayout());
         
         setupMazeConfigEndCanBeDouble(panel);
+        setupMazeConfigEndMustBeDouble(panel);
         setupMazeConfigDoublesArePlacedFirst(panel);
         setupMazeConfigTryChangeNodeType(panel);
         setupMazeConfigAmountDoubles(panel);
@@ -222,6 +225,9 @@ public class UI {
         limitHintMax();
         
         mazeConfigIsNew = true;
+
+        endMustBeDouble.setEnabled(MazeGen.endCanBeDouble && MazeGen.amountDoubles > 0);
+        endMustBeDouble.setText("End must be double: " + MazeGen.endMustBeDouble);
     }
 
     private static void setupMazeConfigAmountDoubles(JPanel panel) {
@@ -395,6 +401,20 @@ public class UI {
             mazeConfigIsNew = true;
 
             updateAmountDoubles(MazeGen.amountDoubles);
+        });
+    }
+    
+    private static void setupMazeConfigEndMustBeDouble(JPanel panel) {
+
+        endMustBeDouble = getButton(panel);
+        endMustBeDouble.setText("End must be double: " + MazeGen.endMustBeDouble);
+        endMustBeDouble.setEnabled(MazeGen.endCanBeDouble && MazeGen.amountDoubles > 0);
+
+        endMustBeDouble.addActionListener(e -> {
+            if (MazeGen.setEndMustBeDouble(!MazeGen.endMustBeDouble)) {
+                endMustBeDouble.setText("End must be double: " + MazeGen.endMustBeDouble);
+                mazeConfigIsNew = true;
+            }
         });
     }
     
