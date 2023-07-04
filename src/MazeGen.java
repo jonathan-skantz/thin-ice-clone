@@ -12,15 +12,15 @@ public class MazeGen {
     
     // true: usually slower, but will definitely result in a maze
     // false: usually faster, but may not result in a maze
-    private static final boolean TRY_CHANGE_NODE_TYPE = true;
+    public static boolean tryChangeNodeType = true;
 
     // true: usually faster, but creates more stepbacks and possibly easy maze
     // false: usually slower, but possibly more spread out double nodes
     // NOTE: if false, doubles may still appear around start if needed
     // to reach the amountDoubles
-    // NOTE: if DOUBLES_ARE_PLACED_FIRST is true, TRY_CHANGE_NODE_TYPE may not have any effect
+    // NOTE: if doublesArePlacedFirst is true, tryChangeNodeType may not have any effect
     // (if the path is not cut off by itself during generation)
-    private static final boolean DOUBLES_ARE_PLACED_FIRST = false;
+    public static boolean doublesArePlacedFirst = false;
 
     public static boolean endCanBeDouble = true;
 
@@ -557,7 +557,7 @@ public class MazeGen {
     // changes node type from ground to double or double to ground (if possible)
     private static boolean changeNodeType(Node node) {
         
-        if (!TRY_CHANGE_NODE_TYPE) {
+        if (!tryChangeNodeType) {
             return false;
         }
 
@@ -615,7 +615,7 @@ public class MazeGen {
             }
             
             if ((nodesLeft - endCountsAs == doublesLeft)
-                || DOUBLES_ARE_PLACED_FIRST
+                || doublesArePlacedFirst
                 || rand.nextFloat() <= 0.5) {
 
                 // force a double, place at beginning, or 50% chance of being double

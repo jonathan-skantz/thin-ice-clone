@@ -178,6 +178,8 @@ public class UI {
         JPanel panel = new JPanel(new GridBagLayout());
         
         setupMazeConfigEndCanBeDouble(panel);
+        setupMazeConfigDoublesArePlacedFirst(panel);
+        setupMazeConfigTryChangeNodeType(panel);
         setupMazeConfigAmountDoubles(panel);
         setupMazeConfigAmountGround(panel);
         setupMazeConfigPathLength(panel);
@@ -370,15 +372,22 @@ public class UI {
         });
     }
 
-
-    private static void setupMazeConfigEndCanBeDouble(JPanel panel) {
-        JButton btn = new JButton("End can be double: " + MazeGen.endCanBeDouble);
+    private static JButton getButton(JPanel panel) {
+        JButton btn = new JButton();
         
         JPanel container = new JPanel();
         container.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
         container.add(btn);
 
         panel.add(container, verticalGbc);
+        
+        return btn;
+    }
+
+    private static void setupMazeConfigEndCanBeDouble(JPanel panel) {
+
+        JButton btn = getButton(panel);
+        btn.setText("End can be double: " + MazeGen.endCanBeDouble);
 
         btn.addActionListener(e -> {
             MazeGen.setEndCanBeDouble(!MazeGen.endCanBeDouble);
@@ -388,7 +397,30 @@ public class UI {
             updateAmountDoubles(MazeGen.amountDoubles);
         });
     }
+    
+    private static void setupMazeConfigDoublesArePlacedFirst(JPanel panel) {
+        
+        JButton btn = getButton(panel);
+        btn.setText("Doubles are placed first (faster): " + MazeGen.doublesArePlacedFirst);
+    
+        btn.addActionListener(e -> {
+            MazeGen.doublesArePlacedFirst = !MazeGen.doublesArePlacedFirst;
+            btn.setText("Doubles are placed first (faster): " + MazeGen.doublesArePlacedFirst);
+            mazeConfigIsNew = true;
+        });
+    }
 
+    private static void setupMazeConfigTryChangeNodeType(JPanel panel) {
+        
+        JButton btn = getButton(panel);
+        btn.setText("Change types during backtrack: " + MazeGen.tryChangeNodeType);
+    
+        btn.addActionListener(e -> {
+            MazeGen.tryChangeNodeType = !MazeGen.tryChangeNodeType;
+            btn.setText("Change types during backtrack: " + MazeGen.tryChangeNodeType);
+            mazeConfigIsNew = true;
+        });
+    }
 
     private static JSlider getNewSlider(int max, int currentVal) {
 
