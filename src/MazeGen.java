@@ -47,14 +47,13 @@ public class MazeGen {
     
     public static int amountDoubles = 0;
     public static int amountGround = width * height / 2;
-    // TODO: amountWalls?
+    public static int amountWalls;
 
     public static int amountDoublesMax;
     public static int amountGroundMin;
     public static int amountGroundMax;
 
     public static int amountNodesAll = width * height;
-
 
     public static int pathLength;
     public static int pathLengthMax;   // used to move startNode if necessary and to limit length of hints
@@ -87,12 +86,26 @@ public class MazeGen {
         System.out.println("amountGroundMax: " + amountGroundMax);
         System.out.println("amountGround: " + amountGround);
 
+        String endNodeType;
+
         if (amountNodesAll == 1) {
-            System.out.println("types: s + " + amountDoubles + "d + " + amountGround + "g (start == end)");
+            // end is start (1x1)
+            endNodeType = "none";
+        }
+
+        else if (endNode == null) {
+            endNodeType = "g or d";
+        }
+        else if (get(endNode) == Node.Type.END) {
+            endNodeType = "g";
         }
         else {
-            System.out.println("types: s + " + amountDoubles + "d + " + amountGround + "g + e");
+            endNodeType = "d";
         }
+
+        System.out.printf("types: s + %dd + %dg + %dw (end=%s)\n",
+                            amountDoubles, amountGround, amountWalls, endNodeType);
+        // }
         System.out.println("pathLength: " + pathLength);
         System.out.println("pathLengthMax: " + pathLengthMax);
         System.out.println();
@@ -163,15 +176,13 @@ public class MazeGen {
             amountDoublesMax = amountNodesAll - 2;
         }
 
-        if (amountDoubles > amountDoublesMax) {
-            amountDoubles = amountDoublesMax;
-        }
+        amountDoubles = Math.min(amountDoubles, amountDoublesMax);
 
         // NOTE: amountGround is limited by amountDoubles
-        amountGroundMax = amountNodesAll - amountDoubles - 1;
-        if (amountGround > amountGroundMax) {
-            amountGround = amountGroundMax;
-        }
+        amountGroundMax = amountNodesAll - 1 - amountDoubles;
+        amountGround = Math.min(amountGround, amountGroundMax);
+
+        amountWalls = amountNodesAll - 1 - amountDoubles - amountGround;
 
         pathLength = 1 + 2 * amountDoubles + amountGround;
         pathLengthMax = amountNodesAll + amountDoublesMax;
