@@ -6,8 +6,6 @@ import javax.swing.border.Border;
 
 public class Config {
     
-    public static MazeGen mazeGen = new MazeGen(Config.MAZE_DEFAULT_WIDTH, Config.MAZE_DEFAULT_HEIGHT);
-
     public static final int MAZE_DEFAULT_WIDTH = 5;
     public static final int MAZE_DEFAULT_HEIGHT = 5;
     
@@ -29,9 +27,20 @@ public class Config {
             put(Node.Type.START, Color.GREEN);
             put(Node.Type.END, Color.MAGENTA);
             put(Node.Type.BLOCKED, new Color(0, 50, 255));
-            put(Node.Type.DOUBLE, new Color(0, 255, 255));
+            put(Node.Type.DOUBLE, new Color(255, 255, 255));    // NOTE: only the internal border
+            put(Node.Type.TOUCHED, get(Node.Type.GROUND));
         }
     };
+
+    public static Border BLOCK_DOUBLE_BORDER;
+    static {
+        Border empty = BorderFactory.createEmptyBorder(2, 2, 2, 2);
+        Border line = BorderFactory.createLineBorder(BLOCK_COLORS.get(Node.Type.DOUBLE), 4);
+
+        Border bord = BorderFactory.createCompoundBorder(empty, line);
+        Border comp = BorderFactory.createCompoundBorder(BLOCK_BORDER, bord);
+        BLOCK_DOUBLE_BORDER = comp;
+    }
 
     // hints
     public static int hintMax = 3;
@@ -39,27 +48,12 @@ public class Config {
     public static boolean hintTypeLongest = true;   // either longest or shortest
 
     // flags for updates
-    public static boolean newSize = false;
     public static boolean newHintMax = false;
     public static boolean newBlockColor = false;
-
-    public static void setMazeWidth(int w) {
-        mazeGen.width = w;
-        newSize = true;
-    }
-
-    public static void setMazeHeight(int h) {
-        mazeGen.height = h;
-        newSize = true;
-    }
 
     public static void setHintMax(int v) {
         hintMax = v;
         newHintMax = true;
-    }
-
-    public static void setMazeMinPathLength(int v) {
-        mazeGen.minPathLength = v;
     }
 
     public static void setBlockColor(Node.Type block, Color color) {

@@ -4,48 +4,45 @@ import java.util.Stack;
 
 public class MazeSolver {
 
-    private MazeGen mg;
+    private static Node.Type[][] mazeCopy;
 
-    private Node.Type[][] mazeCopy;
-    private Node nodeStart;
+    private static Stack<Node> accumulatorPath = new Stack<>();
 
-    private Stack<Node> accumulatorPath;
-    
-    public LinkedList<Node> longestPath;
-    public LinkedList<Node> shortestPath;
+    public static LinkedList<Node> longestPath = new LinkedList<>();
+    public static LinkedList<Node> shortestPath = new LinkedList<>();
 
     public static void main(String[] args) {
 
         // generate maze
-        MazeGen mg = new MazeGen(5, 5);
-        mg.generate();
+        MazeGen.generate();
 
         // find solutions
-        MazeSolver s = new MazeSolver(mg, mg.startNode);
-        s.findLongestPath();
-        s.findShortestPath();       
+        MazeSolver.findLongestPath();
+        MazeSolver.findShortestPath();       
 
         // print comparison
         System.out.println("Maze with creation path:");
-        MazePrinter.printMazeWithPath(mg.maze, mg.creationPath);
+        MazePrinter.printMazeWithPath(MazeGen.creationPath);
 
         System.out.println("longest: ");
-        MazePrinter.printMazeWithPath(mg.maze, s.longestPath);
+        MazePrinter.printMazeWithPath(longestPath);
 
         System.out.println("\nshortest:");
-        MazePrinter.printMazeWithPath(mg.maze, s.shortestPath);
+        MazePrinter.printMazeWithPath(shortestPath);
     }
 
-    public MazeSolver(MazeGen mg, Node start) {
+    private static void reset() {
 
-        this.mg = mg;
-        this.mazeCopy = new Node.Type[mg.maze.length][mg.maze[0].length];
-        for (int i = 0; i < mg.maze.length; i++) {
-            for (int j = 0; j < mg.maze[0].length; j++) {
-                mazeCopy[i][j] = mg.maze[i][j];
+        mazeCopy = new Node.Type[MazeGen.getHeight()][MazeGen.getWidth()];
+        for (int y=0; y<MazeGen.getHeight(); y++) {
+            for (int x=0; x<MazeGen.getWidth(); x++) {
+                mazeCopy[y][x] = MazeGen.get(x, y);
             }
         }
-        this.nodeStart = start;
+
+        accumulatorPath.clear();
+        longestPath.clear();
+        shortestPath.clear();
     }
 
     /**
@@ -53,34 +50,35 @@ public class MazeSolver {
      *
      * @return a LinkedList of Nodes representing the shortest path from currentNode to endNode
      */
-    public LinkedList<Node> findShortestPath() {
-        
+    public static LinkedList<Node> findShortestPath() {
+
+        reset();
+
         // create a queue for BFS
         Queue<Node> queue = new LinkedList<>();
 
         // create an array to store the parent node of each node in the shortest path
-        Node[][] parent = new Node[mg.height][mg.width];
+        Node[][] parent = new Node[MazeGen.getHeight()][MazeGen.getWidth()];
 
         // initialize the parent array to null
-        for (int y=0; y<mg.height; y++) {
-            for (int x=0; x<mg.width; x++) {
+        for (int y=0; y<MazeGen.getHeight(); y++) {
+            for (int x=0; x<MazeGen.getWidth(); x++) {
                 parent[y][x] = null;
             }
         }
 
-        mg.currentNode = nodeStart;
-
         // mark the startNode as visited and add it to the queue
-        boolean[][] visited = new boolean[mg.height][mg.width];
-        visited[mg.currentNode.y][mg.currentNode.x] = true;
-        queue.add(mg.currentNode);
+        boolean[][] visited = new boolean[MazeGen.getHeight()][MazeGen.getWidth()];
+        visited[MazeGen.currentNode.y][MazeGen.currentNode.x] = true;
+        queue.add(MazeGen.currentNode);
 
         // perform BFS
         while (!queue.isEmpty()) {
             Node currentNode = queue.poll();
 
             // check if the current node is the endNode
-            if (currentNode.equals(mg.endNode)) {
+            // (why .equals and not .same?)
+            if (currentNode.equals(MazeGen.endNode)) {
                 break;
             }
             
@@ -105,8 +103,8 @@ public class MazeSolver {
         }
 
         // reset shortest path
-        shortestPath = new LinkedList<>();
-        Node currentNode = mg.endNode;
+        shortestPath.clear();
+        Node currentNode = MazeGen.endNode;
         while (currentNode != null) {
             shortestPath.addFirst(currentNode);
             currentNode = parent[currentNode.y][currentNode.x];
@@ -123,7 +121,7 @@ public class MazeSolver {
      * @param y y-coordinate
      * @return true if the point is not diagonally adjacent to the given node, false otherwise
      */
-    private boolean pointNotCorner(Node node, int x, int y) {
+    private static boolean pointNotCorner(Node node, int x, int y) {
         return (x == node.x || y == node.y);
     }
 
@@ -135,22 +133,20 @@ public class MazeSolver {
      * @param y y-coordinate
      * @return true if the point is not the same as the given node, false otherwise
      */
-    private boolean pointNotNode(Node node, int x, int y) {
+    private static boolean pointNotNode(Node node, int x, int y) {
         return !(x == node.x && y == node.y);
     }
 
-    public LinkedList<Node> findLongestPath() {
-        
-        // reset paths
-        accumulatorPath = new Stack<>();
-        longestPath = new LinkedList<>();
+    public static LinkedList<Node> findLongestPath() {
 
-        exploreNewNodeFrom(nodeStart);
+        reset();
+
+        exploreNewNodeFrom(MazeGen.currentNode);
 
         return longestPath;
     }
 
-    private boolean walkable(Node node) {
+    private static boolean walkable(Node node) {
         int x = node.x;
         int y = node.y;
 
@@ -167,11 +163,13 @@ public class MazeSolver {
         return t != Node.Type.BLOCKED && t != Node.Type.WALL;
     }
 
-    private void exploreNewNodeFrom(Node currentNode) {
-        
+    private static void exploreNewNodeFrom(Node currentNode) {
+
+        // TODO: exit once a longest path is found
+
         accumulatorPath.add(currentNode);
         
-        if (currentNode.same(mg.endNode)) {
+        if (currentNode.equals(MazeGen.endNode)) {
             // if end node: check if longer than last saved path
 
             if (accumulatorPath.size() > longestPath.size()) {

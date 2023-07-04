@@ -1,155 +1,297 @@
-/*
-
-* maze ends only at edge of maze or when colliding with a path node
-* no dead ends
-
-
-
-*/
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.Stack;
 
 public class MazeGen {
- 
-    public boolean complete = false;       // is set to true when currentNode == endNode
 
-    public LinkedList<Node> creationPath = new LinkedList<>();
+    private static int invalidPathsCount = 0;
+
+    public static boolean complete = false;       // is set to true when currentNode == endNode
+    
+    // true: usually slower, but will definitely result in a maze
+    // false: usually faster, but may not result in a maze
+    public static boolean tryChangeNodeType = true;
+
+    // true: usually faster, but creates more stepbacks and possibly easy maze
+    // false: usually slower, but possibly more spread out double nodes
+    // NOTE: if false, doubles may still appear around start if needed
+    // to reach the amountDoubles
+    // NOTE: if doublesArePlacedFirst is true, tryChangeNodeType may not have any effect
+    // (if the path is not cut off by itself during generation)
+    public static boolean doublesArePlacedFirst = false;
+
+    public static boolean endCanBeDouble = true;
+    public static boolean endMustBeDouble = false;
+
+    public static LinkedList<Node> creationPath = new LinkedList<>();
 
     // keep track of the user's path, in order to be able to backtrack
-    private Stack<Node> pathHistory = new Stack<>();
-    private Stack<Node.Type> pathHistoryTypes = new Stack<>();
+    private static Stack<Node> pathHistory = new Stack<>();
+    private static Stack<Node> pathHistoryRedo = new Stack<>();
+
+    // keep track of doubles (used during creation and reset)
+    public static ArrayList<Node> doubleNodes = new ArrayList<>();
+    private static ArrayList<Node> triedDouble = new ArrayList<>();
     
-    private Stack<Node> pathHistoryRedo = new Stack<>();
-    // pathHistoryRedoTypes are not necessary to track since when redoing,
-    // the system thinks the player is moving just like normal
-
-    // keep track of doubles, only to know where they were when resetting
-    private ArrayList<Node> doubles = new ArrayList<>();
+    private static Random rand = new Random(1);
+    public static Node.Type[][] maze;
     
-    private Random rand = new Random();
-    public Node.Type[][] maze;
+    private static int width = Config.MAZE_DEFAULT_WIDTH;
+    private static int height = Config.MAZE_DEFAULT_HEIGHT;
     
-    public int width;
-    public int height;
+    public static Node startNode;
+    public static Node endNode;
+    public static Node currentNode;    // used to keep track of the player
     
-    public Node startNode;
-    public Node endNode;
-    
-    // used to generate the maze as well as keep track of the player
-    public Node currentNode;
+    public static int amountDoubles = 0;
+    public static int amountGround = width * height / 2;
+    public static int amountWalls;
 
-    private final int[] DIR = new int[] {1, -1};
+    public static int amountDoublesMax;
+    public static int amountGroundMin;
+    public static int amountGroundMax;
 
-    private int currentDirX = getRandomDirection();
-    private int currentDirY = getRandomDirection();
+    public static int amountNodesAll = width * height;
 
-    public int minPathLength = 100;
-    
-    public enum ChanceNextNode {
+    public static int pathLength;
+    public static int pathLengthMax;   // used to move startNode if necessary and to limit length of hints
 
-        SAME_DIR(0.50f),
-        WALL(0.10f),
-        DOUBLE(0.25f);
-
-        public float chance;
-
-        private ChanceNextNode(float chance) {
-            this.chance = chance;
-        }
-
-        public boolean evaluate(double randChance) {
-            return randChance <= chance;
-        }
-
+    static {
+        update();
     }
 
     public static void main(String[] args) {
 
-        // generate maze
-        MazeGen mg = new MazeGen(3, 1);
-        mg.generate();
+        setSize(5, 5);
+        setAmountDoubles(5);
+        generate();
 
-        // print path and tpyes
-        System.out.println("Maze with path: ");
-        MazePrinter.printMazeWithPath(mg.maze, mg.creationPath);
+        // print info
+        System.out.println("doubleNodes (" + doubleNodes.size() + "): " + doubleNodes);
+        System.out.println("creationPath (" + creationPath.size() + "): " + creationPath);
+
+        System.out.println("\nMaze with path: ");
+        MazePrinter.printMazeWithPath(creationPath);
 
         System.out.println("Maze with types:");
-        MazePrinter.printMazeWithTypes(mg.maze);
+        MazePrinter.printMazeWithTypes();
     }
 
-    public MazeGen(int w, int h) {
-        width = w;
-        height = h;
+    private static void printInfo() {
+        System.out.println("maze: " + width + "x" + height);
+        System.out.println("amountDoublesMax: " + amountDoublesMax);
+        System.out.println("amountDoubles: " + amountDoubles);
+        System.out.println("amountGroundMax: " + amountGroundMax);
+        System.out.println("amountGround: " + amountGround);
 
-        // prevent maze generation from taking too long
-        if (minPathLength > width * height * 0.9 ) {
-            minPathLength = (int) (width * height * 0.5);
+        String endNodeType;
+
+        if (amountNodesAll == 1) {
+            // end is start (1x1)
+            endNodeType = "none";
         }
-    }
 
-    public void userMove(int dx, int dy) {
-        // NOTE: doesn't check move validity
-
-        Node newNode = new Node(currentNode.x+dx, currentNode.y+dy);
-        
-        if (get(currentNode) == Node.Type.DOUBLE) {
-            set(currentNode, Node.Type.GROUND);
+        else if (endNode == null) {
+            endNodeType = "g or d";
+        }
+        else if (get(endNode) == Node.Type.END) {
+            endNodeType = "g";
         }
         else {
-            set(currentNode, Node.Type.BLOCKED);
-        }
-        
-        pathHistory.add(newNode);
-        pathHistoryTypes.add(get(newNode));
-
-        if (pathHistoryRedo.size() > 0) {
-            if (pathHistoryRedo.peek().same(newNode)) {
-                pathHistoryRedo.pop();
-            }
-            else {
-                // new history is made, clear last record of redos
-                pathHistoryRedo.clear();
-            }
-        }
-        
-        if ((get(newNode) == Node.Type.END)) {
-            complete = true;
+            endNodeType = "d";
         }
 
-        currentNode = newNode;
+        System.out.printf("types: s + %dd + %dg + %dw (end=%s)\n",
+                            amountDoubles, amountGround, amountWalls, endNodeType);
+        // }
+        System.out.println("pathLength: " + pathLength);
+        System.out.println("pathLengthMax: " + pathLengthMax);
+        System.out.println();
     }
 
-    public void set(Node node, Node.Type type) {
+    private static int convertToValidDoubleAmount(int possiblyInvalid) {
+        if (even(amountNodesAll) && possiblyInvalid == amountDoublesMax - 1 && !endCanBeDouble) {
+            possiblyInvalid--;
+        }
+        return possiblyInvalid;
+    }
+
+    // returns true if accepted, otherwise false
+    public static boolean setEndMustBeDouble(boolean v) {
+        
+        if (endCanBeDouble && amountDoubles > 0) {
+            endMustBeDouble = v;
+            return true;
+        }
+        
+        return false;
+    }
+
+    public static void setEndCanBeDouble(boolean v) {
+
+        endCanBeDouble = v;
+        endMustBeDouble = false;
+        
+        // may have resulted in one less double due to change of `endCanBeDouble`
+        amountDoubles = convertToValidDoubleAmount(amountDoubles);
+
+        update();
+    }
+
+    public static int setAmountDoubles(int v) {
+
+        v = Math.max(0, Math.min(v, amountDoublesMax));
+        amountDoubles = convertToValidDoubleAmount(v);
+
+        update();
+
+        return amountDoubles;
+    }
+
+    public static void setAmountGround(int v) {
+        amountGround = Math.max(0, Math.min(v, amountGroundMax));
+        update();
+    }
+
+    private static void update() {
+
+        amountNodesAll = width * height;
+
+        if (amountNodesAll == 1) {
+            amountGroundMax = 0;
+            amountDoublesMax = 0;
+        }
+        else if (odd(amountNodesAll)) {
+            
+            if (endCanBeDouble) {
+                amountDoublesMax = amountNodesAll - 1;
+            }
+            else {
+                amountDoublesMax = amountNodesAll - 3;
+            }
+        }
+        else {
+            amountDoublesMax = amountNodesAll - 2;
+        }
+
+        amountDoubles = Math.min(amountDoubles, amountDoublesMax);
+
+        // NOTE: amountGround is limited by amountDoubles
+        amountGroundMax = amountNodesAll - 1 - amountDoubles;
+        amountGround = Math.min(amountGround, amountGroundMax);
+
+        amountWalls = amountNodesAll - 1 - amountDoubles - amountGround;
+
+        pathLength = 1 + 2 * amountDoubles + amountGround;
+        pathLengthMax = amountNodesAll + amountDoublesMax;
+        
+        if (amountDoubles == 0) {
+            amountGroundMin = 0;
+        }
+        else if (even(amountDoubles)) {
+            amountGroundMin = 1;
+        }
+        else if (endCanBeDouble) {
+            amountGroundMin = 1;
+        }
+        else {
+            amountGroundMin = 2;
+        }
+    }
+
+    public static void setSize(int w, int h) {
+        width = w;
+        height = h;
+        update();
+    }
+
+    public static void setWidth(int w) {
+        setSize(w, height);
+    }
+
+    public static void setHeight(int h) {
+        setSize(width, h);
+    }
+
+    public static int getWidth() {
+        return width;
+    }
+
+    public static int getHeight() {
+        return height;
+    }
+
+    // returns true if valid move, false if invalid move
+    public static boolean userMove(KeyHandler.ActionKey action) {
+
+        int[] change = action.getMovement();
+        Node newNode = new Node(currentNode.x + change[0], currentNode.y + change[1]);
+
+        if (nodeWithinBounds(newNode) && nodeTypeWalkable(newNode)) {
+            
+            if (get(currentNode) == Node.Type.DOUBLE) {
+                set(currentNode, Node.Type.TOUCHED);
+            }
+            else if (get(currentNode) == Node.Type.END_DOUBLE) {
+                set(currentNode, Node.Type.END);
+            }
+            else {
+                set(currentNode, Node.Type.BLOCKED);
+            }
+            
+            pathHistory.add(newNode);
+    
+            if (pathHistoryRedo.size() > 0) {
+                if (pathHistoryRedo.peek().equals(newNode)) {
+                    pathHistoryRedo.pop();
+                }
+                else {
+                    // new history is made, clear last record of redos
+                    pathHistoryRedo.clear();
+                }
+            }
+            
+            if (newNode.equals(endNode) && get(newNode) == Node.Type.END) {
+                complete = true;
+            }
+    
+            currentNode = newNode;
+            return true;
+        }
+
+        return false;
+    }
+
+    public static void set(Node node, Node.Type type) {
         maze[node.y][node.x] = type;
     }
     
-    public void set(int x, int y, Node.Type type) {
+    public static void set(int x, int y, Node.Type type) {
         maze[y][x] = type;
     }
 
-    public Node.Type get(Node node) {
+    public static Node.Type get(Node node) {
         return maze[node.y][node.x];
     }
 
-    public Node.Type get(int x, int y) {
+    public static Node.Type get(int x, int y) {
         return maze[y][x];
     }
 
-    // TEMP
-    public boolean pointOnGrid(int x, int y) {
-        return x >= 0 && y >= 0 && x < width && y < height;
+    public static boolean nodeWithinBounds(Node node) {
+        return node.x >= 0 && node.x < width && node.y >= 0 && node.y < height;
     }
 
-    public void reset() {
+    public static void reset() {
         
+        currentNode = startNode;
+
         pathHistory.clear();
-        pathHistoryTypes.clear();
         pathHistoryRedo.clear();
         
         pathHistory.add(startNode);
-        pathHistoryTypes.add(get(startNode));
 
         complete = false;
 
@@ -164,258 +306,415 @@ public class MazeGen {
 
         // account for nodes that were just set to ground
         // even though they should be double
-        for (Node n : doubles) {
+        for (Node n : doubleNodes) {
             set(n, Node.Type.DOUBLE);
         }
-    }
 
-    public void nodeReset(Node node) {
-
-        if (node.same(startNode)) {
-            set(node, Node.Type.START);
+        if (doubleNodes.contains(endNode)) {
+            set(endNode, Node.Type.END_DOUBLE);
         }
-
-        else if (get(node) == Node.Type.BLOCKED) {
-            set(node, Node.Type.GROUND);
-        }
-
         else {
-
-            for (Node n : doubles) {
-                if (n.same(node)) {
-                    set(node, Node.Type.DOUBLE);
-                    break;
-                }
-            }
+            set(endNode, Node.Type.END);
         }
+
     }
 
-    // returns previous node's type
-    public Node.Type step(int direction){
+    // returns ActionKey in which grid direction the step occured
+    public static KeyHandler.ActionKey step(int direction){
         
         if (direction == -1) {
             
             if (pathHistory.size() > 1) {
-                nodeReset(currentNode);
                 
-                Node lastNode = pathHistory.pop();      // same as current
-                pathHistoryTypes.pop();
-                
+                Node lastNode = pathHistory.pop();      // pops currentNode
                 pathHistoryRedo.add(lastNode);
                 
                 currentNode = pathHistory.peek();
-                Node.Type typeBefore = pathHistoryTypes.peek();
+
+                // adjust lastNode
+                if (get(lastNode) == Node.Type.TOUCHED) {
+
+                    // don't set to double since it was
+                    // just about to be set to GROUND when left
+                    if (!pathHistory.contains(lastNode)) {
+                        if (lastNode.equals(endNode)) {
+                            set(lastNode, Node.Type.END_DOUBLE);
+                        }
+                        else {
+                            set(lastNode, Node.Type.DOUBLE);
+                        }
+                    }
+                }
+
+                else {
+                    set(lastNode, Node.Type.GROUND);
+                }
+
+                // adjust currentNode
+                if (currentNode.equals(startNode)) {
+                    set(currentNode, Node.Type.START);
+                }
+                else if (doubleNodes.contains(currentNode)) {
+                    set(currentNode, Node.Type.TOUCHED);
+                }
+                else {
+                    set(currentNode, Node.Type.GROUND);
+                }
+
                 
-                return typeBefore;
+                return KeyHandler.ActionKey.getActionFromMovement(lastNode, currentNode);
             }
         }
         else {
             if (pathHistoryRedo.size() > 0) {
-            
-                Node oldNode = currentNode;
                 
+                Node lastNode = currentNode;
                 Node newNode = pathHistoryRedo.peek();      // NOTE: doesn't pop, since that is done in userMove()
-                userMove(newNode.x-currentNode.x, newNode.y-currentNode.y);
+
+                KeyHandler.ActionKey action = KeyHandler.ActionKey.getActionFromMovement(lastNode, newNode);
+                userMove(action);
                 
-                return get(oldNode);
+                return action;
             }
         }
         
         return null;
     }
 
-    public void generate() {
+    private static boolean walkableType(Node node) {
+        // walkable meaning either null (unwalked) or TOUCHED (after stepped on double)
+        // (not END since end is not determined yet)
+        return get(node) == null || get(node) == Node.Type.TOUCHED;
+    }
 
-        complete = false;
+    // returns list of neighbors of `node` in a random order
+    private static ArrayList<Node> getWalkableNeighborsTo(Node node) {
 
-        int count = 0;
+        // NOTE: one of the neighbors will be the `node` itself if it is a double,
+        // causing a step back to the last node
 
-        do {
+        ArrayList<Node> neighbors = new ArrayList<>(4);
 
-            // reset maze
-            maze = new Node.Type[height][width];
-            creationPath.clear();
-            doubles.clear();
+        // up
+        Node newNode = new Node(node.x, node.y - 1);
+        if (newNode.y >= 0 && walkableType(newNode)) neighbors.add(newNode);
 
-            pathHistory.clear();
-            pathHistoryTypes.clear();
-            pathHistoryRedo.clear();
+        // down
+        newNode = new Node(node.x, node.y + 1);
+        if (newNode.y < height && walkableType(newNode)) neighbors.add(newNode);
 
-            // set random start
-            int startX = rand.nextInt(width);
-            int startY = rand.nextInt(height);
-            startNode = new Node(startX, startY);
+        // left
+        newNode = new Node(node.x - 1, node.y);
+        if (newNode.x >= 0 && walkableType(newNode)) neighbors.add(newNode);
+        
+        // right
+        newNode = new Node(node.x + 1, node.y);
+        if (newNode.x < width && walkableType(newNode)) neighbors.add(newNode);
+        
+        /*
+         * The shuffle randomizes the maze generation.
+         * All neighbors will be visited until a path is found.
+         * If no maze is found, all permutations of possible paths
+         * will be traversed (theoretically, since a maze is always found).
+         */
+        Collections.shuffle(neighbors, rand);
 
-            // set start node and add to path
-            set(startNode, Node.Type.START);
-            creationPath.add(startNode);
-            pathHistory.add(startNode);
-            pathHistoryTypes.add(get(startNode));
+        return neighbors;
+    }
+
+    private static boolean odd(int v) {
+        return v % 2 != 0;
+    }
+
+    private static boolean even(int v) {
+        return v % 2 == 0;
+    }
+
+    private static boolean validStartNode() {
+        // NOTE: xor (meaning: both must be even or both must be odd)
+        return nodeWithinBounds(startNode) && !(odd(startNode.x) ^ odd(startNode.y));
+    }
+
+    private static void setRandomStartNode() {
+
+        startNode = new Node(rand.nextInt(width), rand.nextInt(height));
+
+        /*
+         * If pathLength is the same as max length with all doubles,
+         * and both dimensions are odd,
+         * and exactly one of x and y of startNode are even:
+         * 
+         * the path will always be one node too short.
+         * Therefore, a new startNode must be determined.
+         */
+
+        Node firstStartNode = startNode;
+        
+        if ((width == 1 || height == 1) && (startNode.x + 1 < pathLength || startNode.y + 1 < pathLength)) {
             
-            currentNode = startNode;
-
-            while (getNextNode()) {
-                Node.Type nextType = getNextNodeType();
-                
-                set(currentNode, nextType);
-                
-                if (nextType == Node.Type.WALL) {
-                    // take a step back (note that currentNode is never added to path here)
-                    currentNode = creationPath.getLast();
+            if (rand.nextInt(2) == 0) {
+                // set start at beginning
+                startNode = new Node(0, 0);
+            }
+            else {
+                // set start at end
+                if (width == 1) {
+                    startNode = new Node(0, height-1);
                 }
                 else {
-                    // only add currentNode if it is walkable
-                    creationPath.add(currentNode);
+                    startNode = new Node(width-1, 0);
                 }
             }
+        }
 
-            // change default from null to Node.Type.WALL
-            for (int y=0; y<height; y++) {
-                for (int x=0; x<width; x++) {
-                    if (get(x, y) == null) {
-                        set(x, y, Node.Type.WALL);
+        else if (pathLength == pathLengthMax && odd(width) && odd(height)) {
+
+            // try move up, down, left, right once until startNode is valid
+
+            if (!validStartNode()) {
+                startNode = new Node(firstStartNode.x, firstStartNode.y - 1);
+                
+                if (!validStartNode()) {
+                    startNode = new Node(firstStartNode.x, firstStartNode.y + 1);
+                    
+                    if (!validStartNode()) {
+                        startNode = new Node(firstStartNode.x - 1, firstStartNode.y);
+                        
+                        if (!validStartNode()) {
+                            startNode = new Node(firstStartNode.x + 1, firstStartNode.y);
+                        }
                     }
                 }
             }
-
-            // prevent endNode from ending up right next to startNode
-            if (currentNode.nextTo(startNode) && creationPath.size() > 2) {
-                currentNode = creationPath.pop();
-            }
-            
-            count++;
         }
-        
-        // prevent too short mazes, and prevent startNode from being endNode
-        while (creationPath.size() < minPathLength || currentNode.same(startNode));
 
-        endNode = currentNode;
+        set(startNode, Node.Type.START);
+    }
+
+    private static void setNodeTypes() {
+        
+        // change all nodes that are of type null to wall
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                if (get(x, y) == null) {
+                    set(x, y, Node.Type.WALL);
+                }
+            }
+        }
+
+        for (Node node : creationPath) {
+            set(node, Node.Type.GROUND);
+        }
+
+        for (Node node : doubleNodes) {
+            set(node, Node.Type.DOUBLE);
+        }
+
+        if (doubleNodes.contains(endNode)) {
+            set(endNode, Node.Type.END_DOUBLE);
+        }
+        else {
+            set(endNode, Node.Type.END);
+        }
+
+        set(startNode, Node.Type.START);    // was just replaced during creationPath-loop
+    }
+
+    // setup generation process and begin generating
+    public static void generate() {
+
+        System.out.println("generating:");
+        printInfo();
+
+        // clear all
+        maze = new Node.Type[height][width];
+        creationPath.clear();
+        doubleNodes.clear();
+        pathHistory.clear();
+
+        invalidPathsCount = 0;
+        complete = false;
+
+        setRandomStartNode();
+
+        // add to record
+        creationPath.add(startNode);
+        pathHistory.add(startNode);
+        
+        // start recursive generation
+        generateHelper(startNode);
+
+        System.out.println("invalid paths: " + invalidPathsCount);
+        
+        // get endNode from creationPath
+        endNode = creationPath.getLast();
+
+        setNodeTypes();
+
         currentNode = startNode;
-
-        maze[startNode.y][startNode.x] = Node.Type.START;
-        maze[endNode.y][endNode.x] = Node.Type.END;
-
-        System.out.println("mazes generated: " + count);
     }
 
-    // TODO: prevent creating double in corner
-    private Node.Type getNextNodeType() {
-        
-        if (creationPath.size() > 1) {
-            // this check prevents creating walls all around the first node
+    private static boolean validCreationPath() {
 
-            double chance = rand.nextDouble();
-            
-            if (ChanceNextNode.DOUBLE.evaluate(chance)) {
-                doubles.add(currentNode);
-                return Node.Type.DOUBLE;
-            }
+        // too few double nodes
+        if (doubleNodes.size() < amountDoubles) {
+            // TODO: place this check in setNodeType() and
+            // use return value as signal to (dis)continue branch
+            return false;
+        }
 
-            else if (ChanceNextNode.WALL.evaluate(chance)) {
-                return Node.Type.WALL;
+        // check if endNode can/must be a double
+        if (doubleNodes.contains(creationPath.getLast())) {
+            if (!endCanBeDouble) {
+                return false;
             }
         }
-            
-        return Node.Type.GROUND;
-    }
-
-    private boolean getNextNode() {
-
-        boolean tryDxFirst = getRandomDirection() == 1;
-
-        if (tryDxFirst) {
-            if (!tryMoveDx()) {
-                return tryMoveDy();
-            }
-            return true;
+        else if (endMustBeDouble) {
+            return false;
         }
 
-        else {
-            if (!tryMoveDy()) {
-                return tryMoveDx();
-            }
-            return true;
-        }
-    }
-
-    private int getRandomDirection() {
-        return DIR[rand.nextInt(2)];
-    }
-
-    private boolean tryMoveDx() {
-        
-        int dx;
-        double chance = rand.nextDouble();
-
-        if (ChanceNextNode.SAME_DIR.evaluate(chance)) {
-            dx = currentDirX;
-        }
-        else {
-            dx = currentDirX * -1;
-            dx = currentDirX;
-        }
-        
-        if (!validMove(dx, 0)) {
-            dx *= -1;
-            currentDirX = dx;
-            if (!validMove(dx, 0)) {
+        // check for uncleared doubles
+        for (Node node : doubleNodes) {
+            if (get(node) == Node.Type.TOUCHED) {
                 return false;
             }
         }
 
-        currentNode = new Node(currentNode.x + dx, currentNode.y);
-        return true;
+        return true;    // signals to stop traversing
     }
 
-    private boolean tryMoveDy() {
+    // changes node type from ground to double or double to ground (if possible)
+    private static boolean changeNodeType(Node node) {
         
-        int dy;
-        double chance = rand.nextDouble();
-
-        if (ChanceNextNode.SAME_DIR.evaluate(chance)) {
-            dy = currentDirY;
-        }
-        else {
-            dy = currentDirY * -1;
-            currentDirY = dy;
+        if (!tryChangeNodeType) {
+            return false;
         }
 
-        if (!validMove(0, dy)) {
-            dy *= -1;
-            currentDirY = dy;
-            if (!validMove(0, dy)) {
+        int doublesLeft = amountDoubles - doubleNodes.size();
+
+        if (get(node) == Node.Type.TOUCHED) {
+            // change from double to ground
+            set(node, Node.Type.GROUND);
+            doubleNodes.remove(node);
+        }
+        else if (get(node) == Node.Type.GROUND) {
+            
+            if (doubleNodes.contains(node)) {
+                // don't change from ground to double (is already double)
                 return false;
             }
+
+            if (triedDouble.contains(node)) {
+                triedDouble.remove(node);
+                // don't change from ground to double (already tried)
+                return false;
+            }
+
+            if (doublesLeft == 0) {
+                // don't change from ground to double (too many)
+                return false;
+            }
+
+            // change from ground to double
+            set(node, Node.Type.TOUCHED);
+            doubleNodes.add(node);
+            triedDouble.add(node);
         }
-        
-        currentNode = new Node(currentNode.x, currentNode.y + dy);
+
         return true;
     }
 
-    public boolean nodeTypeWalkable(Node node) {
+    // sets the first node type of a node
+    private static void setNodeType(Node node) {
+
+        int doublesLeft = amountDoubles - doubleNodes.size();
+
+        if (get(node) == Node.Type.TOUCHED) {
+            set(node, Node.Type.GROUND);
+            return;
+        }
+
+        else if (doublesLeft > 0) {
+
+            int nodesLeft = pathLength - 2 - creationPath.size();
+
+            int endCountsAs = 1;
+            if (endCanBeDouble) {
+                endCountsAs = 0;
+            }
+            
+            if ((nodesLeft - endCountsAs == doublesLeft)
+                || doublesArePlacedFirst
+                || rand.nextFloat() <= 0.5) {
+
+                // force a double, place at beginning, or 50% chance of being double
+                set(node, Node.Type.TOUCHED);
+                doubleNodes.add(node);
+                triedDouble.add(node);
+                return;
+            }
+        }
+
+        set(node, Node.Type.GROUND);
+    }
+
+    // generate with breadth-first-search by checking neighbors in a random order
+    private static boolean generateHelper(Node current) {
+
+        if (creationPath.size() == pathLength) {
+            return validCreationPath();
+        }
+
+        boolean next = true;
+        Node neighbor = null;
+
+        int i = 0;
+        ArrayList<Node> neighbors = getWalkableNeighborsTo(current);
+
+        while (i < neighbors.size()) {
+            
+            if (next) {
+                neighbor = neighbors.get(i);
+                setNodeType(neighbor);
+                creationPath.add(neighbor);
+            }
+
+            if (generateHelper(neighbor)) {
+                // test if valid
+                return true;
+            }
+            else if (changeNodeType(neighbor)) {
+                // try to change node type
+                next = false;
+                continue;
+            }
+
+            // else: invalid path, even after (potentially) changing node type
+
+            Node node = creationPath.removeLast();
+
+            if (creationPath.contains(node)) {
+                set(neighbor, Node.Type.TOUCHED);
+            }
+            else {
+                set(neighbor, null);
+                doubleNodes.remove(neighbor);
+            }
+
+            next = true;
+            i++;
+        }
+        
+        // All unset neighbors have been traversed but still no appropriate maze is found.
+        // Therefore, increase counter and return false to continue searching.
+
+        invalidPathsCount++;
+
+        return false;
+    }
+
+    public static boolean nodeTypeWalkable(Node node) {
         return get(node) != Node.Type.WALL && get(node) != Node.Type.BLOCKED;
-    }
-
-    private boolean validMove(int dx, int dy) {
-        
-        // within horizontal width
-        int newX = currentNode.x + dx;
-        if (newX < 0 || newX >= width) {
-            return false;
-        }
-        
-        // within vertical width
-        int newY = currentNode.y + dy;
-        if (newY < 0 || newY >= height) {
-            return false;
-        }
-        
-        // node already set
-        if (get(newX, newY) != null) {
-            return false;
-        }
-
-        return true;
     }
 
 }
