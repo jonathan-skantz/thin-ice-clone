@@ -1,14 +1,18 @@
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.GridBagConstraints;
+import java.awt.FlowLayout;
 import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
 import java.awt.Insets;
+
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JColorChooser;
@@ -17,10 +21,15 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
+import javax.swing.SwingConstants;
+import javax.swing.border.Border;
 
 public class UI {
  
     private static boolean mazeConfigIsNew = false;
+
+    private static final int SLIDER_WIDTH = 100;
+    private static final int SLIDER_HEIGHT = 250;
 
     // save as fields in order to modify when setting size
     private static JLabel pathLengthLabel;
@@ -33,7 +42,7 @@ public class UI {
     private static JSlider amountDoublesSlider;
     private static JLabel amountDoublesLabel;
 
-    private static JButton endMustBeDouble;
+    private static JCheckBox endMustBeDoubleCheckbox;
 
     // constraints
     private static Insets insets = new Insets(5, 5, 5, 5);
@@ -179,17 +188,48 @@ public class UI {
 
         JPanel panel = new JPanel(new GridBagLayout());
         
-        setupMazeConfigEndCanBeDouble(panel);
-        setupMazeConfigEndMustBeDouble(panel);
-        setupMazeConfigDoublesArePlacedFirst(panel);
-        setupMazeConfigTryChangeNodeType(panel);
-        setupMazeConfigAmountDoubles(panel);
-        setupMazeConfigAmountGround(panel);
-        setupMazeConfigPathLength(panel);
-        setupMazeConfigSize(panel);
-        setupMazeConfigHintMax(panel);
-        setupMazeConfigHintType(panel);
+        // create surrounding border
+        Border borderColor = BorderFactory.createLineBorder(new Color(150, 150, 150), 1, true);
+        Border borderPad = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+        Border border = BorderFactory.createCompoundBorder(borderPad, borderColor);
         
+        JPanel leftCol = new JPanel();
+        JPanel rightCol = new JPanel();
+
+        leftCol.setLayout(new BoxLayout(leftCol, BoxLayout.Y_AXIS));
+        rightCol.setLayout(new BoxLayout(rightCol, BoxLayout.Y_AXIS));
+
+        // add node types subpanel
+        JPanel panelNodeTypes = setupMazeConfigNodeTypes();
+        panelNodeTypes.setBorder(BorderFactory.createTitledBorder(border, "Node types"));
+        leftCol.add(panelNodeTypes);
+        
+        // add path length
+        pathLengthLabel = new JLabel("Resulting path length: " + MazeGen.pathLength);
+        JPanel container = new JPanel();
+        container.add(pathLengthLabel);
+        leftCol.add(container);
+        
+        // add sizes subpanel
+        JPanel panelSizes = setupMazeConfigSizes();
+        panelSizes.setBorder(BorderFactory.createTitledBorder(border, "Sizes"));
+        rightCol.add(panelSizes);
+        
+        // add misc settings
+        JPanel panelMisc = setupMazeMisc();
+        panelMisc.setBorder(BorderFactory.createTitledBorder(border, "Miscellaneous"));
+        int w = panelSizes.getPreferredSize().width;
+        int h = panelMisc.getPreferredSize().height;
+        panelMisc.setPreferredSize(new Dimension(w, h));
+        rightCol.add(panelMisc);
+        
+        // finally, add left and right columns
+        GridBagConstraints c = new GridBagConstraints();
+        c.anchor = GridBagConstraints.NORTH;
+
+        panel.add(leftCol, c);
+        panel.add(rightCol, c);
+
         // add config button to bottom right
         JButton btn = getConfigPopupButton("Maze config", panel);
         int pad = 10;
@@ -198,263 +238,281 @@ public class UI {
         btn.setLocation(x, y);
     }
 
+    private static JPanel setupMazeConfigNodeTypes() {
+
+        JPanel subPanel = new JPanel(new GridBagLayout());
+
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(5, 5, 5, 5);
+        
+        // --- row 1: sliders ---
+        amountGroundSlider = getNewSlider(MazeGen.amountGroundMax, MazeGen.amountGround);
+        amountDoublesSlider = getNewSlider(MazeGen.amountDoublesMax, MazeGen.amountDoubles);
+
+        c.gridy = 0;
+        subPanel.add(amountGroundSlider, c);
+        subPanel.add(amountDoublesSlider, c);
+        
+        // --- row 2: labels ---
+        amountGroundLabel = new JLabel("Ground: " + amountGroundSlider.getValue());
+        amountDoublesLabel = new JLabel("Doubles: " + amountDoublesSlider.getValue());
+        
+        c.gridy = 1;
+        subPanel.add(amountGroundLabel, c);
+        subPanel.add(amountDoublesLabel, c);
+
+        // add callbacks
+        amountGroundSlider.addChangeListener(e -> {
+            int newVal = amountGroundSlider.getValue();
+            amountGroundLabel.setText("Ground: " + newVal);
+            MazeGen.setAmountGround(newVal);
+            potentiallyNewPathLength();
+        });
+
+        amountDoublesSlider.addChangeListener(e -> {
+            updateAmountDoubles(amountDoublesSlider.getValue());
+        });
+
+        // --- row 3: checkboxes ---
+        
+        JPanel row3 = new JPanel();
+        row3.setLayout(new BoxLayout(row3, BoxLayout.Y_AXIS));
+
+        JCheckBox endCanBeDoubleCheckbox = new JCheckBox("End can be double");
+        endCanBeDoubleCheckbox.setSelected(MazeGen.endCanBeDouble);
+        JPanel endCanAndToolTip = getPanelWithToolTipAndCheckBox(endCanBeDoubleCheckbox,
+                                "Requires at least one double node to have effect");
+
+        endMustBeDoubleCheckbox = new JCheckBox("End must be double");
+        endMustBeDoubleCheckbox.setSelected(MazeGen.endMustBeDouble);
+        JPanel endMustAndToolTip = getPanelWithToolTipAndCheckBox(endMustBeDoubleCheckbox,
+                            "Requires \"End can be double\" and at least one double node");
+
+        updateEnabledEndMustBeDoubleCheckbox();
+
+        row3.add(Box.createVerticalStrut(25));
+        row3.add(endCanAndToolTip);
+        row3.add(Box.createVerticalStrut(5));
+        row3.add(endMustAndToolTip);
+        row3.add(Box.createVerticalStrut(5));
+
+        c.gridy = 2;
+        c.gridwidth = 2;
+        subPanel.add(row3, c);
+
+        // add callbacks
+        endCanBeDoubleCheckbox.addActionListener(e -> {
+            MazeGen.setEndCanBeDouble(endCanBeDoubleCheckbox.isSelected());
+            updateAmountDoubles(MazeGen.amountDoubles);
+        });
+        
+        endMustBeDoubleCheckbox.addActionListener(e -> {
+            MazeGen.setEndMustBeDouble(endMustBeDoubleCheckbox.isSelected());
+            if (MazeGen.endMustBeDouble && !MazeGen.doubleNodes.contains(MazeGen.endNode)) {
+                mazeConfigIsNew = true;
+            }
+        });
+
+        return subPanel;
+    }
+
+    private static void updateEnabledEndMustBeDoubleCheckbox() {
+        if (MazeGen.endCanBeDouble && MazeGen.amountDoubles > 0) {
+            endMustBeDoubleCheckbox.setEnabled(true);
+        }
+        else {
+            endMustBeDoubleCheckbox.setEnabled(false);
+        }
+        endMustBeDoubleCheckbox.setSelected(MazeGen.endMustBeDouble);
+    }
+
+    private static JPanel setupMazeConfigSizes() {
+
+        JPanel subPanel = new JPanel(new GridBagLayout());
+
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(5, 5, 5, 5);
+
+        // --- row 1: sliders ---
+        JSlider widthSlider = getNewSlider(20, MazeGen.getWidth());
+        JSlider heightSlider = getNewSlider(20, MazeGen.getHeight());
+        hintMaxSlider = getNewSlider(MazeGen.pathLength, Config.hintMax);
+
+        c.gridy = 0;
+        subPanel.add(widthSlider, c);
+        subPanel.add(heightSlider, c);
+        subPanel.add(hintMaxSlider, c);
+
+        // --- row 2: labels ---
+        JLabel widthLabel = new JLabel("Width: " + widthSlider.getValue());
+        JLabel heightLabel = new JLabel("Height: " + heightSlider.getValue());
+        JLabel hintLabel = new JLabel("Hint length: " + hintMaxSlider.getValue());
+        
+        c.gridy = 1;
+        subPanel.add(widthLabel, c);
+        subPanel.add(heightLabel, c);
+        subPanel.add(hintLabel, c);
+
+        // add callbacks
+        widthSlider.addChangeListener(e -> {
+            int val = widthSlider.getValue();
+            widthLabel.setText("Width: " + val);
+            MazeGen.setWidth(val);
+            limitAfterNewSize();
+        });
+        
+        heightSlider.addChangeListener(e -> {
+            int val = heightSlider.getValue();
+            heightLabel.setText("Height: " + val);
+            MazeGen.setHeight(val);
+            limitAfterNewSize();
+        });
+
+        return subPanel;
+    }
+
+    private static void setHintTypeText(JButton btn) {
+        if (Config.hintTypeLongest) {
+            btn.setText("Hint path type: Longest path");
+        }
+        else {
+            btn.setText("Hint path type: Shortest path");
+        }
+    }
+
+    private static JPanel setupMazeMisc() {
+
+        JPanel subPanel = new JPanel(new GridBagLayout());
+
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(5, 5, 5, 5);
+        
+        // --- btn 1: hint type ---
+        JButton btnHintType = new JButton();
+
+        setHintTypeText(btnHintType);
+        c.gridy = 0;
+        subPanel.add(btnHintType, c);
+        
+        // add callback
+        btnHintType.addActionListener(e -> {
+            Config.hintTypeLongest = !Config.hintTypeLongest;
+            setHintTypeText(btnHintType);
+        });
+
+        // --- checkbox 1: doubles are placed first ---
+        JPanel checkboxes = new JPanel();
+        checkboxes.setLayout(new BoxLayout(checkboxes, BoxLayout.Y_AXIS));
+
+        JCheckBox cbDoublesArePlacedFirst = new JCheckBox("Doubles are placed first (faster)");
+        cbDoublesArePlacedFirst.setSelected(MazeGen.doublesArePlacedFirst);
+        JPanel doublesAndToolTip = getPanelWithToolTipAndCheckBox(cbDoublesArePlacedFirst,
+                                    "Place doubles one after another right after start node");
+                                    
+        // --- checkbox 2: change types during backtrack
+        JCheckBox cbChangeTypes = new JCheckBox("Change types during backtrack");
+        cbChangeTypes.setSelected(MazeGen.tryChangeNodeType);
+        JPanel changeTypesAndToolTip = getPanelWithToolTipAndCheckBox(cbChangeTypes,
+        "Change type from double to ground or ground to double during generation, instead of trying another path");
+
+        // add callbacks
+        cbDoublesArePlacedFirst.addActionListener(e -> {
+            MazeGen.doublesArePlacedFirst = cbDoublesArePlacedFirst.isSelected();
+        });
+        cbChangeTypes.addActionListener(e -> {
+            MazeGen.tryChangeNodeType = cbChangeTypes.isSelected();
+        });
+        
+        // add checkboxes
+        checkboxes.add(doublesAndToolTip);
+        checkboxes.add(Box.createVerticalStrut(5));
+        checkboxes.add(changeTypesAndToolTip);
+        checkboxes.add(Box.createVerticalStrut(5));
+
+        c.gridy = 1;
+        subPanel.add(checkboxes, c);
+
+        return subPanel;
+    }
+
     private static void updateAmountDoubles(int v) {
 
         int lastVal = MazeGen.amountDoubles;
         int convertedVal = MazeGen.setAmountDoubles(v);
 
         if (convertedVal != v && v > lastVal) {
-            // increment instead of decrementing
-            convertedVal = MazeGen.setAmountDoubles(v+1);
+            convertedVal = MazeGen.setAmountDoubles(v+1);   // increment instead of decrementing
         }
         
-        amountDoublesSlider.setValue(convertedVal);   // potentially decreased
-        amountDoublesLabel.setText("Amount of double nodes: " + convertedVal);
-    
-        amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
-        amountGroundLabel.setText("Amount of ground nodes: " + MazeGen.amountGround);
+        if (v != lastVal) {
+            amountDoublesSlider.setValue(convertedVal);   // potentially decreased
+            amountDoublesLabel.setText("Doubles: " + convertedVal);
+            
+            amountGroundSlider.setMinimum(MazeGen.amountGroundMin);
+            amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
+            amountGroundLabel.setText("Ground: " + MazeGen.amountGround);
+            
+            int slideDiff = amountGroundSlider.getMaximum() - amountGroundSlider.getMinimum();
+            amountGroundSlider.setEnabled(slideDiff == 0 ? false : true);
         
-        // limit amountGround
-        amountGroundSlider.setMinimum(MazeGen.amountGroundMin);
+            potentiallyNewPathLength();
+        }
 
-        int slideDiff = amountGroundSlider.getMaximum() - amountGroundSlider.getMinimum();
-        amountGroundSlider.setEnabled(slideDiff == 0 ? false : true);
-    
-        pathLengthLabel.setText("Path length: " + MazeGen.pathLength);
-
-        limitHintMax();
-        
-        mazeConfigIsNew = true;
-
-        endMustBeDouble.setEnabled(MazeGen.endCanBeDouble && MazeGen.amountDoubles > 0);
-        endMustBeDouble.setText("End must be double: " + MazeGen.endMustBeDouble);
+        updateEnabledEndMustBeDoubleCheckbox();
     }
 
-    private static void setupMazeConfigAmountDoubles(JPanel panel) {
-        
-        // label and slider for amount of doubles
-        amountDoublesLabel = new JLabel("Amount of double nodes: " + MazeGen.amountDoubles);
-        amountDoublesSlider = getNewSlider(MazeGen.amountDoublesMax, MazeGen.amountDoubles);
-
-        amountDoublesSlider.addChangeListener(e -> {
-            updateAmountDoubles(amountDoublesSlider.getValue());
-        });
-
-        panel.add(amountDoublesLabel, verticalGbc);
-        panel.add(amountDoublesSlider, verticalGbc);
-    }
-
-    private static void setupMazeConfigAmountGround(JPanel panel) {
-        
-        // label and slider for amount of ground
-        amountGroundLabel = new JLabel("Amount of ground nodes: " + MazeGen.amountGround);
-        amountGroundSlider = getNewSlider(MazeGen.amountGroundMax, MazeGen.amountGround);
-
-        amountGroundSlider.addChangeListener(e -> {
-            int newVal = amountGroundSlider.getValue();
-
-            amountGroundLabel.setText("Amount of ground nodes: " + newVal);
-            
-            MazeGen.setAmountGround(newVal);
-            
-            pathLengthLabel.setText("Path length: " + MazeGen.pathLength);
-            limitHintMax();
-            
-            mazeConfigIsNew = true;
-        });
-
-        panel.add(amountGroundLabel, verticalGbc);
-        panel.add(amountGroundSlider, verticalGbc);
-    }
-
-    private static void setupMazeConfigSize(JPanel panel) {
-        
-        // label and slider for width and height
-        JSlider sliderWidth = getNewSlider(20, MazeGen.getWidth());
-        JSlider sliderHeight = getNewSlider(20, MazeGen.getHeight());
-
-        JLabel labelWidth = new JLabel("Width: " + MazeGen.getWidth());
-        JLabel labelHeight = new JLabel("Height: " + MazeGen.getHeight());
-
-        sliderWidth.addChangeListener(e -> {
-            int val = sliderWidth.getValue();
-            labelWidth.setText("Width: " + val);
-            mazeConfigIsNew = true;
-            
-            MazeGen.setWidth(val);
-            System.out.println();
-            System.out.println("new width");
-            limitAfterNewSize();
-        });
-        
-        sliderHeight.addChangeListener(e -> {
-            int val = sliderHeight.getValue();
-            labelHeight.setText("Height: " + val);
-            mazeConfigIsNew = true;
-
-            MazeGen.setHeight(val);
-            limitAfterNewSize();
-        });
-
-        panel.add(labelWidth, verticalGbc);
-        panel.add(sliderWidth, verticalGbc);
-        
-        panel.add(labelHeight, verticalGbc);
-        panel.add(sliderHeight, verticalGbc);
-    }
-
-    private static void limitHintMax() {
+    private static void potentiallyNewPathLength() {
         
         if (MazeGen.amountNodesAll < Config.hintMax) {
             Config.setHintMax(MazeGen.amountNodesAll);
             hintMaxLabel.setText("Hint length: " + Config.hintMax);
         }
         hintMaxSlider.setMaximum(MazeGen.pathLength);
+        pathLengthLabel.setText("Resulting path length: " + MazeGen.pathLength);
+
+        mazeConfigIsNew = true;
     }
 
     private static void limitAfterNewSize() {
 
-        limitHintMax();
+        potentiallyNewPathLength();
 
         amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
-        amountGroundLabel.setText("Amount of ground nodes: " + MazeGen.amountGround);
+        amountGroundLabel.setText("Ground: " + MazeGen.amountGround);
         
         amountDoublesSlider.setMaximum(MazeGen.amountDoublesMax);
-        amountDoublesLabel.setText("Amount of double nodes: " + MazeGen.amountDoubles);
-    }
-
-    private static void setupMazeConfigPathLength(JPanel panel) {
-        
-        // slider for maze length
-        pathLengthLabel = new JLabel("Path length: " + MazeGen.pathLength);
-        pathLengthLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 50, 0));
-
-        panel.add(pathLengthLabel, verticalGbc);
-    }
-
-    private static void setupMazeConfigHintMax(JPanel panel) {
-
-        // slider for max hint size
-        hintMaxLabel = new JLabel("Hint length: " + Config.hintMax);
-        hintMaxSlider = getNewSlider(MazeGen.pathLength, Config.hintMax);
-        hintMaxSlider.addChangeListener(e -> {
-            int newVal = hintMaxSlider.getValue();
-            Config.setHintMax(newVal);
-            hintMaxLabel.setText("Hint length: " + Config.hintMax);
-
-            mazeConfigIsNew = true;
-        });
-        panel.add(hintMaxLabel, verticalGbc);
-        panel.add(hintMaxSlider, verticalGbc);
-    }
-
-    private static void setupMazeConfigHintType(JPanel panel) {
-        
-        // button for hint types
-        JButton btnHintType = new JButton();
-        if (Config.hintTypeLongest) {
-            btnHintType.setText("Hint path type: Longest path");
-        }
-        else {
-            btnHintType.setText("Hint path type: Shortest path");
-        }
-
-        JPanel container = new JPanel();
-        container.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-        container.add(btnHintType);
-
-        panel.add(container, verticalGbc);
-
-        // panel.add(btnHintType, verticalGbc);
-        btnHintType.addActionListener(e -> {
-            Config.hintTypeLongest = !Config.hintTypeLongest;
-
-            if (Config.hintTypeLongest) {
-                btnHintType.setText("Hint path type: Longest path");
-            }
-            else {
-                btnHintType.setText("Hint path type: Shortest path");
-            }
-        });
-    }
-
-    private static JButton getButton(JPanel panel) {
-        JButton btn = new JButton();
-        
-        JPanel container = new JPanel();
-        container.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
-        container.add(btn);
-
-        panel.add(container, verticalGbc);
-        
-        return btn;
-    }
-
-    private static void setupMazeConfigEndCanBeDouble(JPanel panel) {
-
-        JButton btn = getButton(panel);
-        btn.setText("End can be double: " + MazeGen.endCanBeDouble);
-
-        btn.addActionListener(e -> {
-            MazeGen.setEndCanBeDouble(!MazeGen.endCanBeDouble);
-            btn.setText("End can be double: " + MazeGen.endCanBeDouble);
-            mazeConfigIsNew = true;
-
-            updateAmountDoubles(MazeGen.amountDoubles);
-        });
-    }
-    
-    private static void setupMazeConfigEndMustBeDouble(JPanel panel) {
-
-        endMustBeDouble = getButton(panel);
-        endMustBeDouble.setText("End must be double: " + MazeGen.endMustBeDouble);
-        endMustBeDouble.setEnabled(MazeGen.endCanBeDouble && MazeGen.amountDoubles > 0);
-
-        endMustBeDouble.addActionListener(e -> {
-            if (MazeGen.setEndMustBeDouble(!MazeGen.endMustBeDouble)) {
-                endMustBeDouble.setText("End must be double: " + MazeGen.endMustBeDouble);
-                mazeConfigIsNew = true;
-            }
-        });
-    }
-    
-    private static void setupMazeConfigDoublesArePlacedFirst(JPanel panel) {
-        
-        JButton btn = getButton(panel);
-        btn.setText("Doubles are placed first (faster): " + MazeGen.doublesArePlacedFirst);
-    
-        btn.addActionListener(e -> {
-            MazeGen.doublesArePlacedFirst = !MazeGen.doublesArePlacedFirst;
-            btn.setText("Doubles are placed first (faster): " + MazeGen.doublesArePlacedFirst);
-            mazeConfigIsNew = true;
-        });
-    }
-
-    private static void setupMazeConfigTryChangeNodeType(JPanel panel) {
-        
-        JButton btn = getButton(panel);
-        btn.setText("Change types during backtrack: " + MazeGen.tryChangeNodeType);
-    
-        btn.addActionListener(e -> {
-            MazeGen.tryChangeNodeType = !MazeGen.tryChangeNodeType;
-            btn.setText("Change types during backtrack: " + MazeGen.tryChangeNodeType);
-            mazeConfigIsNew = true;
-        });
+        amountDoublesLabel.setText("Doubles: " + MazeGen.amountDoubles);
     }
 
     private static JSlider getNewSlider(int max, int currentVal) {
 
-        JSlider slider = new JSlider(JSlider.HORIZONTAL, 0, max, currentVal);
+        JSlider slider = new JSlider(JSlider.VERTICAL, 0, max, currentVal);
 
         slider.setMajorTickSpacing(3);
         slider.setMinorTickSpacing(1);
         slider.setSnapToTicks(true);       
         slider.setPaintTicks(true);
         slider.setPaintLabels(true);
-        slider.setPreferredSize(new Dimension(500, 100));
-        slider.setBorder(BorderFactory.createEmptyBorder(5, 5, 50, 5));
+        slider.setPreferredSize(new Dimension(SLIDER_WIDTH, SLIDER_HEIGHT));
 
         return slider;
+    }
+
+    private static JPanel getPanelWithToolTipAndCheckBox(JCheckBox cb, String tip) {
+
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+
+        JLabel toolTip = new JLabel("?");
+        toolTip.setPreferredSize(new Dimension(15, 15));
+        toolTip.setOpaque(true);
+        toolTip.setBackground(Color.YELLOW);
+        toolTip.setToolTipText(tip);
+        toolTip.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        panel.add(toolTip);
+        panel.add(cb);
+
+        return panel;
     }
 
     private static JButton getConfigPopupButton(String title, JPanel contentPane) {
@@ -479,7 +537,6 @@ public class UI {
                 public void windowClosed(WindowEvent e) {
                     Main.window.requestFocus();  // prevents focus back to the config btn and rather the game canvas
                     
-                    // TODO: this also checks when closing the key config popup (not desired)
                     if (mazeConfigIsNew) {
                         Main.generateNewMaze();
                         mazeConfigIsNew = false;
