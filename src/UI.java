@@ -2,16 +2,19 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
-
+import java.awt.event.ItemEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -20,6 +23,7 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JSlider;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
@@ -38,9 +42,12 @@ public class UI {
     private static JLabel hintMaxLabel;
 
     private static JSlider amountGroundSlider;
-    private static JLabel amountGroundLabel;
     private static JSlider amountDoublesSlider;
+    private static JSlider amountWallsSlider;
+    
+    private static JLabel amountGroundLabel;
     private static JLabel amountDoublesLabel;
+    private static JLabel amountWallsLabel;
 
     private static JCheckBox endMustBeDoubleCheckbox;
 
@@ -246,37 +253,114 @@ public class UI {
         c.insets = new Insets(5, 5, 5, 5);
         
         // --- row 1: sliders ---
-        amountGroundSlider = getNewSlider(MazeGen.amountGroundMax, MazeGen.amountGround);
-        amountDoublesSlider = getNewSlider(MazeGen.amountDoublesMax, MazeGen.amountDoubles);
+        amountGroundSlider = getNewSlider(MazeGen.amountGroundMin, MazeGen.amountGroundMax, MazeGen.amountGround);
+        amountDoublesSlider = getNewSlider(0, MazeGen.amountDoublesMax, MazeGen.amountDoubles);
+        amountWallsSlider = getNewSlider(0, MazeGen.amountWallsMax, MazeGen.amountWalls);
 
         c.gridy = 0;
         subPanel.add(amountGroundSlider, c);
         subPanel.add(amountDoublesSlider, c);
+        subPanel.add(amountWallsSlider, c);
         
         // --- row 2: labels ---
         amountGroundLabel = new JLabel("Ground: " + amountGroundSlider.getValue());
         amountDoublesLabel = new JLabel("Doubles: " + amountDoublesSlider.getValue());
+        amountWallsLabel = new JLabel("Walls: " + amountWallsSlider.getValue());
         
         c.gridy = 1;
         subPanel.add(amountGroundLabel, c);
         subPanel.add(amountDoublesLabel, c);
+        subPanel.add(amountWallsLabel, c);
 
         // add callbacks
         amountGroundSlider.addChangeListener(e -> {
-            int newVal = amountGroundSlider.getValue();
-            amountGroundLabel.setText("Ground: " + newVal);
-            MazeGen.setAmountGround(newVal);
-            potentiallyNewPathLength();
+            MazeGen.setAmountGround(amountGroundSlider.getValue());
+            updateNodeTypesSliders();
         });
 
         amountDoublesSlider.addChangeListener(e -> {
             updateAmountDoubles(amountDoublesSlider.getValue());
         });
 
-        // --- row 3: checkboxes ---
+        amountWallsSlider.addChangeListener(e -> {
+            MazeGen.setAmountWalls(amountWallsSlider.getValue());
+            updateNodeTypesSliders();
+        });
+
+        // --- row 3: priority radio buttons ---
+        JPanel row3 = setupMazeConfigRadioButtons();
+        row3.setPreferredSize(new Dimension(subPanel.getPreferredSize().width, 100));
+        row3.setBorder(BorderFactory.createTitledBorder("Priority"));
+
+        c.gridx = 0;
+        c.gridy = 2;
+        c.gridwidth = 3;
+        subPanel.add(row3, c);
+
+        // --- row 4: checkboxes ---
+        JPanel row4 = setupMazeConfigCheckboxes();
+        c.gridx = 0;
+        c.gridy = 3;
+        c.gridwidth = 3;
+        subPanel.add(row4, c);
+
+        return subPanel;
+    }
+
+    private static JPanel setupMazeConfigRadioButtons() {
         
-        JPanel row3 = new JPanel();
-        row3.setLayout(new BoxLayout(row3, BoxLayout.Y_AXIS));
+        JPanel row = new JPanel(new GridLayout(3, 1));
+        
+        ArrayList<JRadioButton[]> rbRows = new ArrayList<>();
+        ArrayList<Node.Type> orderInUI = new ArrayList<>(MazeGen.priority);
+
+        for (int y=0; y<3; y++) {
+
+            ButtonGroup rbGroup = new ButtonGroup();
+            JPanel rbPanel = new JPanel(new GridLayout(1, 3));
+            row.add(rbPanel);
+
+            JRadioButton[] rbRow = new JRadioButton[3];
+            rbRows.add(rbRow);
+
+            for (int x=0; x<3; x++) {
+                JRadioButton rb = new JRadioButton(String.valueOf(y+1));
+                rb.setSelected(orderInUI.get(x) == MazeGen.priority.get(y));
+                rb.setHorizontalAlignment(SwingConstants.CENTER);
+                rbGroup.add(rb);
+                rbPanel.add(rb);
+
+                rbRows.get(y)[x] = rb;
+
+                int iCol = x;
+
+                rb.addItemListener(e -> {
+                    if (e.getStateChange() == ItemEvent.SELECTED) {
+                        
+                        int priority = rbRows.indexOf(rbRow);
+                        Node.Type type = orderInUI.get(iCol);
+
+                        int iSwap = MazeGen.setPriority(type, priority);
+                        JRadioButton[] rowChange = rbRows.get(iSwap);
+
+                        Node.Type swapType = MazeGen.priority.get(iSwap);
+                        JRadioButton rbChange = rowChange[orderInUI.indexOf(swapType)];
+                        
+                        rbChange.setSelected(true);    // also deselects current
+
+                        updateNodeTypesSliders();
+                        // swapDisabledSlider();
+                    }
+                });
+            }
+        }
+
+        return row;
+    }
+
+    private static JPanel setupMazeConfigCheckboxes() {
+        JPanel row = new JPanel();
+        row.setLayout(new BoxLayout(row, BoxLayout.Y_AXIS));
 
         JCheckBox endCanBeDoubleCheckbox = new JCheckBox("End can be double");
         endCanBeDoubleCheckbox.setSelected(MazeGen.endCanBeDouble);
@@ -290,30 +374,26 @@ public class UI {
 
         updateEnabledEndMustBeDoubleCheckbox();
 
-        row3.add(Box.createVerticalStrut(25));
-        row3.add(endCanAndToolTip);
-        row3.add(Box.createVerticalStrut(5));
-        row3.add(endMustAndToolTip);
-        row3.add(Box.createVerticalStrut(5));
-
-        c.gridy = 2;
-        c.gridwidth = 2;
-        subPanel.add(row3, c);
+        row.add(Box.createVerticalStrut(25));
+        row.add(endCanAndToolTip);
+        row.add(Box.createVerticalStrut(5));
+        row.add(endMustAndToolTip);
+        row.add(Box.createVerticalStrut(5));
 
         // add callbacks
-        endCanBeDoubleCheckbox.addActionListener(e -> {
-            MazeGen.setEndCanBeDouble(endCanBeDoubleCheckbox.isSelected());
+        endCanBeDoubleCheckbox.addItemListener(e -> {
+            MazeGen.setEndCanBeDouble(e.getStateChange() == ItemEvent.SELECTED);
             updateAmountDoubles(MazeGen.amountDoubles);
         });
         
-        endMustBeDoubleCheckbox.addActionListener(e -> {
-            MazeGen.setEndMustBeDouble(endMustBeDoubleCheckbox.isSelected());
+        endMustBeDoubleCheckbox.addItemListener(e -> {
+            MazeGen.setEndMustBeDouble(e.getStateChange() == ItemEvent.SELECTED);
             if (MazeGen.endMustBeDouble && !MazeGen.doubleNodes.contains(MazeGen.endNode)) {
                 mazeConfigIsNew = true;
             }
         });
 
-        return subPanel;
+        return row;
     }
 
     private static void updateEnabledEndMustBeDoubleCheckbox() {
@@ -334,9 +414,9 @@ public class UI {
         c.insets = new Insets(5, 5, 5, 5);
 
         // --- row 1: sliders ---
-        JSlider widthSlider = getNewSlider(20, MazeGen.getWidth());
-        JSlider heightSlider = getNewSlider(20, MazeGen.getHeight());
-        hintMaxSlider = getNewSlider(MazeGen.pathLength, Config.hintMax);
+        JSlider widthSlider = getNewSlider(0, 20, MazeGen.getWidth());
+        JSlider heightSlider = getNewSlider(0, 20, MazeGen.getHeight());
+        hintMaxSlider = getNewSlider(0, MazeGen.pathLength, Config.hintMax);
 
         c.gridy = 0;
         subPanel.add(widthSlider, c);
@@ -358,14 +438,14 @@ public class UI {
             int val = widthSlider.getValue();
             widthLabel.setText("Width: " + val);
             MazeGen.setWidth(val);
-            limitAfterNewSize();
+            updateNodeTypesSliders();
         });
         
         heightSlider.addChangeListener(e -> {
             int val = heightSlider.getValue();
             heightLabel.setText("Height: " + val);
             MazeGen.setHeight(val);
-            limitAfterNewSize();
+            updateNodeTypesSliders();
         });
 
         return subPanel;
@@ -416,11 +496,11 @@ public class UI {
         "Change type from double to ground or ground to double during generation, instead of trying another path");
 
         // add callbacks
-        cbDoublesArePlacedFirst.addActionListener(e -> {
-            MazeGen.doublesArePlacedFirst = cbDoublesArePlacedFirst.isSelected();
+        cbDoublesArePlacedFirst.addItemListener(e -> {
+            MazeGen.doublesArePlacedFirst = e.getStateChange() == ItemEvent.SELECTED;
         });
-        cbChangeTypes.addActionListener(e -> {
-            MazeGen.tryChangeNodeType = cbChangeTypes.isSelected();
+        cbChangeTypes.addItemListener(e -> {
+            MazeGen.tryChangeNodeType = e.getStateChange() == ItemEvent.SELECTED;
         });
         
         // add checkboxes
@@ -441,52 +521,51 @@ public class UI {
         int convertedVal = MazeGen.setAmountDoubles(v);
 
         if (convertedVal != v && v > lastVal) {
+            // TODO: convertVal should set ++ or -- appropriately
             convertedVal = MazeGen.setAmountDoubles(v+1);   // increment instead of decrementing
         }
         
-        if (v != lastVal) {
-            amountDoublesSlider.setValue(convertedVal);   // potentially decreased
-            amountDoublesLabel.setText("Doubles: " + convertedVal);
-            
-            amountGroundSlider.setMinimum(MazeGen.amountGroundMin);
-            amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
-            amountGroundLabel.setText("Ground: " + MazeGen.amountGround);
-            
-            int slideDiff = amountGroundSlider.getMaximum() - amountGroundSlider.getMinimum();
-            amountGroundSlider.setEnabled(slideDiff == 0 ? false : true);
-        
-            potentiallyNewPathLength();
-        }
-
+        updateNodeTypesSliders();
         updateEnabledEndMustBeDoubleCheckbox();
     }
+    
+    private static void updateNodeTypesSliders() {
 
-    private static void potentiallyNewPathLength() {
+        // TODO: for-loop
+        amountGroundSlider.setMinimum(MazeGen.amountGroundMin);
+        amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
+        amountGroundLabel.setText("Ground: " + MazeGen.amountGround);
+        if (amountGroundSlider.getValue() != MazeGen.amountGround) {
+            amountGroundSlider.setValue(MazeGen.amountGround);
+        }
         
+        // NOTE: MazeGen.amountDoublesMin and MazeGen.amountWallsMin is always zero
+        amountDoublesSlider.setMaximum(MazeGen.amountDoublesMax);
+        amountDoublesLabel.setText("Doubles: " + MazeGen.amountDoubles);
+        if (amountDoublesSlider.getValue() != MazeGen.amountDoubles) {
+            amountDoublesSlider.setValue(MazeGen.amountDoubles);
+        }
+        
+        amountWallsSlider.setMaximum(MazeGen.amountWallsMax);
+        amountWallsLabel.setText("Walls: " + MazeGen.amountWalls);
+        if (amountWallsSlider.getValue() != MazeGen.amountWalls) {
+            amountWallsSlider.setValue(MazeGen.amountWalls);
+        }
+
         if (MazeGen.amountNodesAll < Config.hintMax) {
             Config.setHintMax(MazeGen.amountNodesAll);
+            hintMaxSlider.setMaximum(MazeGen.pathLength);
             hintMaxLabel.setText("Hint length: " + Config.hintMax);
         }
-        hintMaxSlider.setMaximum(MazeGen.pathLength);
+        
         pathLengthLabel.setText("Resulting path length: " + MazeGen.pathLength);
-
+        
         mazeConfigIsNew = true;
     }
 
-    private static void limitAfterNewSize() {
+    private static JSlider getNewSlider(int min, int max, int currentVal) {
 
-        potentiallyNewPathLength();
-
-        amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
-        amountGroundLabel.setText("Ground: " + MazeGen.amountGround);
-        
-        amountDoublesSlider.setMaximum(MazeGen.amountDoublesMax);
-        amountDoublesLabel.setText("Doubles: " + MazeGen.amountDoubles);
-    }
-
-    private static JSlider getNewSlider(int max, int currentVal) {
-
-        JSlider slider = new JSlider(JSlider.VERTICAL, 0, max, currentVal);
+        JSlider slider = new JSlider(JSlider.VERTICAL, min, max, currentVal);
 
         slider.setMajorTickSpacing(3);
         slider.setMinorTickSpacing(1);

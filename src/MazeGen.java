@@ -45,18 +45,25 @@ public class MazeGen {
     public static Node endNode;
     public static Node currentNode;    // used to keep track of the player
     
-    public static int amountDoubles = 0;
     public static int amountGround = width * height / 2;
+    public static int amountDoubles = 0;
     public static int amountWalls;
 
-    public static int amountDoublesMax;
     public static int amountGroundMin;
     public static int amountGroundMax;
+    public static int amountDoublesMax;
+    public static int amountWallsMax;
 
     public static int amountNodesAll = width * height;
 
     public static int pathLength;
     public static int pathLengthMax;   // used to move startNode if necessary and to limit length of hints
+
+    public static ArrayList<Node.Type> priority = new ArrayList<>(){ {
+        add(Node.Type.GROUND);
+        add(Node.Type.DOUBLE);
+        add(Node.Type.WALL);
+    }};
 
     static {
         update();
@@ -81,10 +88,9 @@ public class MazeGen {
 
     private static void printInfo() {
         System.out.println("maze: " + width + "x" + height);
-        System.out.println("amountDoublesMax: " + amountDoublesMax);
-        System.out.println("amountDoubles: " + amountDoubles);
-        System.out.println("amountGroundMax: " + amountGroundMax);
-        System.out.println("amountGround: " + amountGround);
+        System.out.printf("amountGround: %d (%d-%d)\n", amountGround, amountGroundMin, amountGroundMax);
+        System.out.printf("amountDoubles: %d (%d-%d)\n", amountDoubles, 0, amountDoublesMax);
+        System.out.printf("amountWalls: %d (%d-%d)\n", amountWalls, 0, amountWallsMax);
 
         String endNodeType;
 
@@ -92,23 +98,44 @@ public class MazeGen {
             // end is start (1x1)
             endNodeType = "none";
         }
-
-        else if (endNode == null) {
-            endNodeType = "g or d";
-        }
-        else if (get(endNode) == Node.Type.END) {
+        else if (amountDoubles == 0) {
             endNodeType = "g";
         }
+        else if (endNode != null) {
+            if (get(endNode) == Node.Type.END) {
+                endNodeType = "g";
+            }
+            else {
+                endNodeType = "d";
+            }
+        }
         else {
-            endNodeType = "d";
+            // maze not generated yet
+            endNodeType = "g or d";
         }
 
         System.out.printf("types: s + %dd + %dg + %dw (end=%s)\n",
                             amountDoubles, amountGround, amountWalls, endNodeType);
-        // }
         System.out.println("pathLength: " + pathLength);
         System.out.println("pathLengthMax: " + pathLengthMax);
         System.out.println();
+    }
+
+    // returns old priority of `type`
+    public static int setPriority(Node.Type type, int v) {
+        int oldPriority = priority.indexOf(type);
+        Node.Type swapType = priority.get(v);
+
+        priority.set(v, type);
+        priority.set(oldPriority, swapType);
+
+        update();
+        
+        return oldPriority;
+    }
+
+    private static int applyRange(int min, int max, int v) {
+        return Math.max(min, Math.min(v, max));
     }
 
     private static int convertToValidDoubleAmount(int possiblyInvalid) {
@@ -132,7 +159,10 @@ public class MazeGen {
     public static void setEndCanBeDouble(boolean v) {
 
         endCanBeDouble = v;
-        endMustBeDouble = false;
+
+        if (!endCanBeDouble && endMustBeDouble) {
+            endMustBeDouble = false;
+        }
         
         // may have resulted in one less double due to change of `endCanBeDouble`
         amountDoubles = convertToValidDoubleAmount(amountDoubles);
@@ -142,8 +172,12 @@ public class MazeGen {
 
     public static int setAmountDoubles(int v) {
 
-        v = Math.max(0, Math.min(v, amountDoublesMax));
+        v = applyRange(0, amountDoublesMax, v);
         amountDoubles = convertToValidDoubleAmount(v);
+
+        if (amountDoubles == 0 && endMustBeDouble) {
+            endMustBeDouble = false;
+        }
 
         update();
 
@@ -151,54 +185,93 @@ public class MazeGen {
     }
 
     public static void setAmountGround(int v) {
-        amountGround = Math.max(0, Math.min(v, amountGroundMax));
+        amountGround = applyRange(0, amountGroundMax, v);
+        update();
+    }
+    
+    public static void setAmountWalls(int v) {
+        amountWalls = applyRange(0, amountWallsMax, v);
         update();
     }
 
+    // returns nodesLeft
+    private static int updateAmountNodes(Node.Type type, int nodesLeft) {
+
+        if (type == Node.Type.GROUND) {
+            amountGroundMax = Math.max(0, nodesLeft - 1);
+            amountGround = Math.min(amountGround, amountGroundMax);
+            return nodesLeft - amountGround;
+            
+        }
+        else if (type == Node.Type.WALL) {
+            amountWallsMax = Math.max(0, nodesLeft - 1);
+            amountWalls = Math.min(amountWalls, amountWallsMax);
+            return nodesLeft - amountWalls;
+        }
+        else {
+            // else: Node.Type.DOUBLE
+            
+            if (odd(nodesLeft)) {
+                
+                if (endCanBeDouble) {
+                    amountDoublesMax = nodesLeft - 1;
+                }
+                else {
+                    amountDoublesMax = nodesLeft - 3;
+                }
+            }
+            else {
+                amountDoublesMax = nodesLeft - 2;
+            }
+            
+            amountDoublesMax = Math.max(0, amountDoublesMax);
+            amountDoubles = Math.min(amountDoubles, amountDoublesMax);
+            
+            return nodesLeft - amountDoubles;
+        }
+        
+    }
+    
     private static void update() {
 
         amountNodesAll = width * height;
 
+        int nodesLeft = amountNodesAll;
+        
         if (amountNodesAll == 1) {
             amountGroundMax = 0;
             amountDoublesMax = 0;
         }
-        else if (odd(amountNodesAll)) {
-            
-            if (endCanBeDouble) {
-                amountDoublesMax = amountNodesAll - 1;
-            }
-            else {
-                amountDoublesMax = amountNodesAll - 3;
-            }
-        }
         else {
-            amountDoublesMax = amountNodesAll - 2;
+            for (Node.Type type : priority) {
+                nodesLeft = updateAmountNodes(type, nodesLeft);
+            }
         }
 
-        amountDoubles = Math.min(amountDoubles, amountDoublesMax);
-
-        // NOTE: amountGround is limited by amountDoubles
-        amountGroundMax = amountNodesAll - 1 - amountDoubles;
-        amountGround = Math.min(amountGround, amountGroundMax);
-
-        amountWalls = amountNodesAll - 1 - amountDoubles - amountGround;
-
-        pathLength = 1 + 2 * amountDoubles + amountGround;
-        pathLengthMax = amountNodesAll + amountDoublesMax;
-        
         if (amountDoubles == 0) {
             amountGroundMin = 0;
         }
-        else if (even(amountDoubles)) {
-            amountGroundMin = 1;
+        else if (odd(amountDoubles)) {
+            if (!endCanBeDouble) {
+                amountGroundMin = 2;
+            }
+            else {
+                amountGroundMin = 1;
+            }
         }
-        else if (endCanBeDouble) {
+        else if (!endCanBeDouble) {
             amountGroundMin = 1;
         }
         else {
-            amountGroundMin = 2;
+            amountGroundMin = 0;
         }
+
+        // TODO: in updateAmountNodes()?
+        amountGround = Math.max(amountGroundMin, amountGround);
+        
+        pathLength = 1 + 2 * amountDoubles + amountGround;
+        pathLengthMax = amountNodesAll + amountDoublesMax;
+        
     }
 
     public static void setSize(int w, int h) {
@@ -467,7 +540,8 @@ public class MazeGen {
             }
         }
 
-        else if (pathLength == pathLengthMax && odd(width) && odd(height)) {
+        // all nodes are stepped on
+        else if (1 + amountGround + amountDoubles + amountWalls == amountNodesAll && odd(width) && odd(height)) {
 
             // try move up, down, left, right once until startNode is valid
 
