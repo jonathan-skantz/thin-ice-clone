@@ -13,30 +13,33 @@ public class Node {
         TOUCHED("x"),   // represents a double that has been stepped on once
         END_DOUBLE("2E");
 
-        public String strRep;
+        private String strRep;
 
         private Type(String rep) {
             strRep = rep;
         }
+
+        @Override
+        public String toString() {
+            return strRep;
+        }
     }
 
-    public final int x;
-    public final int y;
+    public final int X;
+    public final int Y;
 
-    /**
-     * Constructor for Node class.
-     *
-     * @param x x-coordinate of node
-     * @param y y-coordinate of node
-     */
-    Node(int x, int y) {
-        this.x = x;
-        this.y = y;
+    public Node(int x, int y) {
+        this.X = x;
+        this.Y = y;
     }
-    
+
+    public Node getNeighbor(int dx, int dy) {
+        return new Node(X+dx, Y+dy);
+    }
+
     @Override
     public String toString() {
-        return String.format("N(%d,%d)", x, y);
+        return String.format("N(%d,%d)", X, Y);
     }
 
     // returns true if same x and y as `this`
@@ -52,7 +55,7 @@ public class Node {
         }
 
         Node node = (Node) obj;
-        return x == node.x && y == node.y;
+        return X == node.X && Y == node.Y;
     }
 
 }

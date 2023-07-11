@@ -60,9 +60,9 @@ public class KeyHandler extends KeyAdapter {
 
         // returns ActionKey based on the difference between two nodes
         public static ActionKey getActionFromMovement(Node lastNode, Node newNode) {
-            if (newNode.x - lastNode.x < 0) return ActionKey.MOVE_LEFT;
-            else if (newNode.x - lastNode.x > 0) return ActionKey.MOVE_RIGHT;
-            else if (newNode.y - lastNode.y < 0) return ActionKey.MOVE_UP;
+            if (newNode.X - lastNode.X < 0) return ActionKey.MOVE_LEFT;
+            else if (newNode.X - lastNode.X > 0) return ActionKey.MOVE_RIGHT;
+            else if (newNode.Y - lastNode.Y < 0) return ActionKey.MOVE_UP;
             return ActionKey.MOVE_DOWN;
 
         }

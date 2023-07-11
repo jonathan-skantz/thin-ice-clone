@@ -41,13 +41,9 @@ public class UI {
     private static JSlider hintMaxSlider;
     private static JLabel hintMaxLabel;
 
-    private static JSlider amountGroundSlider;
-    private static JSlider amountDoublesSlider;
-    private static JSlider amountWallsSlider;
-    
-    private static JLabel amountGroundLabel;
-    private static JLabel amountDoublesLabel;
-    private static JLabel amountWallsLabel;
+    private static JSlider[] amountSliders = new JSlider[3];
+    private static JLabel[] amountLabels = new JLabel[3];
+    private static final String[] labelPrefixes = new String[] {"Ground: ", "Doubles: ", "Walls: "};
 
     private static JCheckBox endMustBeDoubleCheckbox;
 
@@ -252,40 +248,27 @@ public class UI {
         GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(5, 5, 5, 5);
         
-        // --- row 1: sliders ---
-        amountGroundSlider = getNewSlider(MazeGen.amountGroundMin, MazeGen.amountGroundMax, MazeGen.amountGround);
-        amountDoublesSlider = getNewSlider(0, MazeGen.amountDoublesMax, MazeGen.amountDoubles);
-        amountWallsSlider = getNewSlider(0, MazeGen.amountWallsMax, MazeGen.amountWalls);
+        // --- row 1: sliders, row 2: labels ---
+        for (int i=0; i<3; i++) {
+            MazeGen.Amount type = MazeGen.Amount.priority.get(i);
 
-        c.gridy = 0;
-        subPanel.add(amountGroundSlider, c);
-        subPanel.add(amountDoublesSlider, c);
-        subPanel.add(amountWallsSlider, c);
-        
-        // --- row 2: labels ---
-        amountGroundLabel = new JLabel("Ground: " + amountGroundSlider.getValue());
-        amountDoublesLabel = new JLabel("Doubles: " + amountDoublesSlider.getValue());
-        amountWallsLabel = new JLabel("Walls: " + amountWallsSlider.getValue());
-        
-        c.gridy = 1;
-        subPanel.add(amountGroundLabel, c);
-        subPanel.add(amountDoublesLabel, c);
-        subPanel.add(amountWallsLabel, c);
+            c.gridy = 0;
+            amountSliders[i] = getNewSlider(type.getMin(), type.getMax(), type.get());
+            subPanel.add(amountSliders[i], c);
+            
+            c.gridy = 1;
+            amountLabels[i] = new JLabel(labelPrefixes[i] + amountSliders[i].getValue());
+            subPanel.add(amountLabels[i], c);
 
-        // add callbacks
-        amountGroundSlider.addChangeListener(e -> {
-            MazeGen.setAmountGround(amountGroundSlider.getValue());
-            updateNodeTypesSliders();
-        });
+            int ii = i;
+            amountSliders[i].addChangeListener(e -> {
+                type.set(amountSliders[ii].getValue());
+                updateNodeTypesSliders();
+                updateEnabledEndMustBeDoubleCheckbox();
+            });
+        }
 
-        amountDoublesSlider.addChangeListener(e -> {
-            updateAmountDoubles(amountDoublesSlider.getValue());
-        });
-
-        amountWallsSlider.addChangeListener(e -> {
-            MazeGen.setAmountWalls(amountWallsSlider.getValue());
-            updateNodeTypesSliders();
-        });
+        amountSliders[2].setEnabled(false);
 
         // --- row 3: priority radio buttons ---
         JPanel row3 = setupMazeConfigRadioButtons();
@@ -312,7 +295,6 @@ public class UI {
         JPanel row = new JPanel(new GridLayout(3, 1));
         
         ArrayList<JRadioButton[]> rbRows = new ArrayList<>();
-        ArrayList<Node.Type> orderInUI = new ArrayList<>(MazeGen.priority);
 
         for (int y=0; y<3; y++) {
 
@@ -325,7 +307,7 @@ public class UI {
 
             for (int x=0; x<3; x++) {
                 JRadioButton rb = new JRadioButton(String.valueOf(y+1));
-                rb.setSelected(orderInUI.get(x) == MazeGen.priority.get(y));
+                rb.setSelected(MazeGen.Amount.priorityDefault.get(x) == MazeGen.Amount.priority.get(y));
                 rb.setHorizontalAlignment(SwingConstants.CENTER);
                 rbGroup.add(rb);
                 rbPanel.add(rb);
@@ -338,18 +320,17 @@ public class UI {
                     if (e.getStateChange() == ItemEvent.SELECTED) {
                         
                         int priority = rbRows.indexOf(rbRow);
-                        Node.Type type = orderInUI.get(iCol);
+                        MazeGen.Amount typePressed = MazeGen.Amount.priorityDefault.get(iCol);
 
-                        int iSwap = MazeGen.setPriority(type, priority);
+                        int iSwap = typePressed.setPriority(priority);
                         JRadioButton[] rowChange = rbRows.get(iSwap);
 
-                        Node.Type swapType = MazeGen.priority.get(iSwap);
-                        JRadioButton rbChange = rowChange[orderInUI.indexOf(swapType)];
+                        MazeGen.Amount swapType = MazeGen.Amount.priority.get(iSwap);
+                        JRadioButton rbChange = rowChange[MazeGen.Amount.priorityDefault.indexOf(swapType)];
                         
                         rbChange.setSelected(true);    // also deselects current
 
                         updateNodeTypesSliders();
-                        // swapDisabledSlider();
                     }
                 });
             }
@@ -383,21 +364,22 @@ public class UI {
         // add callbacks
         endCanBeDoubleCheckbox.addItemListener(e -> {
             MazeGen.setEndCanBeDouble(e.getStateChange() == ItemEvent.SELECTED);
-            updateAmountDoubles(MazeGen.amountDoubles);
+
+            MazeGen.Amount.DOUBLES.set(amountSliders[1].getValue());
+            updateNodeTypesSliders();
+            updateEnabledEndMustBeDoubleCheckbox();
         });
         
         endMustBeDoubleCheckbox.addItemListener(e -> {
             MazeGen.setEndMustBeDouble(e.getStateChange() == ItemEvent.SELECTED);
-            if (MazeGen.endMustBeDouble && !MazeGen.doubleNodes.contains(MazeGen.endNode)) {
-                mazeConfigIsNew = true;
-            }
+            mazeConfigIsNew = true;
         });
 
         return row;
     }
 
     private static void updateEnabledEndMustBeDoubleCheckbox() {
-        if (MazeGen.endCanBeDouble && MazeGen.amountDoubles > 0) {
+        if (MazeGen.endCanBeDouble && MazeGen.Amount.DOUBLES.get() > 0) {
             endMustBeDoubleCheckbox.setEnabled(true);
         }
         else {
@@ -414,8 +396,8 @@ public class UI {
         c.insets = new Insets(5, 5, 5, 5);
 
         // --- row 1: sliders ---
-        JSlider widthSlider = getNewSlider(0, 20, MazeGen.getWidth());
-        JSlider heightSlider = getNewSlider(0, 20, MazeGen.getHeight());
+        JSlider widthSlider = getNewSlider(Config.MAZE_WIDTH_MIN, Config.MAZE_WIDTH_MAX, MazeGen.width);
+        JSlider heightSlider = getNewSlider(Config.MAZE_HEIGHT_MIN, Config.MAZE_HEIGHT_MAX, MazeGen.height);
         hintMaxSlider = getNewSlider(0, MazeGen.pathLength, Config.hintMax);
 
         c.gridy = 0;
@@ -514,44 +496,27 @@ public class UI {
 
         return subPanel;
     }
-
-    private static void updateAmountDoubles(int v) {
-
-        int lastVal = MazeGen.amountDoubles;
-        int convertedVal = MazeGen.setAmountDoubles(v);
-
-        if (convertedVal != v && v > lastVal) {
-            // TODO: convertVal should set ++ or -- appropriately
-            convertedVal = MazeGen.setAmountDoubles(v+1);   // increment instead of decrementing
-        }
-        
-        updateNodeTypesSliders();
-        updateEnabledEndMustBeDoubleCheckbox();
-    }
     
     private static void updateNodeTypesSliders() {
 
-        // TODO: for-loop
-        amountGroundSlider.setMinimum(MazeGen.amountGroundMin);
-        amountGroundSlider.setMaximum(MazeGen.amountGroundMax);
-        amountGroundLabel.setText("Ground: " + MazeGen.amountGround);
-        if (amountGroundSlider.getValue() != MazeGen.amountGround) {
-            amountGroundSlider.setValue(MazeGen.amountGround);
-        }
-        
-        // NOTE: MazeGen.amountDoublesMin and MazeGen.amountWallsMin is always zero
-        amountDoublesSlider.setMaximum(MazeGen.amountDoublesMax);
-        amountDoublesLabel.setText("Doubles: " + MazeGen.amountDoubles);
-        if (amountDoublesSlider.getValue() != MazeGen.amountDoubles) {
-            amountDoublesSlider.setValue(MazeGen.amountDoubles);
-        }
-        
-        amountWallsSlider.setMaximum(MazeGen.amountWallsMax);
-        amountWallsLabel.setText("Walls: " + MazeGen.amountWalls);
-        if (amountWallsSlider.getValue() != MazeGen.amountWalls) {
-            amountWallsSlider.setValue(MazeGen.amountWalls);
+        for (int i=0; i<amountSliders.length; i++) {
+            MazeGen.Amount type = MazeGen.Amount.priorityDefault.get(i);
+            amountSliders[i].setMinimum(type.getMin());
+            amountSliders[i].setMaximum(type.getMax());
+            amountLabels[i].setText(labelPrefixes[i] + type.get());
+            if (amountSliders[i].getValue() != type.get()) {
+                amountSliders[i].setValue(type.get());
+            }
+            
+            if (MazeGen.Amount.priority.get(2) == MazeGen.Amount.priorityDefault.get(i)) {
+                amountSliders[i].setEnabled(false);
+            }
+            else {
+                amountSliders[i].setEnabled(true);
+            }
         }
 
+        // TODO: doesn't work with doubles that result in paths longer than wxh
         if (MazeGen.amountNodesAll < Config.hintMax) {
             Config.setHintMax(MazeGen.amountNodesAll);
             hintMaxSlider.setMaximum(MazeGen.pathLength);
@@ -569,7 +534,7 @@ public class UI {
 
         slider.setMajorTickSpacing(3);
         slider.setMinorTickSpacing(1);
-        slider.setSnapToTicks(true);       
+        slider.setSnapToTicks(true);
         slider.setPaintTicks(true);
         slider.setPaintLabels(true);
         slider.setPreferredSize(new Dimension(SLIDER_WIDTH, SLIDER_HEIGHT));

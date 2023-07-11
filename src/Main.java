@@ -14,6 +14,8 @@ public class Main {
     public static Window window = new Window();
     
     private static boolean zoomUpdate = false;
+
+    private static Maze maze;
     
     // sprites
     public static Sprite player;
@@ -23,7 +25,9 @@ public class Main {
     public static Node[] hintNodes = new Node[Config.hintMax];
 
     public static void main(String[] args) {
-        
+
+        Config.apply();
+
         setupKeyCallbacks();
 
         window.sprites.setVisible(false);   // prevents redrawing while setting up
@@ -59,8 +63,8 @@ public class Main {
         for (Node n : hintNodes) {
             if (n != null) {
                 
-                if (MazeGen.get(n) != Node.Type.BLOCKED && !n.equals(MazeGen.currentNode)) {
-                    mazeSprites[n.y][n.x].setBackground(Config.BLOCK_COLORS.get(Node.Type.GROUND));
+                if (maze.get(n) != Node.Type.BLOCKED && !n.equals(maze.currentNode)) {
+                    mazeSprites[n.Y][n.X].setBackground(Config.BLOCK_COLORS.get(Node.Type.GROUND));
                 }
             }
         }
@@ -83,7 +87,7 @@ public class Main {
         for (int hint=1; hint<=Config.hintMax && hint<path.size()-1; hint++) {
             Node step = path.get(hint);
 
-            mazeSprites[step.y][step.x].setBackground(Config.HINT_COLOR);
+            mazeSprites[step.Y][step.X].setBackground(Config.HINT_COLOR);
             hintNodes[i] = step;
             i++;
         }
@@ -94,28 +98,26 @@ public class Main {
 
     public static void tryToMove(KeyHandler.ActionKey action) {
 
-        if (MazeGen.complete) {
+        if (maze.complete) {
             return;
         }
 
-        Node lastNode = MazeGen.currentNode;
+        Node lastNode = maze.currentNode;
 
-        if (MazeGen.userMove(action)) {
+        if (maze.userMove(action)) {
             
             player.move(action);
             
-            Node.Type lastNodeType = MazeGen.get(lastNode);
-            Color color = Config.BLOCK_COLORS.get(lastNodeType);
-            Sprite block = mazeSprites[lastNode.y][lastNode.x];
+            Color color = Config.BLOCK_COLORS.get(maze.get(lastNode));
+            Sprite block = mazeSprites[lastNode.Y][lastNode.X];
             
             block.setBackground(color);
             
-            if (lastNodeType == Node.Type.TOUCHED || lastNodeType == Node.Type.END) {
+            if (maze.get(lastNode) == Node.Type.TOUCHED || maze.get(lastNode) == Node.Type.END) {
                 block.setBorder(Config.BLOCK_BORDER);
-                System.out.println(block.getBackground());
             }
             
-            if (MazeGen.complete) {
+            if (maze.complete) {
                 textNextLevel.setVisible(true);
             }
         }
@@ -136,13 +138,13 @@ public class Main {
         KeyHandler.ActionKey.MAZE_NEW.setCallback(() -> { 
             
             // prevent making new mazes unless the current is solved
-            // if (mazeGen.complete) {
+            // if (maze.complete) {
                 generateNewMaze();
                 // }
             });
             
             KeyHandler.ActionKey.MAZE_RESET.setCallback(() -> { 
-                MazeGen.reset();
+                maze.reset();
                 resetMazeGraphics();
             });
             
@@ -172,30 +174,30 @@ public class Main {
 
     public static void step(int direction) {
         
-        if (MazeGen.complete) {
+        if (maze.complete) {
             return;
         }
 
-        Node lastNode = MazeGen.currentNode;
+        Node lastNode = maze.currentNode;
 
-        KeyHandler.ActionKey action = MazeGen.step(direction);
+        KeyHandler.ActionKey action = maze.step(direction);
 
         if (action != null) {
             player.move(action);
 
             if (direction == -1) {
-                setNewBlockGraphics(MazeGen.currentNode.x, MazeGen.currentNode.y);
+                setNewBlockGraphics(maze.currentNode.X, maze.currentNode.Y);
             }
 
-            setNewBlockGraphics(lastNode.x, lastNode.y);
+            setNewBlockGraphics(lastNode.X, lastNode.Y);
         }
         
     }
 
     public static void movePlayerToNode(Node node) {
         
-        int blockX = Config.mazeStartX + node.x * Config.blockSize;
-        int blockY = Config.mazeStartY + node.y * Config.blockSize;
+        int blockX = Config.mazeStartX + node.X * Config.blockSize;
+        int blockY = Config.mazeStartY + node.Y * Config.blockSize;
         
         int centeredX = blockX + (Config.blockSize - player.getWidth()) / 2;
         int centeredY = blockY + (Config.blockSize - player.getHeight()) / 2;
@@ -208,18 +210,18 @@ public class Main {
         Color color;
         Border border;
 
-        Node.Type type = MazeGen.get(x, y);
+        Node node = new Node(x, y);
        
-        if (type == Node.Type.DOUBLE) {
+        if (maze.get(node) == Node.Type.DOUBLE) {
             color = Config.BLOCK_COLORS.get(Node.Type.GROUND);
             border = Config.BLOCK_DOUBLE_BORDER;
         }
-        else if (type == Node.Type.END_DOUBLE) {
+        else if (maze.get(node) == Node.Type.END_DOUBLE) {
             color = Config.BLOCK_COLORS.get(Node.Type.END);
             border = Config.BLOCK_DOUBLE_BORDER;
         }
         else {
-            color = Config.BLOCK_COLORS.get(type);
+            color = Config.BLOCK_COLORS.get(maze.get(node));
             border = Config.BLOCK_BORDER;
         }
 
@@ -229,8 +231,8 @@ public class Main {
 
     public static void newBlockColors() {
 
-        for (int y=0; y<MazeGen.getHeight(); y++) {
-            for (int x=0; x<MazeGen.getWidth(); x++) {
+        for (int y=0; y<maze.height; y++) {
+            for (int x=0; x<maze.width; x++) {
                 setNewBlockGraphics(x, y);
             }
         }
@@ -243,7 +245,7 @@ public class Main {
         
         boolean firstMaze = mazeSprites == null;
 
-        if (firstMaze || MazeGen.getHeight() != mazeSprites.length || MazeGen.getWidth() != mazeSprites[0].length || zoomUpdate) {
+        if (firstMaze || maze.height != mazeSprites.length || maze.width != mazeSprites[0].length || zoomUpdate) {
 
             if (!firstMaze) {
                 // remove old sprites from canvas
@@ -253,19 +255,19 @@ public class Main {
                     }
                 }
             }
-            Config.mazeStartX = (Window.width - Config.blockSize * MazeGen.getWidth()) / 2;
-            Config.mazeStartY = (Window.height - Config.blockSize * MazeGen.getHeight()) / 2;
+            Config.mazeStartX = (Window.width - Config.blockSize * maze.width) / 2;
+            Config.mazeStartY = (Window.height - Config.blockSize * maze.height) / 2;
                 
-            mazeSprites = new Sprite[MazeGen.getHeight()][MazeGen.getWidth()];
+            mazeSprites = new Sprite[maze.height][maze.width];
             firstMaze = true;
         }
 
         // create a new sprite for every block in the maze
-        for (int y=0; y<MazeGen.getHeight(); y++) {
-            for (int x=0; x<MazeGen.getWidth(); x++) {
+        for (int y=0; y<maze.height; y++) {
+            for (int x=0; x<maze.width; x++) {
                 
                 // reset color and node value
-                Color color = Config.BLOCK_COLORS.get(MazeGen.get(x, y));
+                Color color = Config.BLOCK_COLORS.get(maze.get(x, y));
                 
                 if (firstMaze) {
                     makeBlock(x, y, color);
@@ -279,12 +281,12 @@ public class Main {
             }
         }
 
-        movePlayerToNode(MazeGen.currentNode);
+        movePlayerToNode(maze.currentNode);
 
         if (!zoomUpdate) {
             // don't change on zoomUpdate
             Color color = Config.BLOCK_COLORS.get(Node.Type.START);
-            mazeSprites[MazeGen.startNode.y][MazeGen.startNode.x].setBackground(color);
+            mazeSprites[maze.startNode.Y][maze.startNode.X].setBackground(color);
         }
 
         // reset nodes (otherwise they refer to incorrect blocks)
@@ -298,9 +300,9 @@ public class Main {
     public static void generateNewMaze() {
         
         // new maze in 2D-array-form
-        MazeGen.generate();
-        System.out.println(MazeGen.creationPath);
-        MazePrinter.printMazeWithPath(MazeGen.creationPath);
+        maze = MazeGen.generate();
+        System.out.println(maze.creationPath);
+        MazePrinter.printMazeWithPath(maze, maze.creationPath);
 
         resetMazeGraphics();
     }

@@ -6,6 +6,8 @@ public class MazeSolver {
 
     private static Node.Type[][] mazeCopy;
 
+    private static Maze maze;
+
     private static Stack<Node> accumulatorPath = new Stack<>();
 
     public static LinkedList<Node> longestPath = new LinkedList<>();
@@ -14,7 +16,7 @@ public class MazeSolver {
     public static void main(String[] args) {
 
         // generate maze
-        MazeGen.generate();
+        Maze maze = MazeGen.generate();
 
         // find solutions
         MazeSolver.findLongestPath();
@@ -22,21 +24,21 @@ public class MazeSolver {
 
         // print comparison
         System.out.println("Maze with creation path:");
-        MazePrinter.printMazeWithPath(MazeGen.creationPath);
+        MazePrinter.printMazeWithPath(maze, maze.creationPath);
 
         System.out.println("longest: ");
-        MazePrinter.printMazeWithPath(longestPath);
+        MazePrinter.printMazeWithPath(maze, longestPath);
 
         System.out.println("\nshortest:");
-        MazePrinter.printMazeWithPath(shortestPath);
+        MazePrinter.printMazeWithPath(maze, shortestPath);
     }
 
     private static void reset() {
 
-        mazeCopy = new Node.Type[MazeGen.getHeight()][MazeGen.getWidth()];
-        for (int y=0; y<MazeGen.getHeight(); y++) {
-            for (int x=0; x<MazeGen.getWidth(); x++) {
-                mazeCopy[y][x] = MazeGen.get(x, y);
+        mazeCopy = new Node.Type[MazeGen.height][MazeGen.width];
+        for (int y=0; y<MazeGen.height; y++) {
+            for (int x=0; x<MazeGen.width; x++) {
+                mazeCopy[y][x] = maze.typesOriginal[y][x];
             }
         }
 
@@ -58,19 +60,19 @@ public class MazeSolver {
         Queue<Node> queue = new LinkedList<>();
 
         // create an array to store the parent node of each node in the shortest path
-        Node[][] parent = new Node[MazeGen.getHeight()][MazeGen.getWidth()];
+        Node[][] parent = new Node[MazeGen.height][MazeGen.width];
 
         // initialize the parent array to null
-        for (int y=0; y<MazeGen.getHeight(); y++) {
-            for (int x=0; x<MazeGen.getWidth(); x++) {
+        for (int y=0; y<MazeGen.height; y++) {
+            for (int x=0; x<MazeGen.width; x++) {
                 parent[y][x] = null;
             }
         }
 
         // mark the startNode as visited and add it to the queue
-        boolean[][] visited = new boolean[MazeGen.getHeight()][MazeGen.getWidth()];
-        visited[MazeGen.currentNode.y][MazeGen.currentNode.x] = true;
-        queue.add(MazeGen.currentNode);
+        boolean[][] visited = new boolean[MazeGen.height][MazeGen.width];
+        visited[maze.currentNode.Y][maze.currentNode.X] = true;
+        queue.add(maze.currentNode);
 
         // perform BFS
         while (!queue.isEmpty()) {
@@ -78,16 +80,16 @@ public class MazeSolver {
 
             // check if the current node is the endNode
             // (why .equals and not .same?)
-            if (currentNode.equals(MazeGen.endNode)) {
+            if (currentNode.equals(maze.endNode)) {
                 break;
             }
             
             // explore the neighbors of the current node
-            for (int y=currentNode.y-1; y<=currentNode.y+1; y++) {
-                for (int x=currentNode.x-1; x<=currentNode.x+1; x++) {
+            for (int y=currentNode.Y-1; y<=currentNode.Y+1; y++) {
+                for (int x=currentNode.X-1; x<=currentNode.X+1; x++) {
                     // skip if the neighbor is out of bounds, or is not walkable
 
-                    Node newNode = new Node(x,  y);
+                    Node newNode = new Node(x, y);
 
                     if (!walkable(newNode) || !pointNotCorner(currentNode, x, y) || !pointNotNode(currentNode, x, y) || visited[y][x]) {
                         continue;
@@ -104,10 +106,10 @@ public class MazeSolver {
 
         // reset shortest path
         shortestPath.clear();
-        Node currentNode = MazeGen.endNode;
+        Node currentNode = maze.endNode;
         while (currentNode != null) {
             shortestPath.addFirst(currentNode);
-            currentNode = parent[currentNode.y][currentNode.x];
+            currentNode = parent[currentNode.Y][currentNode.X];
         }
 
         return shortestPath;
@@ -122,7 +124,7 @@ public class MazeSolver {
      * @return true if the point is not diagonally adjacent to the given node, false otherwise
      */
     private static boolean pointNotCorner(Node node, int x, int y) {
-        return (x == node.x || y == node.y);
+        return (x == node.X || y == node.Y);
     }
 
     /**
@@ -134,21 +136,21 @@ public class MazeSolver {
      * @return true if the point is not the same as the given node, false otherwise
      */
     private static boolean pointNotNode(Node node, int x, int y) {
-        return !(x == node.x && y == node.y);
+        return !(x == node.X && y == node.Y);
     }
 
     public static LinkedList<Node> findLongestPath() {
 
         reset();
 
-        exploreNewNodeFrom(MazeGen.currentNode);
+        exploreNewNodeFrom(maze.currentNode);
 
         return longestPath;
     }
 
     private static boolean walkable(Node node) {
-        int x = node.x;
-        int y = node.y;
+        int x = node.X;
+        int y = node.Y;
 
         if (x < 0 || x >= mazeCopy[0].length) {
             return false;
@@ -169,7 +171,7 @@ public class MazeSolver {
 
         accumulatorPath.add(currentNode);
         
-        if (currentNode.equals(MazeGen.endNode)) {
+        if (currentNode.equals(maze.endNode)) {
             // if end node: check if longer than last saved path
 
             if (accumulatorPath.size() > longestPath.size()) {
@@ -184,15 +186,15 @@ public class MazeSolver {
             // checking in the order: left, down, right, up
             for (int[] d : dir) {
                 
-                Node newNode = new Node(currentNode.x + d[0], currentNode.y + d[1]);
+                Node newNode = currentNode.getNeighbor(d[0], d[1]);
                 
                 if (walkable(newNode)) {
                     
-                    mazeCopy[newNode.y][newNode.x] = Node.Type.BLOCKED;
+                    mazeCopy[newNode.Y][newNode.X] = Node.Type.BLOCKED;
                     
                     exploreNewNodeFrom(newNode);
                     
-                    mazeCopy[newNode.y][newNode.x] = Node.Type.GROUND;
+                    mazeCopy[newNode.Y][newNode.X] = Node.Type.GROUND;
                 }
             }
         }

@@ -11,21 +11,21 @@ public class MazePrinter {
         return String.format("%3s", str);
     }
 
-    public static void printMazeWithPath(LinkedList<Node> path) {
+    public static void printMazeWithPath(Maze maze, LinkedList<Node> path) {
         
-        String[][] mazeOfStr = getMazeWithTypes();
+        String[][] mazeOfStr = getMazeWithTypes(maze);
 
         // set numbers that represent the order of steps of the (a) solution
         for (int i=0; i<path.size(); i++) {
             Node n = path.get(i);
-            mazeOfStr[n.y][n.x] = getFormatted(String.valueOf(i));
+            mazeOfStr[n.Y][n.X] = getFormatted(String.valueOf(i));
         }
 
         System.out.println(mazeOfStrToStr(mazeOfStr));
     }
 
-    public static void printMazeWithTypes() {
-        System.out.println(mazeOfStrToStr(getMazeWithTypes()));
+    public static void printMazeWithTypes(Maze maze) {
+        System.out.println(mazeOfStrToStr(getMazeWithTypes(maze)));
     }
 
     // convert a 2d-array to a string
@@ -44,18 +44,16 @@ public class MazePrinter {
     }
     
      // generate a maze of string representations of the nodes
-    private static String[][] getMazeWithTypes() {
+    private static String[][] getMazeWithTypes(Maze maze) {
         
-        String[][] mazeOfStr = new String[MazeGen.getHeight()][MazeGen.getWidth()];
+        String[][] mazeOfStr = new String[maze.height][maze.width];
 
-        for (int y=0; y<MazeGen.getHeight(); y++) {
-            for (int x=0; x<MazeGen.getWidth(); x++) {
-                mazeOfStr[y][x] = getFormatted(MazeGen.get(x, y).strRep);
+        for (int y=0; y<maze.height; y++) {
+            for (int x=0; x<maze.width; x++) {
+                mazeOfStr[y][x] = getFormatted(maze.get(x, y).toString());
             }
         }
-    
         return mazeOfStr;
     }
-
 
 }
