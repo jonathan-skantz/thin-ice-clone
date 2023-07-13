@@ -6,7 +6,7 @@ public class Maze {
     public boolean complete = false;
 
     // keep track of the user's path, in order to be able to backtrack
-    private Stack<Node> pathHistory = new Stack<>();
+    public Stack<Node> pathHistory = new Stack<>();
     private Stack<Node> pathHistoryRedo = new Stack<>();
 
     public LinkedList<Node> creationPath = new LinkedList<>();
@@ -21,7 +21,7 @@ public class Maze {
     public Node.Type[][] types;
     public Node.Type[][] typesOriginal;
 
-    public Maze(int width, int height) {
+    public Maze(int width, int height, Node.Type firstType) {
         this.width = width;
         this.height = height;
         
@@ -29,7 +29,7 @@ public class Maze {
 
         for (int y=0; y<height; y++) {
             for (int x=0; x<width; x++) {
-                types[y][x] = null;
+                types[y][x] = firstType;
             }
         }
 

@@ -26,32 +26,34 @@ public class Config {
 
     // block graphics
     public static int blockSize = 30;
-
-    public static final int BLOCK_BORDER_WIDTH = 1;
-    public static final Color BLOCK_BORDER_COLOR = new Color(0, 0, 0, 50);
-    public static final Border BLOCK_BORDER = BorderFactory.createLineBorder(BLOCK_BORDER_COLOR, BLOCK_BORDER_WIDTH);
     
-    public static final Hashtable<Node.Type, Color> BLOCK_COLORS = new Hashtable<>() {
-        {
-            put(Node.Type.WALL, new Color(50, 50, 50));
-            put(Node.Type.GROUND, new Color(225, 225, 255));
-            put(Node.Type.START, Color.GREEN);
-            put(Node.Type.END, Color.MAGENTA);
-            put(Node.Type.BLOCKED, new Color(0, 50, 255));
-            put(Node.Type.DOUBLE, new Color(255, 255, 255));    // NOTE: only the internal border
-            put(Node.Type.TOUCHED, get(Node.Type.GROUND));
-        }
-    };
-
-    public static Border BLOCK_DOUBLE_BORDER;
+    public static final Hashtable<Node.Type, Color> BLOCK_COLORS = new Hashtable<>() {{
+        put(Node.Type.WALL, new Color(50, 50, 50));
+        put(Node.Type.GROUND, new Color(225, 225, 255));
+        put(Node.Type.START, Color.GREEN);
+        put(Node.Type.END, Color.MAGENTA);
+        put(Node.Type.BLOCKED, new Color(0, 50, 255));
+        
+        put(Node.Type.DOUBLE, get(Node.Type.GROUND));
+        put(Node.Type.TOUCHED, get(Node.Type.GROUND));
+        put(Node.Type.END_DOUBLE, get(Node.Type.END));
+    }};
+    
+    public static final int BLOCK_BORDER_WIDTH = 1;
+    
+    public static final Border BLOCK_BORDER = BorderFactory.createLineBorder(new Color(0, 0, 0, 50), BLOCK_BORDER_WIDTH);
+    public static final Border BLOCK_BORDER_DOUBLE;
     static {
         Border empty = BorderFactory.createEmptyBorder(2, 2, 2, 2);
-        Border line = BorderFactory.createLineBorder(BLOCK_COLORS.get(Node.Type.DOUBLE), 4);
+        Border line = BorderFactory.createLineBorder(Color.WHITE, 4);
 
         Border bord = BorderFactory.createCompoundBorder(empty, line);
         Border comp = BorderFactory.createCompoundBorder(BLOCK_BORDER, bord);
-        BLOCK_DOUBLE_BORDER = comp;
+        BLOCK_BORDER_DOUBLE = comp;
     }
+
+    // separate border to visualize the new blocks during generation
+    public static final Border BLOCK_BORDER_GEN = BorderFactory.createLineBorder(new Color(255, 255, 150), 2);
 
     // hints
     public static int hintMax = 1;
