@@ -52,18 +52,18 @@ public class Block extends JComponent {
 
     // moving water animation
     private void beginAnimation() {
-
         if (path.endsWith("blocked.png")) {
-            tc = new TimedCounter(-1, 5);
-
-            tc.setCallback(() -> {
-                bottomImage = Image.repeat(bottomImageOriginal, startX, 0);
-                combineFrost();
-                if (++startX == getWidth()) {
-                    startX = 0;
+            // TODO: offset vertically by random int
+            tc = new TimedCounter(-1, 5) {
+                @Override
+                public void onTick() {
+                    bottomImage = Image.repeat(bottomImageOriginal, startX, 0);
+                    combineFrost();
+                    if (++startX == getWidth()) {
+                        startX = 0;
+                    }
                 }
-            });
-
+            };
             tc.start();
         }
         else if (tc != null) {

@@ -26,15 +26,21 @@ public class Main {
     // animations
     private static final boolean ENABLE_ANIMATIONS = true;
     private static boolean animationsFinished = true;
-    private static boolean resetting = false;
 
-    private static TimedCounter tcSpawnPlayer = new TimedCounter(0.5f, 15);
-    private static TimedCounter tcNewMaze = new TimedCounter(10);
+    private static TimedCounter tcSpawnPlayer;
+    private static TimedCounter tcNewMaze;
+    private static TimedCounter tcReset;
+
+    private static ArrayList<Node> nodesToChange = new ArrayList<>(0);
 
     public static void main(String[] args) {
 
         Config.apply();
         
+        setupTimerSpawnPlayer();
+        setupTimerNewMaze();
+        setupTimerReset();
+
         setupKeyCallbacks();
 
         window.sprites.setVisible(false);   // prevents redrawing while setting up
@@ -64,6 +70,125 @@ public class Main {
         createWallBlocks();
         window.sprites.setVisible(true);
 
+    }
+
+    private static void setupTimerSpawnPlayer() {
+        tcSpawnPlayer = new TimedCounter(0.5f, 15) {
+            @Override
+            public void onStart() {
+                player.setVisible(true);
+                movePlayerGraphicsTo(maze.currentNode);
+
+                // mirror if next step cannot be left
+                Node leftNode = maze.currentNode.getNeighbor(-1, 0);
+                player.setMirrored(leftNode.X == -1 || maze.get(leftNode) == Node.Type.WALL);
+            }
+
+            @Override
+            public void onTick() {
+                // resize
+                float progress = (float)tcSpawnPlayer.frame / tcSpawnPlayer.frames;
+                int size = (int)((Config.blockSize - 2 * Config.BLOCK_BORDER_WIDTH) * progress);
+                player.setSize(size, size);
+            
+                movePlayerGraphicsTo(maze.currentNode);
+            }
+
+            @Override
+            public void onFinish() {
+                animationsFinished = true;
+            }
+        };
+
+    }
+    
+    private static void setupTimerNewMaze() {
+        tcNewMaze = new TimedCounter(10) {
+            public void onStart() {               
+                animationsFinished = false;
+                tcNewMaze.setFramesAndPreserveFPS(nodesToChange.size());
+            }
+
+            public void onTick() {
+                Node node = nodesToChange.get(tcNewMaze.frame-1);
+                
+                if (tcNewMaze.frame > 1) {
+                    // remove border from last node
+                    Node lastNode = nodesToChange.get(tcNewMaze.frame-2);
+                    mazeBlocks[lastNode.Y][lastNode.X].setBorder(null);
+                }
+                
+                if (node.equals(oldMaze.currentNode)) {
+                    player.setVisible(false);
+                }
+
+                refreshBlockGraphics(node);
+                mazeBlocks[node.Y][node.X].setBorder(Config.BLOCK_BORDER_GEN);
+            }
+
+            @Override
+            public void onFinish() {
+                Node node = nodesToChange.get(tcNewMaze.frame-1);   // since last node should be changed twice
+                mazeBlocks[node.Y][node.X].setBorder(null);
+                
+                tcSpawnPlayer.start();
+                    
+                // TODO: hints don't work anymore
+                // // reset nodes (otherwise they refer to incorrect blocks)
+                // for (int i=0; i<hintNodes.length; i++) {
+                //     hintNodes[i] = null;
+                // }
+            }
+        };
+
+        // call onFinish() after one frame's delay
+        tcNewMaze.onFinishDelay = (float)tcNewMaze.oneFrameInSeconds();
+    }
+
+    // sets up animation to auto-stepback all steps in pathHistory
+    private static void setupTimerReset() {
+
+        tcReset = new TimedCounter(5) {
+            @Override
+            public void onStart() {
+                animationsFinished = false;
+                tcReset.setFramesAndPreserveFPS(maze.pathHistory.size());
+            }
+
+            @Override
+            public void onTick() {
+                step(-1);
+                movePlayerGraphicsTo(maze.currentNode);
+                System.out.println(maze.currentNode);
+            }
+
+            @Override
+            public void onFinish() {
+                animationsFinished = true;
+            }
+        };
+
+        tcReset.finished = true;    // used to allow manual stepping
+
+    }
+
+    private static void resetMazeGraphics() {
+        
+        if (!animationsFinished) {
+            return;
+        }
+        
+        if (ENABLE_ANIMATIONS) {
+            tcReset.start();
+        }
+        else {
+            ArrayList<Node> changed = new ArrayList<>(maze.pathHistory);
+            maze.reset();
+
+            for (Node node : changed) {
+                refreshBlockGraphics(node);
+            }
+        }
     }
 
     public static void showHint() {
@@ -146,37 +271,20 @@ public class Main {
         KeyHandler.ActionKey.MAZE_RESET.setCallback(() -> { resetMazeGraphics(); });
         KeyHandler.ActionKey.MAZE_HINT.setCallback(() -> { showHint(); });
         
-        KeyHandler.ActionKey.MAZE_STEP_UNDO.setCallback(() -> { step(-1); });
-        KeyHandler.ActionKey.MAZE_STEP_REDO.setCallback(() -> { step(1); });
-            
-        KeyHandler.ActionKey.ZOOM_IN.setCallback(() -> { zoom(1); });
-        KeyHandler.ActionKey.ZOOM_OUT.setCallback(() -> { zoom(-1); });
-    }
-
-    // sets up animation to auto stepback all steps in pathHistory
-    private static void resetMazeGraphics() {
-        
-        if (!animationsFinished || maze.complete) {
-            return;
-        }
-
-        animationsFinished = false;
-        resetting = true;
-
-        int frames = maze.pathHistory.size();
-
-        tcNewMaze.setDuration((float)frames / tcNewMaze.fps);
-
-        tcNewMaze.setCallback(() -> {
-            step(-1);
-            if (tcNewMaze.frame == tcNewMaze.frames) {
-                animationsFinished = true;
-                resetting = false;
+        KeyHandler.ActionKey.MAZE_STEP_UNDO.setCallback(() -> {
+            if (tcReset.finished) {
+               step(-1);
             }
         });
 
-        tcNewMaze.start();
-
+        KeyHandler.ActionKey.MAZE_STEP_REDO.setCallback(() -> {
+            if (tcReset.finished) {
+                step(1);
+            }
+        });
+            
+        KeyHandler.ActionKey.ZOOM_IN.setCallback(() -> { zoom(1); });
+        KeyHandler.ActionKey.ZOOM_OUT.setCallback(() -> { zoom(-1); });
     }
 
     public static void zoom(int direction) {
@@ -190,7 +298,7 @@ public class Main {
 
         if (maze.currentNode != null) {
             player.setSize(player.getWidth() + ch, player.getHeight() + ch);
-            movePlayerToNode(maze.currentNode);
+            movePlayerGraphicsTo(maze.currentNode);
         }
 
         for (int y=0; y<maze.height; y++) {
@@ -214,7 +322,7 @@ public class Main {
         // TODO: doubles still sometimes disappear
         // 2x, 2x, stepback, stepback --> 2nd 2x disappears
 
-        if (!resetting && (maze.complete || !animationsFinished)) {
+        if (tcReset.finished && (maze.complete || !animationsFinished)) {
             return;
         }
 
@@ -233,7 +341,7 @@ public class Main {
         
     }
 
-    private static void movePlayerToNode(Node node) {
+    private static void movePlayerGraphicsTo(Node node) {
         
         int blockX = Config.mazeStartX + node.X * Config.blockSize;
         int blockY = Config.mazeStartY + node.Y * Config.blockSize;
@@ -244,31 +352,6 @@ public class Main {
         player.setLocation(centeredX, centeredY);
     }
 
-    public static void beginPlayerSpawnAnimation(Node node) {
-
-        player.setVisible(true);
-        movePlayerToNode(node);
-
-        // mirror if next step cannot be left
-        Node leftNode = node.getNeighbor(-1, 0);
-        player.setMirrored(leftNode.X == -1 || maze.get(leftNode) == Node.Type.WALL);
-
-        tcSpawnPlayer.setCallback(() -> {
-
-            // resize
-            float progress = (float)tcSpawnPlayer.frame / tcSpawnPlayer.frames;
-            int size = (int)((Config.blockSize - 2 * Config.BLOCK_BORDER_WIDTH) * progress);
-            player.setSize(size, size);
-        
-            movePlayerToNode(node);
-
-            if (tcSpawnPlayer.frame == tcSpawnPlayer.frames) {
-                animationsFinished = true;
-            }
-        
-        });
-        tcSpawnPlayer.start();
-    }
 
     private static void refreshBlockGraphics(Node node) {
 
@@ -300,6 +383,10 @@ public class Main {
 
     public static void newMazeGraphics() {
 
+        if (!animationsFinished) {
+            return;
+        }
+
         textNextLevel.setVisible(false);
         
         boolean newSize = maze.height != oldMaze.height || maze.width != oldMaze.width;
@@ -320,7 +407,7 @@ public class Main {
         window.sprites.setVisible(true);
 
         // determine which nodes should change
-        ArrayList<Node> nodesToChange = new ArrayList<>();
+        nodesToChange.clear();
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
 
@@ -333,71 +420,19 @@ public class Main {
             }
         }
 
-        beginMazeAnimation(nodesToChange);
-
-    }
-
-    private static void beginMazeAnimation(ArrayList<Node> nodesToChange) {
-
-        if (!ENABLE_ANIMATIONS) {
-            
-            if (maze.currentNode != null) {
+        if (ENABLE_ANIMATIONS) {
+            tcNewMaze.start();
+        }
+        else {
+            if (maze.currentNode != null) {     // TODO: remove if-statement?
                 player.setVisible(true);
-                movePlayerToNode(maze.currentNode);
+                movePlayerGraphicsTo(maze.currentNode);
             }
-
             for (Node node : nodesToChange) {
                 refreshBlockGraphics(node);
             }
-            return;
         }
 
-        animationsFinished = false;
-
-        // NOTE: frames is one more in order to remove generation border of last node
-        int frames = nodesToChange.size() + 1;
-
-        tcNewMaze.setDuration((float)frames / tcNewMaze.fps);
-
-        tcNewMaze.setCallback(() -> {
-
-            Node node;
-
-            if (tcNewMaze.frame < tcNewMaze.frames) {
-                
-                node = nodesToChange.get(tcNewMaze.frame-1);
-                
-                if (tcNewMaze.frame >= 2) {
-                    // remove border from last node
-                    Node lastNode = nodesToChange.get(tcNewMaze.frame-2);
-                    mazeBlocks[lastNode.Y][lastNode.X].setBorder(null);
-                }
-                
-                if (node.equals(oldMaze.currentNode)) {
-                    player.setVisible(false);
-                }
-
-                refreshBlockGraphics(node);
-                mazeBlocks[node.Y][node.X].setBorder(Config.BLOCK_BORDER_GEN);
-
-            }
-
-            else {
-
-                node = nodesToChange.get(tcNewMaze.frame-2);   // since last node should be changed twice
-                mazeBlocks[node.Y][node.X].setBorder(null);
-                
-                beginPlayerSpawnAnimation(maze.currentNode);
-                       
-                // TODO: hints don't work anymore
-                // // reset nodes (otherwise they refer to incorrect blocks)
-                // for (int i=0; i<hintNodes.length; i++) {
-                //     hintNodes[i] = null;
-                // }
-            }
-        });
-
-        tcNewMaze.start();
     }
 
     public static void generateNewMaze() {
