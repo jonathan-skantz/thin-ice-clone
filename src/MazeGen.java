@@ -6,7 +6,7 @@ import java.util.Collections;
  */
 public class MazeGen {
 
-    private static final int[][] dirChange = new int[][]{{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+    public static final int[][] dirChange = new int[][]{{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
 
     private static int invalidPathsCount = 0;
 
@@ -181,6 +181,7 @@ public class MazeGen {
 
     }
 
+    // FIXME: occasionally, an invalid maze is generated (spam space a few times)
     
     private static void printInfo() {
 
@@ -325,7 +326,6 @@ public class MazeGen {
         return neighbors;
     }
 
-
     private static Node getRandomStartNode(Maze maze) {
 
         Node start = new Node(Config.rand.nextInt(maze.width), Config.rand.nextInt(maze.height));
@@ -417,7 +417,7 @@ public class MazeGen {
 
         invalidPathsCount = 0;
 
-        Maze maze = new Maze(width, height);
+        Maze maze = new Maze(width, height, null);
 
         Node startNode = getRandomStartNode(maze);
         maze.setStartNode(startNode);

@@ -42,15 +42,6 @@ public class Config {
     public static final int BLOCK_BORDER_WIDTH = 1;
     
     public static final Border BLOCK_BORDER = BorderFactory.createLineBorder(new Color(0, 0, 0, 50), BLOCK_BORDER_WIDTH);
-    public static final Border BLOCK_BORDER_DOUBLE;
-    static {
-        Border empty = BorderFactory.createEmptyBorder(2, 2, 2, 2);
-        Border line = BorderFactory.createLineBorder(Color.WHITE, 4);
-
-        Border bord = BorderFactory.createCompoundBorder(empty, line);
-        Border comp = BorderFactory.createCompoundBorder(BLOCK_BORDER, bord);
-        BLOCK_BORDER_DOUBLE = comp;
-    }
 
     // separate border to visualize the new blocks during generation
     public static final Border BLOCK_BORDER_GEN = BorderFactory.createLineBorder(new Color(255, 255, 150), 2);

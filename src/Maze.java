@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Stack;
 
@@ -34,6 +35,18 @@ public class Maze {
         }
 
         typesOriginal = new Node.Type[height][width];
+    }
+
+    public ArrayList<Node> getNeighborsOf(Node node) {
+        
+        ArrayList<Node> neighbors = new ArrayList<>(4);
+        for (int[] change : MazeGen.dirChange) {
+            Node neighbor = node.getNeighbor(change[0], change[1]);
+            if (nodeWithinBounds(neighbor)) {
+                neighbors.add(neighbor);
+            }
+        }
+        return neighbors;
     }
 
     private Node.Type getOriginal(Node node) {

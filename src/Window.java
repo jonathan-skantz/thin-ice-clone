@@ -19,7 +19,7 @@ public class Window extends JFrame {
 
     public Window() {
         
-        Sprite.window = this;   // allow sprites to reference the window
+        Block.window = this;   // allow sprites to reference the window
 
         setTitle(TITLE);
         setSize(width, height);

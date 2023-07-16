@@ -1,9 +1,7 @@
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-import javax.swing.BorderFactory;
 import javax.swing.JLabel;
-import javax.swing.border.Border;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -19,10 +17,10 @@ public class Main {
     private static Maze oldMaze;        // keep track of old maze in order to animate change
     
     // sprites
-    public static Sprite player;
+    public static Block player;
     public static JLabel textNextLevel;
-    public static Sprite[][] mazeSprites;
-    
+    public static Block[][] mazeBlocks;
+
     public static Node[] hintNodes = new Node[Config.hintMax];
     
     // animations
@@ -43,9 +41,9 @@ public class Main {
         
         // create player
         int size = Config.blockSize - 2 * Config.BLOCK_BORDER_WIDTH;
-        player = new Sprite(size, size, Color.ORANGE, Config.blockSize);
+        player = new Block("src/textures/player.png", size);
+        player.velocity = Config.blockSize;
         player.setVisible(false);
-        player.setBorder(Config.BLOCK_BORDER);
         
         // setup next-level-text
         textNextLevel = new JLabel("Level complete");
@@ -76,12 +74,12 @@ public class Main {
 
         window.sprites.setVisible(false);
         
-        // reset old hint sprites
+        // reset old hint blocks
         for (Node n : hintNodes) {
             if (n != null) {
                 
                 if (maze.get(n) != Node.Type.BLOCKED && !n.equals(maze.currentNode)) {
-                    mazeSprites[n.Y][n.X].setBackground(Config.BLOCK_COLORS.get(Node.Type.GROUND));
+                    mazeBlocks[n.Y][n.X].setBackground(Config.BLOCK_COLORS.get(Node.Type.GROUND));
                 }
             }
         }
@@ -104,7 +102,7 @@ public class Main {
         for (int hint=1; hint<=Config.hintMax && hint<path.size()-1; hint++) {
             Node step = path.get(hint);
 
-            mazeSprites[step.Y][step.X].setBackground(Config.HINT_COLOR);
+            mazeBlocks[step.Y][step.X].setBackground(Config.HINT_COLOR);
             hintNodes[i] = step;
             i++;
         }
@@ -122,18 +120,10 @@ public class Main {
         Node lastNode = maze.currentNode;
 
         if (maze.userMove(action)) {
-            
+
             player.move(action);
-            
-            Color color = Config.BLOCK_COLORS.get(maze.get(lastNode));
-            Sprite block = mazeSprites[lastNode.Y][lastNode.X];
-            
-            block.setBackground(color);
-            
-            if (maze.get(lastNode) == Node.Type.TOUCHED || maze.get(lastNode) == Node.Type.END) {
-                block.setBorder(Config.BLOCK_BORDER);
-            }
-            
+            potentiallyMirrorPlayer(action, lastNode);
+
             if (maze.complete) {
                 textNextLevel.setVisible(true);
             }
@@ -166,7 +156,7 @@ public class Main {
     // sets up animation to auto stepback all steps in pathHistory
     private static void resetMazeGraphics() {
         
-        if (!animationsFinished) {
+        if (!animationsFinished || maze.complete) {
             return;
         }
 
@@ -205,10 +195,18 @@ public class Main {
 
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
-                mazeSprites[y][x].setSize(Config.blockSize, Config.blockSize);
+                mazeBlocks[y][x].setSize(Config.blockSize, Config.blockSize);
                 refreshBlockPosition(x, y);
             }
         }
+    }
+
+    private static void potentiallyMirrorPlayer(KeyHandler.ActionKey action, Node lastNode) {
+        
+        if (action == KeyHandler.ActionKey.MOVE_LEFT || action == KeyHandler.ActionKey.MOVE_RIGHT) {
+            player.setMirrored(action == KeyHandler.ActionKey.MOVE_RIGHT);
+        }
+        refreshBlockGraphics(lastNode);    
     }
 
     public static void step(int direction) {
@@ -226,12 +224,11 @@ public class Main {
 
         if (action != null) {
             player.move(action);
+            potentiallyMirrorPlayer(action, lastNode);
 
             if (direction == -1) {
-                refreshBlockGraphics(maze.currentNode, false);
+                refreshBlockGraphics(maze.currentNode);
             }
-
-            refreshBlockGraphics(lastNode, false);
         }
         
     }
@@ -252,6 +249,10 @@ public class Main {
         player.setVisible(true);
         movePlayerToNode(node);
 
+        // mirror if next step cannot be left
+        Node leftNode = node.getNeighbor(-1, 0);
+        player.setMirrored(leftNode.X == -1 || maze.get(leftNode) == Node.Type.WALL);
+
         tcSpawnPlayer.setCallback(() -> {
 
             // resize
@@ -269,32 +270,25 @@ public class Main {
         tcSpawnPlayer.start();
     }
 
-    private static Border getBorder(Node node) {
-        if (maze.get(node) == Node.Type.DOUBLE || maze.get(node) == Node.Type.END_DOUBLE) {
-            return Config.BLOCK_BORDER_DOUBLE;
+    private static void refreshBlockGraphics(Node node) {
+
+        Block block = mazeBlocks[node.Y][node.X];
+        Node.Type type = maze.get(node);
+
+        block.setType(type);
+
+        for (Node neighbor : maze.getNeighborsOf(node)) {
+            boolean nodeCausesFrost = maze.get(node) == Node.Type.DOUBLE || maze.get(node) == Node.Type.END_DOUBLE;
+            mazeBlocks[neighbor.Y][neighbor.X].setFrost(neighbor, node, nodeCausesFrost);
         }
-        return Config.BLOCK_BORDER;
-    }
-
-    private static void refreshBlockGraphics(Node node, boolean genBorder) {
-
-        Color color = Config.BLOCK_COLORS.get(maze.get(node));
-        Border border = getBorder(node);
-
-        if (genBorder) {
-            border = BorderFactory.createCompoundBorder(Config.BLOCK_BORDER_GEN, border);
-        }
-
-        mazeSprites[node.Y][node.X].setBackground(color);
-        mazeSprites[node.Y][node.X].setBorder(border);
-
+        
     }
 
     public static void newBlockColors() {
 
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
-                mazeSprites[y][x].setBackground(Config.BLOCK_COLORS.get(maze.get(x, y)));
+                mazeBlocks[y][x].setBackground(Config.BLOCK_COLORS.get(maze.get(x, y)));
             }
         }
     }
@@ -304,18 +298,16 @@ public class Main {
         Config.mazeStartY = (Window.height - Config.blockSize * maze.height) / 2;
     }
 
-
-
     public static void newMazeGraphics() {
-        
+
         textNextLevel.setVisible(false);
         
         boolean newSize = maze.height != oldMaze.height || maze.width != oldMaze.width;
 
         if (newSize) {
-            // remove old sprites from canvas
-            for (Sprite[] row : mazeSprites) {
-                for (Sprite spr : row) {
+            // remove old blocks from canvas
+            for (Block[] row : mazeBlocks) {
+                for (Block spr : row) {
                     window.sprites.remove(spr);
                 }
             }
@@ -332,10 +324,12 @@ public class Main {
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
 
-                if (maze.get(x, y) == oldMaze.get(x, y) && !(x == maze.currentNode.X && y == maze.currentNode.Y)) {
+                Node node = new Node(x, y);
+
+                if (maze.get(node) == oldMaze.get(node) && !(node.equals(oldMaze.currentNode))) {
                     continue;
                 }
-                nodesToChange.add(new Node(x, y));
+                nodesToChange.add(node);
             }
         }
 
@@ -352,10 +346,8 @@ public class Main {
                 movePlayerToNode(maze.currentNode);
             }
 
-            for (int y=0; y<maze.height; y++) {
-                for (int x=0; x<maze.width; x++) {
-                    refreshBlockGraphics(new Node(x, y), false);
-                }
+            for (Node node : nodesToChange) {
+                refreshBlockGraphics(node);
             }
             return;
         }
@@ -376,21 +368,24 @@ public class Main {
                 node = nodesToChange.get(tcNewMaze.frame-1);
                 
                 if (tcNewMaze.frame >= 2) {
+                    // remove border from last node
                     Node lastNode = nodesToChange.get(tcNewMaze.frame-2);
-                    refreshBlockGraphics(lastNode, false);
+                    mazeBlocks[lastNode.Y][lastNode.X].setBorder(null);
                 }
                 
                 if (node.equals(oldMaze.currentNode)) {
                     player.setVisible(false);
                 }
 
-                refreshBlockGraphics(node, true);
+                refreshBlockGraphics(node);
+                mazeBlocks[node.Y][node.X].setBorder(Config.BLOCK_BORDER_GEN);
+
             }
 
             else {
 
                 node = nodesToChange.get(tcNewMaze.frame-2);   // since last node should be changed twice
-                refreshBlockGraphics(node, false);
+                mazeBlocks[node.Y][node.X].setBorder(null);
                 
                 beginPlayerSpawnAnimation(maze.currentNode);
                        
@@ -422,7 +417,7 @@ public class Main {
     }
 
     private static void refreshBlockPosition(int x, int y) {
-        Sprite block = mazeSprites[y][x];
+        Block block = mazeBlocks[y][x];
         int posX = Config.mazeStartX + x * Config.blockSize;
         int posY = Config.mazeStartY + y * Config.blockSize;
         block.setLocation(posX, posY);
@@ -430,16 +425,14 @@ public class Main {
 
     private static void createWallBlocks() {
 
-        mazeSprites = new Sprite[maze.height][maze.width];
+        mazeBlocks = new Block[maze.height][maze.width];
         
         setMazeStartCoords();
 
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
-                Color color = Config.BLOCK_COLORS.get(Node.Type.WALL);
-                Sprite block = new Sprite(Config.blockSize, Config.blockSize, color, 0);
-                mazeSprites[y][x] = block;
-                block.setBorder(Config.BLOCK_BORDER);
+                Block block = new Block("src/textures/wall.png", Config.blockSize);
+                mazeBlocks[y][x] = block;
                 refreshBlockPosition(x, y);
             }
         }
