@@ -181,12 +181,10 @@ public class MazeSolver {
     
         else {
 
-            int[][] dir = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
-            // explore all possible directions from the current node,
-            // checking in the order: left, down, right, up
-            for (int[] d : dir) {
+            // explore all possible directions from the current node
+            for (Maze.Direction dir : Maze.Direction.values()) {
                 
-                Node newNode = currentNode.getNeighbor(d[0], d[1]);
+                Node newNode = currentNode.getNeighbor(dir);
                 
                 if (walkable(newNode)) {
                     

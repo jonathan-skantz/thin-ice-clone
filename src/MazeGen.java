@@ -6,8 +6,6 @@ import java.util.Collections;
  */
 public class MazeGen {
 
-    public static final int[][] dirChange = new int[][]{{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
-
     private static int invalidPathsCount = 0;
 
     private static ArrayList<Node> triedDouble = new ArrayList<>();
@@ -306,9 +304,9 @@ public class MazeGen {
 
         ArrayList<Node> neighbors = new ArrayList<>(4);
 
-        for (int[] change : dirChange) {
+        for (Maze.Direction dir : Maze.Direction.values()) {
             
-            Node neighbor = node.getNeighbor(change[0], change[1]);
+            Node neighbor = node.getNeighbor(dir);
             
             if (maze.nodeWithinBounds(neighbor) && walkableType(maze, neighbor)) {
                 neighbors.add(neighbor);
@@ -364,11 +362,11 @@ public class MazeGen {
             Node firstStart = start;
 
             // try move up, down, left, right once until startNode is valid
-            for (int[] change : dirChange) {
+            for (Maze.Direction dir : Maze.Direction.values()) {
                 if (validStartNode(maze, start)) {
                     break;
                 }
-                start = firstStart.getNeighbor(change[0], change[1]);
+                start = firstStart.getNeighbor(dir);
             }
 
         }

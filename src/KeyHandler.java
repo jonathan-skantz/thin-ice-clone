@@ -68,11 +68,12 @@ public class KeyHandler extends KeyAdapter {
         }
 
         // returns list of dx, dy
-        public int[] getMovement() {
-            if (this == MOVE_LEFT) return new int[]{-1, 0};
-            else if (this == MOVE_RIGHT) return new int[]{1, 0};
-            else if (this == MOVE_UP) return new int[]{0, -1};
-            else return new int[]{0, 1};
+        public Maze.Direction toDirection() {
+            if (this == MOVE_UP) return Maze.Direction.UP;
+            else if (this == MOVE_DOWN) return Maze.Direction.DOWN;
+            else if (this == MOVE_LEFT) return Maze.Direction.LEFT;
+            else if (this == MOVE_RIGHT) return Maze.Direction.RIGHT;
+            return null;
         }
         
     }

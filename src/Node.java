@@ -33,8 +33,8 @@ public class Node {
         this.Y = y;
     }
 
-    public Node getNeighbor(int dx, int dy) {
-        return new Node(X+dx, Y+dy);
+    public Node getNeighbor(Maze.Direction direction) {
+        return new Node(X+direction.dx, Y+direction.dy);
     }
 
     @Override

@@ -78,10 +78,7 @@ public class Main {
             public void onStart() {
                 player.setVisible(true);
                 movePlayerGraphicsTo(maze.currentNode);
-
-                // mirror if next step cannot be left
-                Node leftNode = maze.currentNode.getNeighbor(-1, 0);
-                player.setMirrored(leftNode.X == -1 || maze.get(leftNode) == Node.Type.WALL);
+                mirrorPlayer(null);
             }
 
             @Override
@@ -159,7 +156,6 @@ public class Main {
             public void onTick() {
                 step(-1);
                 movePlayerGraphicsTo(maze.currentNode);
-                System.out.println(maze.currentNode);
             }
 
             @Override
@@ -178,6 +174,8 @@ public class Main {
             return;
         }
         
+        textNextLevel.setVisible(false);
+
         if (ENABLE_ANIMATIONS) {
             tcReset.start();
         }
@@ -188,6 +186,9 @@ public class Main {
             for (Node node : changed) {
                 refreshBlockGraphics(node);
             }
+
+            movePlayerGraphicsTo(maze.currentNode);
+            mirrorPlayer(null);
         }
     }
 
@@ -247,7 +248,8 @@ public class Main {
         if (maze.userMove(action)) {
 
             player.move(action);
-            potentiallyMirrorPlayer(action, lastNode);
+            mirrorPlayer(action);
+            refreshBlockGraphics(lastNode);
 
             if (maze.complete) {
                 textNextLevel.setVisible(true);
@@ -309,12 +311,39 @@ public class Main {
         }
     }
 
-    private static void potentiallyMirrorPlayer(KeyHandler.ActionKey action, Node lastNode) {
-        
-        if (action == KeyHandler.ActionKey.MOVE_LEFT || action == KeyHandler.ActionKey.MOVE_RIGHT) {
-            player.setMirrored(action == KeyHandler.ActionKey.MOVE_RIGHT);
+    private static boolean playerMustMove(Maze.Direction dir) {
+
+        if (maze.currentNeighborWalkable(dir)) {
+
+            for (Maze.Direction d : Maze.Direction.values()) {
+                if (d != dir && maze.currentNeighborWalkable(d)) {
+                    return false;
+                }
+            }
+            return true;
         }
-        refreshBlockGraphics(lastNode);    
+        return false;
+    }
+
+    private static void mirrorPlayer(KeyHandler.ActionKey action) {
+
+        if (action == null) {
+            player.setMirrored(!maze.currentNeighborWalkable(Maze.Direction.LEFT));
+        }
+
+        else if (playerMustMove(Maze.Direction.LEFT)) {
+            player.setMirrored(false);
+        }
+        else if (playerMustMove(Maze.Direction.RIGHT)) {
+            player.setMirrored(true);
+        }
+        else if (action == KeyHandler.ActionKey.MOVE_LEFT) {
+            player.setMirrored(false);
+        }
+        else if (action == KeyHandler.ActionKey.MOVE_RIGHT) {
+            player.setMirrored(true);
+        }
+        
     }
 
     public static void step(int direction) {
@@ -332,7 +361,8 @@ public class Main {
 
         if (action != null) {
             player.move(action);
-            potentiallyMirrorPlayer(action, lastNode);
+            mirrorPlayer(action);
+            refreshBlockGraphics(lastNode);
 
             if (direction == -1) {
                 refreshBlockGraphics(maze.currentNode);
@@ -424,10 +454,10 @@ public class Main {
             tcNewMaze.start();
         }
         else {
-            if (maze.currentNode != null) {     // TODO: remove if-statement?
-                player.setVisible(true);
-                movePlayerGraphicsTo(maze.currentNode);
-            }
+            player.setVisible(true);
+            movePlayerGraphicsTo(maze.currentNode);
+            mirrorPlayer(null);
+
             for (Node node : nodesToChange) {
                 refreshBlockGraphics(node);
             }

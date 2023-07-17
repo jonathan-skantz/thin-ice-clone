@@ -22,6 +22,21 @@ public class Maze {
     public Node.Type[][] types;
     public Node.Type[][] typesOriginal;
 
+    public enum Direction {
+        UP(0, -1),
+        DOWN(0, 1),
+        LEFT(-1, 0),
+        RIGHT(1, 0);
+
+        public final int dx;
+        public final int dy;
+
+        private Direction(int dx, int dy) {
+            this.dx = dx;
+            this.dy = dy;
+        }
+    }
+
     public Maze(int width, int height, Node.Type firstType) {
         this.width = width;
         this.height = height;
@@ -40,8 +55,8 @@ public class Maze {
     public ArrayList<Node> getNeighborsOf(Node node) {
         
         ArrayList<Node> neighbors = new ArrayList<>(4);
-        for (int[] change : MazeGen.dirChange) {
-            Node neighbor = node.getNeighbor(change[0], change[1]);
+        for (Direction dir : Direction.values()) {
+            Node neighbor = node.getNeighbor(dir);
             if (nodeWithinBounds(neighbor)) {
                 neighbors.add(neighbor);
             }
@@ -88,8 +103,7 @@ public class Maze {
     // returns true if valid move, false if invalid move
     public boolean userMove(KeyHandler.ActionKey action) {
 
-        int[] change = action.getMovement();
-        Node newNode = currentNode.getNeighbor(change[0], change[1]);
+        Node newNode = currentNode.getNeighbor(action.toDirection());
 
         if (nodeWithinBounds(newNode) && nodeTypeWalkable(newNode)) {
             
@@ -212,6 +226,11 @@ public class Maze {
 
     private boolean nodeTypeWalkable(Node node) {
         return get(node) != Node.Type.WALL && get(node) != Node.Type.BLOCKED;
+    }
+
+    public boolean currentNeighborWalkable(Maze.Direction direction) {
+        Node node = currentNode.getNeighbor(direction);
+        return nodeWithinBounds(node) && nodeTypeWalkable(node);
     }
 
 }
