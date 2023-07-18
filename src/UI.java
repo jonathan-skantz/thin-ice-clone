@@ -398,7 +398,7 @@ public class UI {
         // --- row 1: sliders ---
         JSlider widthSlider = getNewSlider(Config.MAZE_WIDTH_MIN, Config.MAZE_WIDTH_MAX, MazeGen.width);
         JSlider heightSlider = getNewSlider(Config.MAZE_HEIGHT_MIN, Config.MAZE_HEIGHT_MAX, MazeGen.height);
-        hintMaxSlider = getNewSlider(0, MazeGen.pathLength, Config.hintMax);
+        hintMaxSlider = getNewSlider(0, MazeGen.pathLength-1, Config.hintMax);
 
         c.gridy = 0;
         subPanel.add(widthSlider, c);
@@ -408,12 +408,12 @@ public class UI {
         // --- row 2: labels ---
         JLabel widthLabel = new JLabel("Width: " + widthSlider.getValue());
         JLabel heightLabel = new JLabel("Height: " + heightSlider.getValue());
-        JLabel hintLabel = new JLabel("Hint length: " + hintMaxSlider.getValue());
+        hintMaxLabel = new JLabel("Hint length: " + hintMaxSlider.getValue());
         
         c.gridy = 1;
         subPanel.add(widthLabel, c);
         subPanel.add(heightLabel, c);
-        subPanel.add(hintLabel, c);
+        subPanel.add(hintMaxLabel, c);
 
         // add callbacks
         widthSlider.addChangeListener(e -> {
@@ -428,6 +428,12 @@ public class UI {
             heightLabel.setText("Height: " + val);
             MazeGen.setHeight(val);
             updateNodeTypesSliders();
+        });
+
+        hintMaxSlider.addChangeListener(e -> {
+            int val = hintMaxSlider.getValue();
+            hintMaxLabel.setText("Hint length: " + val);
+            Config.hintMax = val;
         });
 
         return subPanel;
@@ -519,7 +525,7 @@ public class UI {
         // TODO: doesn't work with doubles that result in paths longer than wxh
         if (MazeGen.amountNodesAll < Config.hintMax) {
             Config.setHintMax(MazeGen.amountNodesAll);
-            hintMaxSlider.setMaximum(MazeGen.pathLength);
+            hintMaxSlider.setMaximum(MazeGen.pathLength-1);
             hintMaxLabel.setText("Hint length: " + Config.hintMax);
         }
         

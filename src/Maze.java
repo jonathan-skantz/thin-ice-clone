@@ -228,8 +228,7 @@ public class Maze {
         return get(node) != Node.Type.WALL && get(node) != Node.Type.BLOCKED;
     }
 
-    public boolean currentNeighborWalkable(Maze.Direction direction) {
-        Node node = currentNode.getNeighbor(direction);
+    public boolean walkable(Node node) {
         return nodeWithinBounds(node) && nodeTypeWalkable(node);
     }
 

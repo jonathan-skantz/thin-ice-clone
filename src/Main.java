@@ -1,10 +1,12 @@
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
 import javax.swing.JLabel;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Point;
 
 /**
  * Main class for the game.
@@ -21,8 +23,6 @@ public class Main {
     public static JLabel textNextLevel;
     public static Block[][] mazeBlocks;
 
-    public static Node[] hintNodes = new Node[Config.hintMax];
-    
     // animations
     private static final boolean ENABLE_ANIMATIONS = true;
     private static boolean animationsFinished = true;
@@ -32,6 +32,9 @@ public class Main {
     private static TimedCounter tcReset;
 
     private static ArrayList<Node> nodesToChange = new ArrayList<>(0);
+    
+    private static LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>(Config.hintMax);
+    private static Font hintFont = new Font("verdana", Font.BOLD, (int)(0.5*Config.blockSize));
 
     public static void main(String[] args) {
 
@@ -129,12 +132,6 @@ public class Main {
                 mazeBlocks[node.Y][node.X].setBorder(null);
                 
                 tcSpawnPlayer.start();
-                    
-                // TODO: hints don't work anymore
-                // // reset nodes (otherwise they refer to incorrect blocks)
-                // for (int i=0; i<hintNodes.length; i++) {
-                //     hintNodes[i] = null;
-                // }
             }
         };
 
@@ -168,13 +165,23 @@ public class Main {
 
     }
 
+    private static void removeText() {
+        for (JLabel hint : hints.keySet()) {
+            window.sprites.remove(hint);
+        }
+        hints.clear();
+        textNextLevel.setVisible(false);
+
+        window.repaint();   // some hints are still visible
+    }
+
     private static void resetMazeGraphics() {
         
         if (!animationsFinished) {
             return;
         }
         
-        textNextLevel.setVisible(false);
+        removeText();
 
         if (ENABLE_ANIMATIONS) {
             tcReset.start();
@@ -194,43 +201,65 @@ public class Main {
 
     public static void showHint() {
 
-        if (!animationsFinished) {
+        if (!animationsFinished || maze.currentNode == null || maze.complete) {
             return;
         }
 
         window.sprites.setVisible(false);
         
         // reset old hint blocks
-        for (Node n : hintNodes) {
-            if (n != null) {
-                
-                if (maze.get(n) != Node.Type.BLOCKED && !n.equals(maze.currentNode)) {
-                    mazeBlocks[n.Y][n.X].setBackground(Config.BLOCK_COLORS.get(Node.Type.GROUND));
-                }
-            }
+        for (JLabel hintLabel : hints.keySet()) {
+            window.sprites.remove(hintLabel);
         }
 
-        if (Config.newHintMax) {
-            hintNodes = new Node[Config.hintMax];
-        }
+        hints.clear();
 
         // gets solution based on current node
-        LinkedList<Node> path;
+        MazeSolver solver = new MazeSolver(maze);
+        LinkedList<Node> path = Config.hintTypeLongest ? solver.findLongestPath() : solver.findShortestPath();
 
-        if (Config.hintTypeLongest) {
-            path = MazeSolver.findLongestPath();
-        }
-        else {
-            path = MazeSolver.findShortestPath();
-        }
+        Node removedFirst = path.removeFirst();
 
-        int i = 0;
-        for (int hint=1; hint<=Config.hintMax && hint<path.size()-1; hint++) {
+        for (int hint=0; hint<Config.hintMax && hint<path.size(); hint++) {
             Node step = path.get(hint);
+            
+            JLabel label = new JLabel(String.valueOf(hint+1));
+            label.setHorizontalAlignment(JLabel.CENTER);
+            label.setForeground(new Color(100, 100, 100));
+            label.setFont(hintFont);
+            
+            label.setSize(Config.blockSize, Config.blockSize);
+            int pathFirstAppearance = path.indexOf(step);
+            if (pathFirstAppearance != hint) {
+                // second step on double
+                Node nodeBeforeFirstStep;
+                JLabel labelFirstStep;
 
-            mazeBlocks[step.Y][step.X].setBackground(Config.HINT_COLOR);
-            hintNodes[i] = step;
-            i++;
+                Object[] labels = hints.keySet().toArray();
+                if (pathFirstAppearance == 0) {
+                    nodeBeforeFirstStep = removedFirst;
+                    labelFirstStep = (JLabel) labels[pathFirstAppearance];
+                }
+                else {
+                    nodeBeforeFirstStep = path.get(pathFirstAppearance-1);
+                    labelFirstStep = (JLabel) labels[pathFirstAppearance];
+                }
+                if (nodeBeforeFirstStep.X < step.X) {
+                    labelFirstStep.setHorizontalAlignment(JLabel.LEFT);
+                    label.setHorizontalAlignment(JLabel.RIGHT);
+                }
+                else {
+                    labelFirstStep.setHorizontalAlignment(JLabel.RIGHT);
+                    label.setHorizontalAlignment(JLabel.LEFT);
+                }
+
+            }
+            label.setLocation(getBlockPosition(step));
+            
+            window.sprites.add(label);
+
+            hints.put(label, step);
+            window.sprites.setComponentZOrder(label, 1);
         }
 
         window.sprites.setVisible(true);
@@ -250,6 +279,22 @@ public class Main {
             player.move(action);
             mirrorPlayer(action);
             refreshBlockGraphics(lastNode);
+
+            if (hints.size() > 0) {
+
+                Object[] labels = hints.keySet().toArray();
+                
+                if (maze.currentNode.equals(hints.get(labels[0]))) {
+                    window.sprites.remove((JLabel)labels[0]);
+                    hints.remove(labels[0]);
+                }
+                else {
+                    for (JLabel hintLabel : hints.keySet()) {
+                        window.sprites.remove(hintLabel);
+                    }
+                    hints.clear();
+                }
+            }
 
             if (maze.complete) {
                 textNextLevel.setVisible(true);
@@ -306,17 +351,25 @@ public class Main {
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
                 mazeBlocks[y][x].setSize(Config.blockSize, Config.blockSize);
-                refreshBlockPosition(x, y);
+                mazeBlocks[y][x].setLocation(getBlockPosition(new Node(x, y)));
             }
         }
+
+        hintFont = new Font(hintFont.getName(), hintFont.getStyle(), (int)(0.5*Config.blockSize));
+        for (JLabel label : hints.keySet()) {
+            label.setSize(Config.blockSize, Config.blockSize);
+            label.setFont(hintFont);
+            label.setLocation(getBlockPosition(hints.get(label)));
+        }
+
     }
 
     private static boolean playerMustMove(Maze.Direction dir) {
 
-        if (maze.currentNeighborWalkable(dir)) {
+        if (maze.walkable(maze.currentNode.getNeighbor(dir))) {
 
             for (Maze.Direction d : Maze.Direction.values()) {
-                if (d != dir && maze.currentNeighborWalkable(d)) {
+                if (d != dir && maze.walkable(maze.currentNode.getNeighbor(d))) {
                     return false;
                 }
             }
@@ -328,7 +381,7 @@ public class Main {
     private static void mirrorPlayer(KeyHandler.ActionKey action) {
 
         if (action == null) {
-            player.setMirrored(!maze.currentNeighborWalkable(Maze.Direction.LEFT));
+            player.setMirrored(!maze.walkable(maze.currentNode.getNeighbor(Maze.Direction.LEFT)));
         }
 
         else if (playerMustMove(Maze.Direction.LEFT)) {
@@ -417,7 +470,7 @@ public class Main {
             return;
         }
 
-        textNextLevel.setVisible(false);
+        removeText();
         
         boolean newSize = maze.height != oldMaze.height || maze.width != oldMaze.width;
 
@@ -481,11 +534,10 @@ public class Main {
         newMazeGraphics();
     }
 
-    private static void refreshBlockPosition(int x, int y) {
-        Block block = mazeBlocks[y][x];
-        int posX = Config.mazeStartX + x * Config.blockSize;
-        int posY = Config.mazeStartY + y * Config.blockSize;
-        block.setLocation(posX, posY);
+    private static Point getBlockPosition(Node node) {
+        int posX = Config.mazeStartX + node.X * Config.blockSize;
+        int posY = Config.mazeStartY + node.Y * Config.blockSize;
+        return new Point(posX, posY);
     }
 
     private static void createWallBlocks() {
@@ -498,7 +550,7 @@ public class Main {
             for (int x=0; x<maze.width; x++) {
                 Block block = new Block("src/textures/wall.png", Config.blockSize);
                 mazeBlocks[y][x] = block;
-                refreshBlockPosition(x, y);
+                block.setLocation(getBlockPosition(new Node(x, y)));
             }
         }
 

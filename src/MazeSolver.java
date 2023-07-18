@@ -4,47 +4,53 @@ import java.util.Stack;
 
 public class MazeSolver {
 
-    private static Node.Type[][] mazeCopy;
+    private Node.Type[][] mazeCopy;
+    private Maze maze;
 
-    private static Maze maze;
+    private Stack<Node> accumulatorPath = new Stack<>();
 
-    private static Stack<Node> accumulatorPath = new Stack<>();
-
-    public static LinkedList<Node> longestPath = new LinkedList<>();
-    public static LinkedList<Node> shortestPath = new LinkedList<>();
+    public LinkedList<Node> longestPath = new LinkedList<>();
+    public LinkedList<Node> shortestPath = new LinkedList<>();
 
     public static void main(String[] args) {
 
         // generate maze
+        Config.apply();
         Maze maze = MazeGen.generate();
 
         // find solutions
-        MazeSolver.findLongestPath();
-        MazeSolver.findShortestPath();       
+        MazeSolver solver = new MazeSolver(maze);
+        solver.findLongestPath();
+        solver.findShortestPath();
 
         // print comparison
         System.out.println("Maze with creation path:");
         MazePrinter.printMazeWithPath(maze, maze.creationPath);
 
         System.out.println("longest: ");
-        MazePrinter.printMazeWithPath(maze, longestPath);
+        System.out.println(solver.longestPath);
+        MazePrinter.printMazeWithPath(maze, solver.longestPath);
 
         System.out.println("\nshortest:");
-        MazePrinter.printMazeWithPath(maze, shortestPath);
+        System.out.println(solver.shortestPath);
+        MazePrinter.printMazeWithPath(maze, solver.shortestPath);
     }
 
-    private static void reset() {
+    public MazeSolver(Maze maze) {
+        this.maze = maze;
+        reset();
+    }
 
-        mazeCopy = new Node.Type[MazeGen.height][MazeGen.width];
-        for (int y=0; y<MazeGen.height; y++) {
-            for (int x=0; x<MazeGen.width; x++) {
-                mazeCopy[y][x] = maze.typesOriginal[y][x];
+    private void reset() {
+
+        mazeCopy = new Node.Type[maze.height][maze.width];
+        for (int y=0; y<maze.height; y++) {
+            for (int x=0; x<maze.width; x++) {
+                mazeCopy[y][x] = maze.types[y][x];
             }
         }
 
         accumulatorPath.clear();
-        longestPath.clear();
-        shortestPath.clear();
     }
 
     /**
@@ -52,9 +58,10 @@ public class MazeSolver {
      *
      * @return a LinkedList of Nodes representing the shortest path from currentNode to endNode
      */
-    public static LinkedList<Node> findShortestPath() {
+    public LinkedList<Node> findShortestPath() {
 
         reset();
+        shortestPath.clear();
 
         // create a queue for BFS
         Queue<Node> queue = new LinkedList<>();
@@ -123,7 +130,7 @@ public class MazeSolver {
      * @param y y-coordinate
      * @return true if the point is not diagonally adjacent to the given node, false otherwise
      */
-    private static boolean pointNotCorner(Node node, int x, int y) {
+    private boolean pointNotCorner(Node node, int x, int y) {
         return (x == node.X || y == node.Y);
     }
 
@@ -135,20 +142,21 @@ public class MazeSolver {
      * @param y y-coordinate
      * @return true if the point is not the same as the given node, false otherwise
      */
-    private static boolean pointNotNode(Node node, int x, int y) {
+    private boolean pointNotNode(Node node, int x, int y) {
         return !(x == node.X && y == node.Y);
     }
 
-    public static LinkedList<Node> findLongestPath() {
+    public LinkedList<Node> findLongestPath() {
 
         reset();
+        longestPath.clear();
 
         exploreNewNodeFrom(maze.currentNode);
 
         return longestPath;
     }
 
-    private static boolean walkable(Node node) {
+    private boolean walkable(Node node) {
         int x = node.X;
         int y = node.Y;
 
@@ -165,16 +173,42 @@ public class MazeSolver {
         return t != Node.Type.BLOCKED && t != Node.Type.WALL;
     }
 
-    private static void exploreNewNodeFrom(Node currentNode) {
+    private void markAsWalked(Node node) {
+        
+        if (mazeCopy[node.Y][node.X] == Node.Type.DOUBLE) {
+            mazeCopy[node.Y][node.X] = Node.Type.TOUCHED;
+        }
+        else if (mazeCopy[node.Y][node.X] == Node.Type.END_DOUBLE) {
+            mazeCopy[node.Y][node.X] = Node.Type.END;
+        }
+        else {
+            mazeCopy[node.Y][node.X] = Node.Type.BLOCKED;
+        }
+    }
+
+    private void unwalk(Node node) {
+        if (mazeCopy[node.Y][node.X] == Node.Type.TOUCHED) {
+            mazeCopy[node.Y][node.X] = Node.Type.DOUBLE;
+        }
+        else if (mazeCopy[node.Y][node.X] == Node.Type.END) {
+            mazeCopy[node.Y][node.X] = Node.Type.END_DOUBLE;
+        }
+        else {
+            mazeCopy[node.Y][node.X] = Node.Type.GROUND;
+        }
+    }
+
+    private void exploreNewNodeFrom(Node currentNode) {
 
         // TODO: exit once a longest path is found
 
         accumulatorPath.add(currentNode);
         
-        if (currentNode.equals(maze.endNode)) {
+        if (currentNode.equals(maze.endNode) && mazeCopy[currentNode.Y][currentNode.X] == Node.Type.END) {
             // if end node: check if longer than last saved path
 
             if (accumulatorPath.size() > longestPath.size()) {
+                // TODO: check only if size is same as remaining nodes --> return
                 longestPath = new LinkedList<>(accumulatorPath);
             }
         }
@@ -188,11 +222,11 @@ public class MazeSolver {
                 
                 if (walkable(newNode)) {
                     
-                    mazeCopy[newNode.Y][newNode.X] = Node.Type.BLOCKED;
+                    markAsWalked(currentNode);
                     
                     exploreNewNodeFrom(newNode);
                     
-                    mazeCopy[newNode.Y][newNode.X] = Node.Type.GROUND;
+                    unwalk(currentNode);
                 }
             }
         }
