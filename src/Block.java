@@ -44,7 +44,7 @@ public class Block extends JComponent {
         bottomImageOriginal = Image.copy(bottomImage);
         combinedImage = Image.copy(bottomImage);
 
-        window.sprites.add(this);
+        Window.sprites.add(this);
         setBounds(0, 0, size, size);
 
         beginAnimation();

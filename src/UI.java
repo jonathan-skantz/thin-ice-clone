@@ -524,22 +524,22 @@ public class UI {
         // setup button that opens a dialog
         JButton btn = new JButton(title);
         btn.setSize(btn.getPreferredSize());
-        Main.window.sprites.add(btn);
+        Window.sprites.add(btn);
 
         // open popup with `contentPane`
         btn.addActionListener(e -> {
-            JDialog dialog = new JDialog(Main.window, title, true);
+            JDialog dialog = new JDialog(Window.frame, title, true);
             dialog.setResizable(false);
             dialog.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             dialog.setContentPane(contentPane);
-            dialog.setLocationRelativeTo(Main.window);
+            dialog.setLocationRelativeTo(Window.frame);
             dialog.pack();
             dialog.setVisible(true);
 
             dialog.addWindowListener(new WindowAdapter() {
                 @Override
                 public void windowClosed(WindowEvent e) {
-                    Main.window.requestFocus();  // prevents focus back to the config btn and rather the game canvas
+                    Window.frame.requestFocus();  // prevents focus back to the config btn and rather the game canvas
                     
                     if (mazeConfigIsNew) {
                         Main.generateNewMaze();

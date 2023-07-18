@@ -13,8 +13,6 @@ import java.awt.Point;
  */
 public class Main {
 
-    public static Window window = new Window();
-    
     private static Maze maze;
     private static Maze oldMaze;        // keep track of old maze in order to animate change
     
@@ -38,6 +36,7 @@ public class Main {
 
     public static void main(String[] args) {
 
+        Window.setup();
         Config.apply();
         
         setupTimerSpawnPlayer();
@@ -46,7 +45,7 @@ public class Main {
 
         setupKeyCallbacks();
 
-        window.sprites.setVisible(false);   // prevents redrawing while setting up
+        Window.sprites.setVisible(false);   // prevents redrawing while setting up
         
         // create player
         int size = Config.blockSize - 2 * Config.BLOCK_BORDER_WIDTH;
@@ -64,14 +63,14 @@ public class Main {
         int y = 50;
         int x = (Window.width - textNextLevel.getWidth()) / 2;
         textNextLevel.setLocation(x, y);
-        window.sprites.add(textNextLevel);
+        Window.sprites.add(textNextLevel);
         
         UI.setupConfigs();
 
         // make first maze consist of walls only
         maze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
         createWallBlocks();
-        window.sprites.setVisible(true);
+        Window.sprites.setVisible(true);
 
     }
 
@@ -167,12 +166,12 @@ public class Main {
 
     private static void removeText() {
         for (JLabel hint : hints.keySet()) {
-            window.sprites.remove(hint);
+            Window.sprites.remove(hint);
         }
         hints.clear();
         textNextLevel.setVisible(false);
 
-        window.repaint();   // some hints are still visible
+        Window.sprites.repaint();   // some hints are still visible
     }
 
     private static void resetMazeGraphics() {
@@ -205,11 +204,11 @@ public class Main {
             return;
         }
 
-        window.sprites.setVisible(false);
+        Window.sprites.setVisible(false);
         
         // reset old hint blocks
         for (JLabel hintLabel : hints.keySet()) {
-            window.sprites.remove(hintLabel);
+            Window.sprites.remove(hintLabel);
         }
 
         hints.clear();
@@ -256,13 +255,13 @@ public class Main {
             }
             label.setLocation(getBlockPosition(step));
             
-            window.sprites.add(label);
+            Window.sprites.add(label);
 
             hints.put(label, step);
-            window.sprites.setComponentZOrder(label, 1);
+            Window.sprites.setComponentZOrder(label, 1);
         }
 
-        window.sprites.setVisible(true);
+        Window.sprites.setVisible(true);
         
     }
 
@@ -285,12 +284,12 @@ public class Main {
                 Object[] labels = hints.keySet().toArray();
                 
                 if (maze.currentNode.equals(hints.get(labels[0]))) {
-                    window.sprites.remove((JLabel)labels[0]);
+                    Window.sprites.remove((JLabel)labels[0]);
                     hints.remove(labels[0]);
                 }
                 else {
                     for (JLabel hintLabel : hints.keySet()) {
-                        window.sprites.remove(hintLabel);
+                        Window.sprites.remove(hintLabel);
                     }
                     hints.clear();
                 }
@@ -305,10 +304,6 @@ public class Main {
 
     public static void setupKeyCallbacks() {
 
-        // TODO: add listener when creating new instance of Window
-        KeyHandler listener = new KeyHandler();
-        window.addKeyListener(listener);
-        
         KeyHandler.ActionKey.MOVE_UP.setCallback(() -> { tryToMove(KeyHandler.ActionKey.MOVE_UP); });
         KeyHandler.ActionKey.MOVE_DOWN.setCallback(() -> { tryToMove(KeyHandler.ActionKey.MOVE_DOWN); });
         KeyHandler.ActionKey.MOVE_LEFT.setCallback(() -> { tryToMove(KeyHandler.ActionKey.MOVE_LEFT); });
@@ -469,7 +464,7 @@ public class Main {
             // remove old blocks from canvas
             for (Block[] row : mazeBlocks) {
                 for (Block spr : row) {
-                    window.sprites.remove(spr);
+                    Window.sprites.remove(spr);
                 }
             }
 
@@ -478,7 +473,7 @@ public class Main {
             player.setVisible(false);
         }
         
-        window.sprites.setVisible(true);
+        Window.sprites.setVisible(true);
 
         // determine which nodes should change
         nodesToChange.clear();
