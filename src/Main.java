@@ -450,15 +450,6 @@ public class Main {
         
     }
 
-    public static void newBlockColors() {
-
-        for (int y=0; y<maze.height; y++) {
-            for (int x=0; x<maze.width; x++) {
-                mazeBlocks[y][x].setBackground(Config.BLOCK_COLORS.get(maze.get(x, y)));
-            }
-        }
-    }
-
     private static void setMazeStartCoords() {
         Config.mazeStartX = (Window.width - Config.blockSize * maze.width) / 2;
         Config.mazeStartY = (Window.height - Config.blockSize * maze.height) / 2;

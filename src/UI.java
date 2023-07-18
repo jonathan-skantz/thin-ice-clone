@@ -18,7 +18,6 @@ import javax.swing.ButtonGroup;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JColorChooser;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -68,7 +67,6 @@ public class UI {
 
     public static void setupConfigs() {
         setupKeyConfig();
-        setupColorConfig();
         setupMazeConfig();
     }
 
@@ -137,50 +135,6 @@ public class UI {
 
         panel.add(label, horizontalGbcCol1);
         panel.add(cb, horizontalGbcCol2);
-    }
-
-    
-    
-    // ---------- COLOR CONFIG ----------
-
-    private static void setupColorConfig() {
-          
-        JPanel panel = new JPanel(new GridBagLayout());
-
-        // new label in 1st column, new btn in 2nd column
-        for (Node.Type type : Config.BLOCK_COLORS.keySet()) {
-
-            JLabel label = new JLabel(type.name());
-            JButton btn = new JButton();
-            Color currentColor = Config.BLOCK_COLORS.get(type);
-            btn.setBackground(currentColor);
-            
-            label.setPreferredSize(new Dimension(125, label.getPreferredSize().height));
-            btn.setPreferredSize(new Dimension(30, 30));
-            
-            panel.add(label, horizontalGbcCol1);
-            panel.add(btn, horizontalGbcCol2);
-
-            btn.addActionListener(e -> {
-                Color newColor = JColorChooser.showDialog(Main.window, "Color for " + type, currentColor);
-
-                if (newColor != null) {
-                    btn.setBackground(newColor);
-                    
-                    Config.setBlockColor(type, newColor);
-                    Main.newBlockColors();
-                }
-            });
-
-        }
-
-        // add config button to bottom mid
-        JButton btnConfig = getConfigPopupButton("Color config", panel);
-        int pad = 10;
-        int x = (Window.width - btnConfig.getWidth()) / 2;
-        int y = Window.height - btnConfig.getHeight() - pad;
-        btnConfig.setLocation(x, y);
-
     }
 
 
