@@ -4,35 +4,40 @@
 import java.awt.Color;
 
 import java.awt.Insets;
+import java.awt.Point;
+
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-public class Window extends JFrame {
+public class Window {
     
-    private final Color BG_COLOR = Color.LIGHT_GRAY;
-    private final String TITLE = "Thin Ice";
+    private static final Color BG_COLOR = Color.LIGHT_GRAY;
+    private static final String TITLE = "Thin Ice";
     
     public static int width = 500;        // actual canvas size, excluding border
     public static int height = 500;
 
-    public JPanel sprites = new JPanel();   // a panel containing all sprites
+    public static JPanel sprites = new JPanel();   // a panel containing all sprites
 
-    public Window() {
+    public static JFrame frame;     // only used publically in UI to add popup dialog
+
+    public static void setup() {
         
-        Sprite.window = this;   // allow sprites to reference the window
+        frame = new JFrame(TITLE);
+        frame.addKeyListener(new KeyHandler());
 
-        setTitle(TITLE);
-        setSize(width, height);
-        setLocationRelativeTo(null);        // center the window on screen
+        frame.setSize(width, height);
+        frame.setLocationRelativeTo(null);        // center the window on screen
 
-        setResizable(false);
-        setLayout(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setResizable(false);
+        frame.setLayout(null);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         sprites.setLayout(null);
 
-        setVisible(true);
-        Insets ins = getInsets();
+        frame.setVisible(true);
+        Insets ins = frame.getInsets();
         
         width = width - ins.left - ins.right;
         height = height - ins.top - ins.bottom;
@@ -42,8 +47,20 @@ public class Window extends JFrame {
 
         sprites.setLocation(0, 0);
         
-        add(sprites);   // finally add the panel
+        frame.add(sprites);   // finally add the panel
 
+    }
+
+    public static int getXCentered(JComponent comp) {
+        return (width - comp.getWidth()) / 2;
+    }
+
+    public static int getYCentered(JComponent comp) {
+        return (height - comp.getHeight()) / 2;
+    }
+
+    public static Point getXYCentered(JComponent comp) {
+        return new Point(getXCentered(comp), getYCentered(comp));
     }
 
 }

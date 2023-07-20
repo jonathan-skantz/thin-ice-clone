@@ -60,19 +60,20 @@ public class KeyHandler extends KeyAdapter {
 
         // returns ActionKey based on the difference between two nodes
         public static ActionKey getActionFromMovement(Node lastNode, Node newNode) {
-            if (newNode.x - lastNode.x < 0) return ActionKey.MOVE_LEFT;
-            else if (newNode.x - lastNode.x > 0) return ActionKey.MOVE_RIGHT;
-            else if (newNode.y - lastNode.y < 0) return ActionKey.MOVE_UP;
+            if (newNode.X - lastNode.X < 0) return ActionKey.MOVE_LEFT;
+            else if (newNode.X - lastNode.X > 0) return ActionKey.MOVE_RIGHT;
+            else if (newNode.Y - lastNode.Y < 0) return ActionKey.MOVE_UP;
             return ActionKey.MOVE_DOWN;
 
         }
 
         // returns list of dx, dy
-        public int[] getMovement() {
-            if (this == MOVE_LEFT) return new int[]{-1, 0};
-            else if (this == MOVE_RIGHT) return new int[]{1, 0};
-            else if (this == MOVE_UP) return new int[]{0, -1};
-            else return new int[]{0, 1};
+        public Maze.Direction toDirection() {
+            if (this == MOVE_UP) return Maze.Direction.UP;
+            else if (this == MOVE_DOWN) return Maze.Direction.DOWN;
+            else if (this == MOVE_LEFT) return Maze.Direction.LEFT;
+            else if (this == MOVE_RIGHT) return Maze.Direction.RIGHT;
+            return null;
         }
         
     }

@@ -29,11 +29,11 @@ class MazeGenerator {
         dimension = dim;
     }
 
-    public Node getStartNode() {
+    public Node getstartNode() {
         return this.startNode;
     }
 
-    public Node getEndNode() {
+    public Node getendNode() {
         return this.endNode;
     }
 
@@ -53,7 +53,7 @@ class MazeGenerator {
         while (!stack.empty()) {
             Node next = stack.pop();
             if (isValidNextNode(next)) {
-                maze[next.y][next.x] = 1;
+                maze[next.Y][next.X] = 1;
                 endNode = next;
                 ArrayList<Node> neighbors = findNeighbors(next);
                 addNodesToStack(neighbors);
@@ -61,8 +61,8 @@ class MazeGenerator {
         }
 
         // Distinguish start and end nodes
-        maze[startNode.y][startNode.x] = 2; 
-        maze[endNode.y][endNode.x] = 3; 
+        maze[startNode.Y][startNode.X] = 2; 
+        maze[endNode.Y][endNode.X] = 3; 
     }
 
     /**
@@ -73,14 +73,14 @@ class MazeGenerator {
      */
     private boolean isValidNextNode(Node node) {
         int numNeighboringOnes = 0;
-        for (int y = node.y-1; y < node.y+2; y++) {
-            for (int x = node.x-1; x < node.x+2; x++) {
+        for (int y = node.Y-1; y < node.Y+2; y++) {
+            for (int x = node.X-1; x < node.X+2; x++) {
                 if (pointOnGrid(x, y) && pointNotNode(node, x, y) && maze[y][x] == 1) {
                     numNeighboringOnes++;
                 }
             }
         }
-        return (numNeighboringOnes < 3) && maze[node.y][node.x] != 1;
+        return (numNeighboringOnes < 3) && maze[node.Y][node.X] != 1;
     }
 
     /**
@@ -104,8 +104,8 @@ class MazeGenerator {
      */
     private ArrayList<Node> findNeighbors(Node node) {
         ArrayList<Node> neighbors = new ArrayList<>();
-        for (int y = node.y-1; y < node.y+2; y++) {
-            for (int x = node.x-1; x < node.x+2; x++) {
+        for (int y = node.Y-1; y < node.Y+2; y++) {
+            for (int x = node.X-1; x < node.X+2; x++) {
                 if (pointOnGrid(x, y) && pointNotCorner(node, x, y) && pointNotNode(node, x, y)) {
                     neighbors.add(new Node(x, y));
                 }
@@ -134,7 +134,7 @@ class MazeGenerator {
      * @return true if the point is not diagonally adjacent to the given node, false otherwise
      */
     private Boolean pointNotCorner(Node node, int x, int y) {
-        return (x == node.x || y == node.y);
+        return (x == node.X || y == node.Y);
     }
 
     /**
@@ -146,7 +146,7 @@ class MazeGenerator {
      * @return true if the point is not the same as the given node, false otherwise
      */
     private Boolean pointNotNode(Node node, int x, int y) {
-        return !(x == node.x && y == node.y);
+        return !(x == node.X && y == node.Y);
     }
 
     /**
