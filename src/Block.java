@@ -4,6 +4,7 @@ import javax.swing.border.Border;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.util.Random;
 
 public class Block extends JComponent {
     
@@ -23,6 +24,8 @@ public class Block extends JComponent {
     private TimedCounter tc;
     private int startX;
     private boolean mirrored;
+
+    private static Random rand = new Random();
 
     public Block(Node.Type type, int size) {
         createBlock(typeToPath(type), size);
@@ -53,11 +56,11 @@ public class Block extends JComponent {
     // moving water animation
     private void beginAnimation() {
         if (path.endsWith("blocked.png")) {
-            // TODO: offset vertically by random int
+            int y = rand.nextInt(getHeight()/2);
             tc = new TimedCounter(-1, 5) {
                 @Override
                 public void onTick() {
-                    bottomImage = Image.repeat(bottomImageOriginal, startX, 0);
+                    bottomImage = Image.repeat(bottomImageOriginal, startX, y);
                     combineFrost();
                     if (++startX == getWidth()) {
                         startX = 0;
