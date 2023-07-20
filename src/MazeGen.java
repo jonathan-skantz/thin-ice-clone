@@ -23,6 +23,8 @@ public class MazeGen {
     public static boolean tryChangeNodeType = true;
     public static boolean doublesArePlacedFirst = false;
 
+    public static boolean cancel = false;
+
     public enum Amount {
         GROUND,
         DOUBLES,
@@ -407,6 +409,7 @@ public class MazeGen {
     // setup generation process and begin generating
     public static Maze generate() {
 
+        cancel = false;
         printInfo();
 
         for (Amount a : Amount.values()) {
@@ -533,7 +536,11 @@ public class MazeGen {
     // generate with breadth-first-search by checking neighbors in a random order
     private static boolean generateHelper(Maze maze) {
 
-        if (maze.creationPath.size() == pathLength) {
+        if (cancel) {
+            return true;
+        }
+
+        else if (maze.creationPath.size() == pathLength) {
             return validCreationPath(maze);
         }
 

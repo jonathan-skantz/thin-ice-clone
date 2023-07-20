@@ -15,10 +15,12 @@ public class Main {
 
     private static Maze maze;
     private static Maze oldMaze;        // keep track of old maze in order to animate change
+    private static Maze mazeBeforeThread;
     
     // sprites
     public static Block player;
     public static JLabel textNextLevel;
+    private static JLabel textGenerating;
     public static Block[][] mazeBlocks;
 
     // animations
@@ -33,6 +35,8 @@ public class Main {
     
     private static LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>(Config.hintMax);
     private static Font hintFont = new Font("verdana", Font.BOLD, (int)(0.5*Config.blockSize));
+
+    private static volatile boolean mazeGenThreadDone = true;
 
     public static void main(String[] args) {
 
@@ -54,21 +58,32 @@ public class Main {
         player.setVisible(false);
         
         // setup next-level-text
+        Font font = new Font("arial", Font.PLAIN, 20);
         textNextLevel = new JLabel("Level complete");
         textNextLevel.setVisible(false);
-        textNextLevel.setFont(new Font("arial", Font.PLAIN, 20));
+        textNextLevel.setFont(font);
         textNextLevel.setForeground(Color.BLACK);
         textNextLevel.setSize(textNextLevel.getPreferredSize());
         
         int y = 50;
-        int x = (Window.width - textNextLevel.getWidth()) / 2;
-        textNextLevel.setLocation(x, y);
+        textNextLevel.setLocation(Window.getXCentered(textNextLevel), y);
         Window.sprites.add(textNextLevel);
         
+        // setup generating text
+        textGenerating = new JLabel("Generating...");
+        textGenerating.setVisible(false);
+        textGenerating.setFont(font);
+        textGenerating.setForeground(Color.BLACK);
+        textGenerating.setSize(textGenerating.getPreferredSize());
+        textGenerating.setLocation(Window.getXCentered(textGenerating), y);
+        Window.sprites.add(textGenerating);
+
         UI.setupConfigs();
 
         // make first maze consist of walls only
+        oldMaze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
         maze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
+        mazeBeforeThread = oldMaze;
         createWallBlocks();
         Window.sprites.setVisible(true);
 
@@ -130,6 +145,7 @@ public class Main {
                 Node node = nodesToChange.get(tcNewMaze.frame-1);   // since last node should be changed twice
                 mazeBlocks[node.Y][node.X].setBorder(null);
                 
+                textGenerating.setVisible(false);
                 tcSpawnPlayer.start();
             }
         };
@@ -164,23 +180,22 @@ public class Main {
 
     }
 
-    private static void removeText() {
+    private static void removeHintTexts() {
         for (JLabel hint : hints.keySet()) {
             Window.sprites.remove(hint);
         }
         hints.clear();
-        textNextLevel.setVisible(false);
 
         Window.sprites.repaint();   // some hints are still visible
     }
 
     private static void resetMazeGraphics() {
         
-        if (!animationsFinished) {
+        if (!mazeGenThreadDone || !animationsFinished) {
             return;
         }
         
-        removeText();
+        removeHintTexts();
 
         if (ENABLE_ANIMATIONS) {
             tcReset.start();
@@ -267,7 +282,7 @@ public class Main {
 
     public static void tryToMove(KeyHandler.ActionKey action) {
 
-        if (maze.complete || !animationsFinished) {
+        if (!mazeGenThreadDone || maze.complete || !animationsFinished) {
             return;
         }
 
@@ -314,13 +329,13 @@ public class Main {
         KeyHandler.ActionKey.MAZE_HINT.setCallback(() -> { showHint(); });
         
         KeyHandler.ActionKey.MAZE_STEP_UNDO.setCallback(() -> {
-            if (tcReset.finished) {
+            if (mazeGenThreadDone && tcReset.finished) {
                step(-1);
             }
         });
 
         KeyHandler.ActionKey.MAZE_STEP_REDO.setCallback(() -> {
-            if (tcReset.finished) {
+            if (mazeGenThreadDone && tcReset.finished) {
                 step(1);
             }
         });
@@ -430,7 +445,6 @@ public class Main {
         player.setLocation(centeredX, centeredY);
     }
 
-
     private static void refreshBlockGraphics(Node node) {
 
         Block block = mazeBlocks[node.Y][node.X];
@@ -446,19 +460,12 @@ public class Main {
     }
 
     private static void setMazeStartCoords() {
-        Config.mazeStartX = (Window.width - Config.blockSize * maze.width) / 2;
-        Config.mazeStartY = (Window.height - Config.blockSize * maze.height) / 2;
+        Config.mazeStartX = (Window.width - Config.blockSize * MazeGen.width) / 2;
+        Config.mazeStartY = (Window.height - Config.blockSize * MazeGen.height) / 2;
     }
 
-    public static void newMazeGraphics() {
-
-        if (!animationsFinished) {
-            return;
-        }
-
-        removeText();
-        
-        boolean newSize = maze.height != oldMaze.height || maze.width != oldMaze.width;
+    private static void updateMazeGraphicsSize() {
+        boolean newSize = MazeGen.height != oldMaze.height || MazeGen.width != oldMaze.width;
 
         if (newSize) {
             // remove old blocks from canvas
@@ -468,10 +475,16 @@ public class Main {
                 }
             }
 
-            oldMaze = new Maze(maze.width, maze.height, Node.Type.WALL);
+            oldMaze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
             createWallBlocks();
             player.setVisible(false);
         }
+
+    }
+
+    public static void newMazeGraphics() {
+
+        removeHintTexts();
         
         Window.sprites.setVisible(true);
 
@@ -493,6 +506,7 @@ public class Main {
             tcNewMaze.start();
         }
         else {
+            textGenerating.setVisible(false);
             player.setVisible(true);
             movePlayerGraphicsTo(maze.currentNode);
             mirrorPlayer(null);
@@ -510,14 +524,35 @@ public class Main {
             return;
         }
 
-        // new maze in 2D-array-form
-        oldMaze = maze;
-        maze = MazeGen.generate();
+        textNextLevel.setVisible(false);
+        textGenerating.setVisible(true);
 
-        System.out.println(maze.creationPath);
-        MazePrinter.printMazeWithPath(maze, maze.creationPath);
-       
-        newMazeGraphics();
+        MazeGen.cancel = mazeGenThreadDone != true;
+        while (!mazeGenThreadDone); {}
+
+        new Thread(() -> {
+
+            // new maze in 2D-array-form
+            mazeGenThreadDone = false;
+            oldMaze = maze;
+            updateMazeGraphicsSize();
+            maze = MazeGen.generate();
+
+            if (!MazeGen.cancel) {
+                System.out.println(maze.creationPath);
+                MazePrinter.printMazeWithPath(maze, maze.creationPath);
+                
+                newMazeGraphics();
+                mazeBeforeThread = maze;
+            }
+            else {
+                maze = mazeBeforeThread;    // new maze was cancelled --> fallback to last maze
+            }
+
+            mazeGenThreadDone = true;
+
+        }).start();
+
     }
 
     private static Point getBlockPosition(Node node) {
@@ -528,12 +563,12 @@ public class Main {
 
     private static void createWallBlocks() {
 
-        mazeBlocks = new Block[maze.height][maze.width];
+        mazeBlocks = new Block[MazeGen.height][MazeGen.width];
         
         setMazeStartCoords();
 
-        for (int y=0; y<maze.height; y++) {
-            for (int x=0; x<maze.width; x++) {
+        for (int y=0; y<MazeGen.height; y++) {
+            for (int x=0; x<MazeGen.width; x++) {
                 Block block = new Block("src/textures/wall.png", Config.blockSize);
                 mazeBlocks[y][x] = block;
                 block.setLocation(getBlockPosition(new Node(x, y)));

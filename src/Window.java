@@ -4,6 +4,9 @@
 import java.awt.Color;
 
 import java.awt.Insets;
+import java.awt.Point;
+
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
@@ -46,6 +49,18 @@ public class Window {
         
         frame.add(sprites);   // finally add the panel
 
+    }
+
+    public static int getXCentered(JComponent comp) {
+        return (width - comp.getWidth()) / 2;
+    }
+
+    public static int getYCentered(JComponent comp) {
+        return (height - comp.getHeight()) / 2;
+    }
+
+    public static Point getXYCentered(JComponent comp) {
+        return new Point(getXCentered(comp), getYCentered(comp));
     }
 
 }
