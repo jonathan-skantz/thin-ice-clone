@@ -25,15 +25,15 @@ public class MazeSolver {
 
         // print comparison
         System.out.println("Maze with creation path:");
-        MazePrinter.printMazeWithPath(maze, maze.creationPath);
+        maze.printCreationPath();
 
         System.out.println("longest: ");
         System.out.println(solver.longestPath);
-        MazePrinter.printMazeWithPath(maze, solver.longestPath);
-
+        maze.printPath(solver.longestPath);
+        
         System.out.println("\nshortest:");
         System.out.println(solver.shortestPath);
-        MazePrinter.printMazeWithPath(maze, solver.shortestPath);
+        maze.printPath(solver.shortestPath);
     }
 
     public MazeSolver(Maze maze) {

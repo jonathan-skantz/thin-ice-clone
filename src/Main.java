@@ -540,8 +540,7 @@ public class Main {
 
             if (!MazeGen.cancel) {
                 System.out.println(maze.creationPath);
-                MazePrinter.printMazeWithPath(maze, maze.creationPath);
-                
+                maze.printCreationPath();
                 newMazeGraphics();
                 mazeBeforeThread = maze;
             }
