@@ -1,6 +1,8 @@
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+
 import org.junit.Before;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -14,9 +16,7 @@ public class MazeGenTest {
 
     @Before
     public void setup() {
-        MazeGen.Amount.GROUND.setPriority(0);
-        MazeGen.Amount.DOUBLES.setPriority(1);
-        MazeGen.Amount.WALLS.setPriority(2);
+        MazeGen.Amount.priority = new ArrayList<>(MazeGen.Amount.priorityDefault);
     }
 
     @Test
@@ -112,10 +112,10 @@ public class MazeGenTest {
         
         for (int[] size : sizes) {
             // act
-            MazeGen.Amount.DOUBLES.setPriority(0);
             MazeGen.setSize(size[0], size[1]);
-            MazeGen.Amount.GROUND.set(99);
+            MazeGen.Amount.DOUBLES.setPriority(0);
             MazeGen.Amount.DOUBLES.set(1);
+            MazeGen.Amount.GROUND.set(99);      // TODO: why must doubles be set first?
             MazeGen.generate();
             
             // assert

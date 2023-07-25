@@ -50,7 +50,13 @@ public class MazePrinter {
 
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
-                mazeOfStr[y][x] = getFormatted(maze.get(x, y).toString());
+                if (maze.get(x, y) == null) {
+                    // only here in order to print while debugging
+                    mazeOfStr[y][x] = getFormatted(".");
+                }
+                else {
+                    mazeOfStr[y][x] = getFormatted(maze.get(x, y).toString());
+                }
             }
         }
         return mazeOfStr;

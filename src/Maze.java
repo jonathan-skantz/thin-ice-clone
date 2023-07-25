@@ -84,12 +84,6 @@ public class Maze {
         types[y][x] = type;
     }
 
-    public void removeNode(Node node) {
-        // Node.Type type = types[node.Y][node.X];
-        types[node.Y][node.X] = null;
-        // nodes.get(type).remove(node);
-    }
-
     public void setStartNode(Node node) {
         startNode = node;
         set(startNode, Node.Type.START);
