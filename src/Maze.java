@@ -289,7 +289,7 @@ public class Maze {
                     }
                 }
 
-                else {
+                else if (get(lastNode) == Node.Type.BLOCKED) {
                     set(lastNode, Node.Type.GROUND);
                 }
 
@@ -297,13 +297,12 @@ public class Maze {
                 if (currentNode.equals(startNode)) {
                     set(currentNode, Node.Type.START);
                 }
-                else if (getOriginal(currentNode) == Node.Type.DOUBLE) {
-                    set(currentNode, Node.Type.TOUCHED);
+                else if (getOriginal(currentNode) == Node.Type.DOUBLE || getOriginal(currentNode) == Node.Type.END_DOUBLE) {
+                    set(currentNode, getOriginal(currentNode));
                 }
                 else {
                     set(currentNode, Node.Type.GROUND);
                 }
-
                 
                 return KeyHandler.ActionKey.getActionFromMovement(lastNode, currentNode);
             }
