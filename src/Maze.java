@@ -36,6 +36,15 @@ public class Maze {
             this.dx = dx;
             this.dy = dy;
         }
+
+        public static Direction getFromMovement(Node lastNode, Node newNode) {
+            for (Direction dir : values()) {
+                if (dir.dx == newNode.X - lastNode.X && dir.dy == newNode.Y - lastNode.Y) {
+                    return dir;
+                }
+            }
+            return null;
+        }
     }
 
     public Maze(int width, int height, Node.Type firstType) {
@@ -201,9 +210,9 @@ public class Maze {
     }
 
     // returns true if valid move, false if invalid move
-    public boolean userMove(KeyHandler.ActionKey action) {
+    public boolean userMove(Maze.Direction dir) {
 
-        Node newNode = currentNode.getNeighbor(action.toDirection());
+        Node newNode = currentNode.getNeighbor(dir);
 
         if (walkable(newNode)) {
             
@@ -262,8 +271,8 @@ public class Maze {
         }
     }
 
-    // returns ActionKey in which grid direction the step occured
-    public KeyHandler.ActionKey step(int direction){
+    // returns grid direction in which the step occured
+    public Direction step(int direction){
         
         if (direction == -1) {
             
@@ -304,7 +313,8 @@ public class Maze {
                     set(currentNode, Node.Type.GROUND);
                 }
                 
-                return KeyHandler.ActionKey.getActionFromMovement(lastNode, currentNode);
+                // return KeyHandler.ActionKey.getActionFromMovement(lastNode, currentNode);
+                return Maze.Direction.getFromMovement(lastNode, currentNode);
             }
         }
         else {
@@ -313,10 +323,11 @@ public class Maze {
                 Node lastNode = currentNode;
                 Node newNode = pathHistoryRedo.peek();      // NOTE: doesn't pop, since that is done in userMove()
 
-                KeyHandler.ActionKey action = KeyHandler.ActionKey.getActionFromMovement(lastNode, newNode);
-                userMove(action);
+                // KeyHandler.ActionKey action = KeyHandler.ActionKey.getActionFromMovement(lastNode, newNode);
+                Maze.Direction dir = Maze.Direction.getFromMovement(lastNode, newNode);
+                userMove(dir);
                 
-                return action;
+                return dir;
             }
         }
         

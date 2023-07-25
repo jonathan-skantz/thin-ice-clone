@@ -10,7 +10,7 @@ public class KeyHandler extends KeyAdapter {
     public static boolean allowContinuous = false;      // register held down key as multiple presses
 
     // define actions and their corresponding key
-    public enum ActionKey {
+    public enum Action {
 
         MOVE_UP(KeyEvent.VK_W),
         MOVE_DOWN(KeyEvent.VK_S),
@@ -27,7 +27,7 @@ public class KeyHandler extends KeyAdapter {
         ZOOM_IN(KeyEvent.VK_PLUS),
         ZOOM_OUT(KeyEvent.VK_MINUS);
 
-        private ActionKey(int keyCode) {
+        private Action(int keyCode) {
             this.keyCode = keyCode;
         }
 
@@ -36,13 +36,13 @@ public class KeyHandler extends KeyAdapter {
         private Runnable callback = defaultCallback;
         
         /**
-         * Gets an ActionKey based on the key code.
+         * Gets an Action based on the key code.
          * 
-         * @param keyCode Corresponding to an ActionKey.
-         * @return The ActionKey which is bound to the key code, or null if none is bound.
+         * @param keyCode Corresponding to an Action.
+         * @return The Action which is bound to the key code, or null if none is bound.
          */
-        public static ActionKey getAction(int keyCode) {
-            for (ActionKey key : ActionKey.values()) {
+        public static Action getAction(int keyCode) {
+            for (Action key : values()) {
                 if (key.keyCode == keyCode) {
                     return key;
                 }
@@ -58,24 +58,6 @@ public class KeyHandler extends KeyAdapter {
             this.callback = defaultCallback;
         }
 
-        // returns ActionKey based on the difference between two nodes
-        public static ActionKey getActionFromMovement(Node lastNode, Node newNode) {
-            if (newNode.X - lastNode.X < 0) return ActionKey.MOVE_LEFT;
-            else if (newNode.X - lastNode.X > 0) return ActionKey.MOVE_RIGHT;
-            else if (newNode.Y - lastNode.Y < 0) return ActionKey.MOVE_UP;
-            return ActionKey.MOVE_DOWN;
-
-        }
-
-        // returns list of dx, dy
-        public Maze.Direction toDirection() {
-            if (this == MOVE_UP) return Maze.Direction.UP;
-            else if (this == MOVE_DOWN) return Maze.Direction.DOWN;
-            else if (this == MOVE_LEFT) return Maze.Direction.LEFT;
-            else if (this == MOVE_RIGHT) return Maze.Direction.RIGHT;
-            return null;
-        }
-        
     }
 
     @Override
@@ -86,11 +68,11 @@ public class KeyHandler extends KeyAdapter {
             return;
         }
 
-        ActionKey action = ActionKey.getAction(keyCode);
+        Action action = Action.getAction(keyCode);
 
         // if the key has an action, or if (ctrl and +) or (ctrl and -) is pressed
         if (action != null ||
-            (e.isControlDown() && (action == ActionKey.ZOOM_IN || action == ActionKey.ZOOM_OUT))) {
+            (e.isControlDown() && (action == Action.ZOOM_IN || action == Action.ZOOM_OUT))) {
             keysPressed.add(keyCode);
             action.callback.run();          // executes corresponding action
         }
@@ -99,7 +81,7 @@ public class KeyHandler extends KeyAdapter {
     @Override
     public void keyReleased(KeyEvent e) {
         int keyCode = e.getKeyCode();
-        ActionKey action = ActionKey.getAction(keyCode);
+        Action action = Action.getAction(keyCode);
 
         if (action != null) {
             keysPressed.remove(keyCode);

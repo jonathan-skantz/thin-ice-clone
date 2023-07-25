@@ -173,26 +173,26 @@ public class Block extends JComponent {
     /**
      * Move the sprite according to its velocity and current direction.
      */
-    public void move(KeyHandler.ActionKey actionKey) {
+    public void move(Maze.Direction dir) {
 
         int x = getX();
         int y = getY();
 
-        switch (actionKey) {
+        switch (dir) {
 
-            case MOVE_UP:
+            case UP:
                 y -= velocity;
                 break;
 
-            case MOVE_DOWN:
+            case DOWN:
                 y += velocity;
                 break;
 
-            case MOVE_LEFT:
+            case LEFT:
                 x -= velocity;
                 break;
 
-            case MOVE_RIGHT:
+            case RIGHT:
                 x += velocity;
                 break;
             

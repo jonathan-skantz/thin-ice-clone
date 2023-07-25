@@ -280,7 +280,7 @@ public class Main {
         
     }
 
-    public static void tryToMove(KeyHandler.ActionKey action) {
+    public static void tryToMove(Maze.Direction dir) {
 
         if (!mazeGenThreadDone || maze.complete || !animationsFinished) {
             return;
@@ -288,10 +288,10 @@ public class Main {
 
         Node lastNode = maze.currentNode;
 
-        if (maze.userMove(action)) {
+        if (maze.userMove(dir)) {
 
-            player.move(action);
-            mirrorPlayer(action);
+            player.move(dir);
+            mirrorPlayer(dir);
             refreshBlockGraphics(lastNode);
 
             if (hints.size() > 0) {
@@ -319,29 +319,29 @@ public class Main {
 
     public static void setupKeyCallbacks() {
 
-        KeyHandler.ActionKey.MOVE_UP.setCallback(() -> { tryToMove(KeyHandler.ActionKey.MOVE_UP); });
-        KeyHandler.ActionKey.MOVE_DOWN.setCallback(() -> { tryToMove(KeyHandler.ActionKey.MOVE_DOWN); });
-        KeyHandler.ActionKey.MOVE_LEFT.setCallback(() -> { tryToMove(KeyHandler.ActionKey.MOVE_LEFT); });
-        KeyHandler.ActionKey.MOVE_RIGHT.setCallback(() -> { tryToMove(KeyHandler.ActionKey.MOVE_RIGHT); });
+        KeyHandler.Action.MOVE_UP.setCallback(() -> { tryToMove(Maze.Direction.UP); });
+        KeyHandler.Action.MOVE_DOWN.setCallback(() -> { tryToMove(Maze.Direction.DOWN); });
+        KeyHandler.Action.MOVE_LEFT.setCallback(() -> { tryToMove(Maze.Direction.LEFT); });
+        KeyHandler.Action.MOVE_RIGHT.setCallback(() -> { tryToMove(Maze.Direction.RIGHT); });
         
-        KeyHandler.ActionKey.MAZE_NEW.setCallback(() -> { generateNewMaze(); });
-        KeyHandler.ActionKey.MAZE_RESET.setCallback(() -> { resetMazeGraphics(); });
-        KeyHandler.ActionKey.MAZE_HINT.setCallback(() -> { showHint(); });
+        KeyHandler.Action.MAZE_NEW.setCallback(() -> { generateNewMaze(); });
+        KeyHandler.Action.MAZE_RESET.setCallback(() -> { resetMazeGraphics(); });
+        KeyHandler.Action.MAZE_HINT.setCallback(() -> { showHint(); });
         
-        KeyHandler.ActionKey.MAZE_STEP_UNDO.setCallback(() -> {
+        KeyHandler.Action.MAZE_STEP_UNDO.setCallback(() -> {
             if (mazeGenThreadDone && tcReset.finished) {
                step(-1);
             }
         });
 
-        KeyHandler.ActionKey.MAZE_STEP_REDO.setCallback(() -> {
+        KeyHandler.Action.MAZE_STEP_REDO.setCallback(() -> {
             if (mazeGenThreadDone && tcReset.finished) {
                 step(1);
             }
         });
             
-        KeyHandler.ActionKey.ZOOM_IN.setCallback(() -> { zoom(1); });
-        KeyHandler.ActionKey.ZOOM_OUT.setCallback(() -> { zoom(-1); });
+        KeyHandler.Action.ZOOM_IN.setCallback(() -> { zoom(1); });
+        KeyHandler.Action.ZOOM_OUT.setCallback(() -> { zoom(-1); });
     }
 
     public static void zoom(int direction) {
@@ -388,9 +388,9 @@ public class Main {
         return false;
     }
 
-    private static void mirrorPlayer(KeyHandler.ActionKey action) {
+    private static void mirrorPlayer(Maze.Direction dir) {
 
-        if (action == null) {
+        if (dir == null) {
             player.setMirrored(!maze.walkable(maze.currentNode.getNeighbor(Maze.Direction.LEFT)));
         }
 
@@ -400,10 +400,10 @@ public class Main {
         else if (playerMustMove(Maze.Direction.RIGHT)) {
             player.setMirrored(true);
         }
-        else if (action == KeyHandler.ActionKey.MOVE_LEFT) {
+        else if (dir == Maze.Direction.LEFT) {
             player.setMirrored(false);
         }
-        else if (action == KeyHandler.ActionKey.MOVE_RIGHT) {
+        else if (dir == Maze.Direction.RIGHT) {
             player.setMirrored(true);
         }
         
@@ -411,20 +411,17 @@ public class Main {
 
     public static void step(int direction) {
         
-        // TODO: doubles still sometimes disappear
-        // 2x, 2x, stepback, stepback --> 2nd 2x disappears
-
         if (tcReset.finished && (maze.complete || !animationsFinished)) {
             return;
         }
 
         Node lastNode = maze.currentNode;
 
-        KeyHandler.ActionKey action = maze.step(direction);
+        Maze.Direction dir = maze.step(direction);
 
-        if (action != null) {
-            player.move(action);
-            mirrorPlayer(action);
+        if (dir != null) {
+            player.move(dir);
+            mirrorPlayer(dir);
             refreshBlockGraphics(lastNode);
 
             if (direction == -1) {

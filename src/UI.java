@@ -91,10 +91,10 @@ public class UI {
     private static void setupKeyConfigKeybinds(JPanel panel) {
       
         // new label in 1st column, new btn in 2nd column
-        for (KeyHandler.ActionKey key : KeyHandler.ActionKey.values()) {
+        for (KeyHandler.Action action : KeyHandler.Action.values()) {
 
-            JLabel label = new JLabel(key.name());
-            JButton btn = new JButton(KeyEvent.getKeyText(key.keyCode));
+            JLabel label = new JLabel(action.name());
+            JButton btn = new JButton(KeyEvent.getKeyText(action.keyCode));
             
             label.setPreferredSize(new Dimension(125, label.getPreferredSize().height));
             btn.setPreferredSize(new Dimension(100, btn.getPreferredSize().height));
@@ -110,8 +110,8 @@ public class UI {
                     @Override
                     public void keyPressed(KeyEvent e) {
                         // change control and stop listening
-                        key.keyCode = e.getKeyCode();
-                        btn.setText(KeyEvent.getKeyText(key.keyCode));
+                        action.keyCode = e.getKeyCode();
+                        btn.setText(KeyEvent.getKeyText(action.keyCode));
                         btn.removeKeyListener(this);
                     }
                 });
