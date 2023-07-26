@@ -4,7 +4,7 @@ import java.util.Stack;
 
 public class MazeSolver {
 
-    private Node.Type[][] mazeCopy;
+    private Maze mazeCopy;
     private Maze maze;
 
     private Stack<Node> accumulatorPath = new Stack<>();
@@ -38,15 +38,16 @@ public class MazeSolver {
 
     public MazeSolver(Maze maze) {
         this.maze = maze;
+        mazeCopy = new Maze(maze);
         reset();
     }
 
     private void reset() {
 
-        mazeCopy = new Node.Type[maze.height][maze.width];
-        for (int y=0; y<maze.height; y++) {
-            for (int x=0; x<maze.width; x++) {
-                mazeCopy[y][x] = maze.types[y][x];
+        for (int y=0; y<mazeCopy.height; y++) {
+            for (int x=0; x<mazeCopy.width; x++) {
+                // NOTE: copies maze.types, not mazeCopy.typesOriginal
+                mazeCopy.types[y][x] = maze.types[y][x];
             }
         }
 
@@ -151,7 +152,7 @@ public class MazeSolver {
         reset();
         longestPath.clear();
 
-        exploreNewNodeFrom(maze.currentNode);
+        exploreNewNode();
 
         return longestPath;
     }
@@ -160,56 +161,32 @@ public class MazeSolver {
         int x = node.X;
         int y = node.Y;
 
-        if (x < 0 || x >= mazeCopy[0].length) {
+        if (x < 0 || x >= mazeCopy.width) {
             return false;
         }
         
-        if (y < 0 || y >= mazeCopy.length) {
+        if (y < 0 || y >= mazeCopy.height) {
             return false;
         }
         
-        Node.Type t = mazeCopy[y][x];
-
-        return t != Node.Type.BLOCKED && t != Node.Type.WALL;
+        return mazeCopy.get(x, y) != Node.Type.BLOCKED && mazeCopy.get(x, y) != Node.Type.WALL;
     }
 
-    private void markAsWalked(Node node) {
-        
-        if (mazeCopy[node.Y][node.X] == Node.Type.DOUBLE) {
-            mazeCopy[node.Y][node.X] = Node.Type.TOUCHED;
-        }
-        else if (mazeCopy[node.Y][node.X] == Node.Type.END_DOUBLE) {
-            mazeCopy[node.Y][node.X] = Node.Type.END;
-        }
-        else {
-            mazeCopy[node.Y][node.X] = Node.Type.BLOCKED;
-        }
-    }
+    private boolean exploreNewNode() {
 
-    private void unwalk(Node node) {
-        if (mazeCopy[node.Y][node.X] == Node.Type.TOUCHED) {
-            mazeCopy[node.Y][node.X] = Node.Type.DOUBLE;        // TODO: could also be set to END_DOUBLE
-        }
-        else if (mazeCopy[node.Y][node.X] == Node.Type.END) {
-            mazeCopy[node.Y][node.X] = Node.Type.END_DOUBLE;
-        }
-        else {
-            mazeCopy[node.Y][node.X] = Node.Type.GROUND;
-        }
-    }
 
-    private void exploreNewNodeFrom(Node currentNode) {
+        accumulatorPath.add(mazeCopy.currentNode);
 
-        // TODO: exit once a longest path is found
-
-        accumulatorPath.add(currentNode);
-        
-        if (currentNode.equals(maze.endNode) && mazeCopy[currentNode.Y][currentNode.X] == Node.Type.END) {
+        if (mazeCopy.currentNode.equals(mazeCopy.endNode) && mazeCopy.get(mazeCopy.currentNode) == Node.Type.END) {
             // if end node: check if longer than last saved path
 
             if (accumulatorPath.size() > longestPath.size()) {
-                // TODO: check only if size is same as remaining nodes --> return
                 longestPath = new LinkedList<>(accumulatorPath);
+
+                if (mazeCopy.pathHistory.size() == mazeCopy.creationPath.size()) {
+                    // longest possible path found (no need to continue searching)
+                    return true;
+                }
             }
         }
     
@@ -218,15 +195,11 @@ public class MazeSolver {
             // explore all possible directions from the current node
             for (Maze.Direction dir : Maze.Direction.values()) {
                 
-                Node newNode = currentNode.getNeighbor(dir);
-                
-                if (walkable(newNode)) {
-                    
-                    markAsWalked(currentNode);
-                    
-                    exploreNewNodeFrom(newNode);
-                    
-                    unwalk(currentNode);
+                if (mazeCopy.userMove(dir)) {
+                    if (exploreNewNode()) {
+                        return true;
+                    }
+                    mazeCopy.step(-1);
                 }
             }
         }
@@ -234,6 +207,7 @@ public class MazeSolver {
         // finally: all possible directions from currentNode have been explored,
         // therefore: backtrack to the previous node and continue exploring from there
         accumulatorPath.pop();
+        return false;
     }
 
 }

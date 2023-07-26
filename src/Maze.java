@@ -62,6 +62,32 @@ public class Maze {
         typesOriginal = new Node.Type[height][width];
     }
 
+    // copy other maze
+    public Maze(Maze maze) {
+        complete = maze.complete;
+        // NOTE: Node instances cannot be modified,
+        // therefore it is safe to use the same instances
+        pathHistory.addAll(maze.pathHistory);
+        pathHistoryRedo.addAll(maze.pathHistoryRedo);
+        creationPath.addAll(maze.creationPath);
+        width = maze.width;
+        height = maze.height;
+        startNode = maze.startNode;
+        endNode = maze.endNode;
+        currentNode = maze.currentNode;
+        
+        types = new Node.Type[height][width];
+        for (int y=0; y<height; y++) {
+            types[y] = maze.types[y].clone();
+        }
+
+        typesOriginal = new Node.Type[height][width];
+        for (int y=0; y<height; y++) {
+            typesOriginal[y] = maze.typesOriginal[y].clone();
+        }
+
+    }
+
     public void printTypes() {
         
         HashSet<Integer> wideCols = new HashSet<>();
@@ -155,7 +181,7 @@ public class Maze {
                     sb.append(centerPad(Node.Type.WALL.toString(), w));
                 }
                 else if (i1 != i2) {
-                    sb.append(centerPad(creationPath.indexOf(node) + "(" + i2 + ")", w));
+                    sb.append(centerPad(i1 + "(" + i2 + ")", w));
                 }
                 else {
                     sb.append(centerPad(String.valueOf(i1), w));
@@ -307,15 +333,13 @@ public class Maze {
                     set(currentNode, Node.Type.START);
                 }
                 else if (get(currentNode) == Node.Type.TOUCHED) {
-                    if (currentNode.equals(endNode)) {
-                        set(currentNode, Node.Type.END_DOUBLE);
-                    }
-                    else {
-                        set(currentNode, Node.Type.DOUBLE);
-                    }
+                    set(currentNode, Node.Type.DOUBLE);
                 }
-                else if (getOriginal(currentNode) == Node.Type.DOUBLE || getOriginal(currentNode) == Node.Type.END_DOUBLE) {
+                else if (getOriginal(currentNode) == Node.Type.DOUBLE) {
                     set(currentNode, Node.Type.TOUCHED);
+                }
+                else if (getOriginal(currentNode) == Node.Type.END_DOUBLE) {
+                    set(currentNode, Node.Type.END);
                 }
                 else {
                     set(currentNode, Node.Type.GROUND);
