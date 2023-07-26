@@ -446,6 +446,8 @@ public class Main {
         Maze.Direction dir = maze.step(direction);
 
         if (dir != null) {
+            
+            removeHintTexts();
             player.move(dir);
             mirrorPlayer(dir);
             refreshBlockGraphics(lastNode);
