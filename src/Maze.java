@@ -193,12 +193,18 @@ public class Maze {
         System.out.println(sb);
     }
 
-    public ArrayList<Node> getNeighborsOf(Node node) {
+    public ArrayList<Node> getNeighborsOf(Node node, boolean mustBeWalkable) {
         
         ArrayList<Node> neighbors = new ArrayList<>(4);
         for (Direction dir : Direction.values()) {
             Node neighbor = node.getNeighbor(dir);
-            if (nodeWithinBounds(neighbor)) {
+
+            if (mustBeWalkable) {
+                if (walkable(neighbor)) {
+                    neighbors.add(neighbor);
+                }
+            }
+            else if (nodeWithinBounds(neighbor)) {
                 neighbors.add(neighbor);
             }
         }

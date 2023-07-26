@@ -51,6 +51,7 @@ public class MazeSolver {
             }
         }
 
+        mazeCopy.currentNode = maze.currentNode;
         accumulatorPath.clear();
     }
 
@@ -68,52 +69,32 @@ public class MazeSolver {
         Queue<Node> queue = new LinkedList<>();
 
         // create an array to store the parent node of each node in the shortest path
-        Node[][] parent = new Node[MazeGen.height][MazeGen.width];
-
-        // initialize the parent array to null
-        for (int y=0; y<MazeGen.height; y++) {
-            for (int x=0; x<MazeGen.width; x++) {
-                parent[y][x] = null;
-            }
-        }
+        Node[][] parent = new Node[mazeCopy.height][mazeCopy.width];
 
         // mark the startNode as visited and add it to the queue
-        boolean[][] visited = new boolean[MazeGen.height][MazeGen.width];
-        visited[maze.currentNode.Y][maze.currentNode.X] = true;
-        queue.add(maze.currentNode);
+        boolean[][] visited = new boolean[mazeCopy.height][mazeCopy.width];
+        visited[mazeCopy.currentNode.Y][mazeCopy.currentNode.X] = true;
+        queue.add(mazeCopy.currentNode);
 
         // perform BFS
         while (!queue.isEmpty()) {
-            Node currentNode = queue.poll();
+            mazeCopy.currentNode = queue.poll();
 
             // check if the current node is the endNode
-            // (why .equals and not .same?)
-            if (currentNode.equals(maze.endNode)) {
+            if (mazeCopy.currentNode.equals(maze.endNode)) {
                 break;
             }
             
-            // explore the neighbors of the current node
-            for (int y=currentNode.Y-1; y<=currentNode.Y+1; y++) {
-                for (int x=currentNode.X-1; x<=currentNode.X+1; x++) {
-                    // skip if the neighbor is out of bounds, or is not walkable
-
-                    Node newNode = new Node(x, y);
-
-                    if (!walkable(newNode) || !pointNotCorner(currentNode, x, y) || !pointNotNode(currentNode, x, y) || visited[y][x]) {
-                        continue;
-                    }
-
-                    // mark the neighbor as visited, add it to the queue, and set its parent
-                    visited[y][x] = true;
-                    Node nextNode = new Node(x, y);
-                    queue.add(nextNode);
-                    parent[y][x] = currentNode;
+            for (Node neighbor : mazeCopy.getNeighborsOf(mazeCopy.currentNode, true)) {
+                if (!visited[neighbor.Y][neighbor.X]) {
+                    visited[neighbor.Y][neighbor.X] = true;
+                    queue.add(neighbor);
+                    parent[neighbor.Y][neighbor.X] = mazeCopy.currentNode;
                 }
             }
         }
 
         // reset shortest path
-        shortestPath.clear();
         Node currentNode = maze.endNode;
         while (currentNode != null) {
             shortestPath.addFirst(currentNode);
@@ -121,30 +102,6 @@ public class MazeSolver {
         }
 
         return shortestPath;
-    }
-
-    /**
-     * Helper method that checks if a given point is not diagonally adjacent to a given node
-     * 
-     * @param node the node to compare against
-     * @param x x-coordinate
-     * @param y y-coordinate
-     * @return true if the point is not diagonally adjacent to the given node, false otherwise
-     */
-    private boolean pointNotCorner(Node node, int x, int y) {
-        return (x == node.X || y == node.Y);
-    }
-
-    /**
-     * Helper method that checks that a given node is not already part of the maze
-     * 
-     * @param node the node to compare against
-     * @param x x-coordinate
-     * @param y y-coordinate
-     * @return true if the point is not the same as the given node, false otherwise
-     */
-    private boolean pointNotNode(Node node, int x, int y) {
-        return !(x == node.X && y == node.Y);
     }
 
     public LinkedList<Node> findLongestPath() {
@@ -155,21 +112,6 @@ public class MazeSolver {
         exploreNewNode();
 
         return longestPath;
-    }
-
-    private boolean walkable(Node node) {
-        int x = node.X;
-        int y = node.Y;
-
-        if (x < 0 || x >= mazeCopy.width) {
-            return false;
-        }
-        
-        if (y < 0 || y >= mazeCopy.height) {
-            return false;
-        }
-        
-        return mazeCopy.get(x, y) != Node.Type.BLOCKED && mazeCopy.get(x, y) != Node.Type.WALL;
     }
 
     private boolean exploreNewNode() {
