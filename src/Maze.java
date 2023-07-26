@@ -306,14 +306,21 @@ public class Maze {
                 if (currentNode.equals(startNode)) {
                     set(currentNode, Node.Type.START);
                 }
+                else if (get(currentNode) == Node.Type.TOUCHED) {
+                    if (currentNode.equals(endNode)) {
+                        set(currentNode, Node.Type.END_DOUBLE);
+                    }
+                    else {
+                        set(currentNode, Node.Type.DOUBLE);
+                    }
+                }
                 else if (getOriginal(currentNode) == Node.Type.DOUBLE || getOriginal(currentNode) == Node.Type.END_DOUBLE) {
-                    set(currentNode, getOriginal(currentNode));
+                    set(currentNode, Node.Type.TOUCHED);
                 }
                 else {
                     set(currentNode, Node.Type.GROUND);
                 }
                 
-                // return KeyHandler.ActionKey.getActionFromMovement(lastNode, currentNode);
                 return Maze.Direction.getFromMovement(lastNode, currentNode);
             }
         }
@@ -323,7 +330,6 @@ public class Maze {
                 Node lastNode = currentNode;
                 Node newNode = pathHistoryRedo.peek();      // NOTE: doesn't pop, since that is done in userMove()
 
-                // KeyHandler.ActionKey action = KeyHandler.ActionKey.getActionFromMovement(lastNode, newNode);
                 Maze.Direction dir = Maze.Direction.getFromMovement(lastNode, newNode);
                 userMove(dir);
                 
