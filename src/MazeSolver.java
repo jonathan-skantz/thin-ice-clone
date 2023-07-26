@@ -188,7 +188,7 @@ public class MazeSolver {
 
     private void unwalk(Node node) {
         if (mazeCopy[node.Y][node.X] == Node.Type.TOUCHED) {
-            mazeCopy[node.Y][node.X] = Node.Type.DOUBLE;
+            mazeCopy[node.Y][node.X] = Node.Type.DOUBLE;        // TODO: could also be set to END_DOUBLE
         }
         else if (mazeCopy[node.Y][node.X] == Node.Type.END) {
             mazeCopy[node.Y][node.X] = Node.Type.END_DOUBLE;

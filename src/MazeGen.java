@@ -433,13 +433,6 @@ public class MazeGen {
 
     private static boolean validCreationPath(Maze maze) {
 
-        // too few double nodes
-        if (Amount.DOUBLES.remaining() > 0) {
-            // TODO: place this check in setType() and
-            // use return value as signal to (dis)continue branch
-            return false;
-        }
-
         // check if endNode can/must be a double
         if (Amount.DOUBLES.nodes.contains(maze.creationPath.getLast())) {
             if (!endCanBeDouble) {
@@ -560,7 +553,7 @@ public class MazeGen {
 
             // else: invalid path, even after (potentially) changing node type
 
-            maze.creationPath.removeLast();
+            maze.creationPath.removeLast();     // removes `neighbor`
 
             if (Amount.DOUBLES.nodes.contains(neighbor)) {
                 if (maze.get(neighbor) == Node.Type.GROUND) {

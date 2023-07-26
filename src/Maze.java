@@ -129,7 +129,7 @@ public class Maze {
             int i2 = path.lastIndexOf(node);
 
             if (i1 != i2) {
-                widest = String.valueOf(i1 + "(" + i2 + ")").length() + 1;
+                widest = String.valueOf(i1 + "(" + i2 + ")").length() + 2;
                 wideCols.add(node.X);
             }
         }
