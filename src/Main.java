@@ -16,6 +16,7 @@ public class Main {
     private static Maze maze;
     private static Maze oldMaze;        // keep track of old maze in order to animate change
     private static Maze mazeBeforeThread;
+    private static MazeSolver solver;
     
     // sprites
     public static Block player;
@@ -240,7 +241,6 @@ public class Main {
         hints.clear();
 
         // gets solution based on current node
-        MazeSolver solver = new MazeSolver(maze);
         LinkedList<Node> path = Config.hintTypeLongest ? solver.findLongestPath() : solver.findShortestPath();
 
         Node removedFirst = path.removeFirst();
@@ -327,14 +327,17 @@ public class Main {
             }
 
             else {
-                MazeSolver solver = new MazeSolver(maze);
-                if (solver.findShortestPath().size() == 0) {
-                    textGameOver.setVisible(true);
-                    gameOver = true;
-                }
+                testGameOver();
             }
         }
 
+    }
+
+    private static void testGameOver() {
+        if (solver.findShortestPath().size() == 0) {
+            textGameOver.setVisible(true);
+            gameOver = true;
+        }
     }
 
     public static void setupKeyCallbacks() {
@@ -352,13 +355,13 @@ public class Main {
         KeyHandler.Action.MAZE_HINT.setCallback(() -> { showHint(); });
         
         KeyHandler.Action.MAZE_STEP_UNDO.setCallback(() -> {
-            if (!gameOver && mazeGenThreadDone && tcReset.finished) {
+            if (mazeGenThreadDone && tcReset.finished) {
                step(-1);
             }
         });
 
         KeyHandler.Action.MAZE_STEP_REDO.setCallback(() -> {
-            if (!gameOver && mazeGenThreadDone && tcReset.finished) {
+            if (mazeGenThreadDone && tcReset.finished) {
                 step(1);
             }
         });
@@ -448,7 +451,15 @@ public class Main {
             refreshBlockGraphics(lastNode);
 
             if (direction == -1) {
+
+                if (gameOver) {
+                    gameOver = false;
+                    textGameOver.setVisible(false);
+                }
                 refreshBlockGraphics(maze.currentNode);
+            }
+            else {
+                testGameOver();
             }
         }
         
@@ -563,6 +574,7 @@ public class Main {
                 maze.printCreationPath();
                 newMazeGraphics();
                 mazeBeforeThread = maze;
+                solver = new MazeSolver(maze);
             }
             else {
                 maze = mazeBeforeThread;    // new maze was cancelled --> fallback to last maze
