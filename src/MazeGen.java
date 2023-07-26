@@ -181,8 +181,6 @@ public class MazeGen {
 
     }
 
-    // FIXME: occasionally, an invalid maze is generated (spam space a few times)
-    
     private static void printInfo() {
 
         StringBuilder sb = new StringBuilder();
@@ -382,7 +380,7 @@ public class MazeGen {
             maze.set(node, Node.Type.DOUBLE);
         }
         
-        maze.endNode = maze.currentNode;
+        maze.endNode = maze.creationPath.getLast();
         maze.currentNode = maze.startNode;
 
         if (Amount.DOUBLES.nodes.contains(maze.endNode)) {
@@ -435,13 +433,6 @@ public class MazeGen {
 
     private static boolean validCreationPath(Maze maze) {
 
-        // too few double nodes
-        if (Amount.DOUBLES.remaining() > 0) {
-            // TODO: place this check in setType() and
-            // use return value as signal to (dis)continue branch
-            return false;
-        }
-
         // check if endNode can/must be a double
         if (Amount.DOUBLES.nodes.contains(maze.creationPath.getLast())) {
             if (!endCanBeDouble) {
@@ -473,6 +464,7 @@ public class MazeGen {
             // change from double to ground
             maze.set(node, Node.Type.GROUND);
             Amount.DOUBLES.nodes.remove(node);
+            Amount.GROUND.nodes.add(node);
         }
         else if (maze.get(node) == Node.Type.GROUND) {
             
@@ -491,9 +483,9 @@ public class MazeGen {
                 // don't change from ground to double (too many)
                 return false;
             }
-
             // change from ground to double
             maze.set(node, Node.Type.TOUCHED);
+            Amount.GROUND.nodes.remove(node);
             Amount.DOUBLES.nodes.add(node);
             triedDouble.add(node);
         }
@@ -508,16 +500,14 @@ public class MazeGen {
 
         if (maze.get(node) == Node.Type.TOUCHED) {
             maze.set(node, Node.Type.GROUND);
-            Amount.GROUND.nodes.add(node);
             return;
         }
 
         else if (Amount.DOUBLES.remaining() > 0) {
 
-            int nodesLeft = pathLength - 2 - maze.creationPath.size();
-            int endCountsAsGround = endCanBeDouble ? 0 : 1;
-            
-            if ((nodesLeft - endCountsAsGround == Amount.DOUBLES.remaining())
+            int nodesLeft = pathLength - Amount.GROUND.get() - Amount.DOUBLES.get();
+
+            if ((nodesLeft == Amount.DOUBLES.remaining())
                 || doublesArePlacedFirst
                 || Config.rand.nextFloat() <= 0.5) {
 
@@ -544,50 +534,54 @@ public class MazeGen {
             return validCreationPath(maze);
         }
 
-        boolean next = true;
-        Node neighbor = null;
+        ArrayList<Node> neighbors = getWalkableNeighborsOf(maze, maze.creationPath.getLast());
 
-        int i = 0;
-        ArrayList<Node> neighbors = getWalkableNeighborsOf(maze, maze.currentNode);
-
-        while (i < neighbors.size()) {
+        for (Node neighbor : neighbors) {
             
-            if (next) {
-                neighbor = neighbors.get(i);
-                maze.currentNode = neighbor;
-                setType(maze, neighbor);
-                maze.creationPath.add(neighbor);
-            }
+            maze.creationPath.add(neighbor);
+            setType(maze, neighbor);
 
             if (generateHelper(maze)) {
                 // test if valid
                 return true;
             }
             else if (changeNodeType(maze, neighbor)) {
-                // try to change node type
-                next = false;
-                continue;
+                if (generateHelper(maze)) {
+                    return true;
+                }
             }
 
             // else: invalid path, even after (potentially) changing node type
 
-            Node node = maze.creationPath.removeLast();
+            maze.creationPath.removeLast();     // removes `neighbor`
 
-            if (Amount.DOUBLES.nodes.contains(node)) {
-                maze.set(neighbor, Node.Type.TOUCHED);
+            if (Amount.DOUBLES.nodes.contains(neighbor)) {
+                if (maze.get(neighbor) == Node.Type.GROUND) {
+                    // neighbor was double before stepped on this time
+                    maze.set(neighbor, Node.Type.TOUCHED);
+                }
+                else {
+                    // neighbor was set to double at this method call
+                    Amount.DOUBLES.nodes.remove(neighbor);
+                    triedDouble.remove(neighbor);
+                    maze.set(neighbor, null);
+                }
             }
+
             else {
-                maze.removeNode(neighbor);
+                maze.set(neighbor, null);
+                
+                Amount.DOUBLES.nodes.remove(neighbor);
+                Amount.GROUND.nodes.remove(neighbor);
+                triedDouble.remove(neighbor);
             }
-
-            next = true;
-            i++;
+            
+            invalidPathsCount++;
         }
         
         // All unset neighbors have been traversed but still no appropriate maze is found.
         // Therefore, increase counter and return false to continue searching.
 
-        invalidPathsCount++;
 
         return false;
     }

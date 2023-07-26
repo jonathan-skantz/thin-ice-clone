@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Stack;
 
@@ -35,6 +36,15 @@ public class Maze {
             this.dx = dx;
             this.dy = dy;
         }
+
+        public static Direction getFromMovement(Node lastNode, Node newNode) {
+            for (Direction dir : values()) {
+                if (dir.dx == newNode.X - lastNode.X && dir.dy == newNode.Y - lastNode.Y) {
+                    return dir;
+                }
+            }
+            return null;
+        }
     }
 
     public Maze(int width, int height, Node.Type firstType) {
@@ -50,6 +60,111 @@ public class Maze {
         }
 
         typesOriginal = new Node.Type[height][width];
+    }
+
+    public void printTypes() {
+        
+        HashSet<Integer> wideCols = new HashSet<>();
+        
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                if (get(x, y) == Node.Type.DOUBLE || get(x, y) == Node.Type.END_DOUBLE) {
+                    wideCols.add(x);
+                }
+            }
+        }
+        StringBuilder sb = new StringBuilder();
+        
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                if (wideCols.contains(x)) {
+                    sb.append(centerPad(get(x, y).toString(), 3));
+                }
+                else {
+                    sb.append(centerPad(get(x, y).toString(), 2));
+                }
+            }
+            sb.append('\n');
+        }
+
+        System.out.println(sb);
+    }
+
+    public void printCreationPath() {
+        printPath(creationPath);
+    }
+
+    private static String centerPad(String str, int totalWidth) {
+        int spacesToAdd = totalWidth - str.length();
+        if (spacesToAdd <= 0) {
+            return str;
+        }
+
+        int leftSpaces = spacesToAdd / 2;
+        int rightSpaces = spacesToAdd - leftSpaces;
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < leftSpaces; i++) {
+            sb.append(' ');
+        }
+        sb.append(str);
+        for (int i = 0; i < rightSpaces; i++) {
+            sb.append(' ');
+        }
+
+        return sb.toString();
+    }
+
+    public void printPath(LinkedList<Node> path) {
+        
+        StringBuilder sb = new StringBuilder();
+
+        int widest = 2;
+        HashSet<Integer> wideCols = new HashSet<>();
+
+        for (int i=0; i<path.size(); i++) {
+            Node node = path.get(i);
+
+            int i1 = path.indexOf(node);
+            int i2 = path.lastIndexOf(node);
+
+            if (i1 != i2) {
+                widest = String.valueOf(i1 + "(" + i2 + ")").length() + 2;
+                wideCols.add(node.X);
+            }
+        }
+
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                Node node = new Node(x, y);
+                int i1 = path.indexOf(node);
+                int i2 = path.lastIndexOf(node);
+
+                int w;
+                if (wideCols.contains(x)) {
+                    w = widest;
+                }
+                else if (wideCols.contains(x-1)) {
+                    w = 2;
+                }
+                else {
+                    w = 3;
+                }
+
+                if (i1 == -1) {
+                    sb.append(centerPad(Node.Type.WALL.toString(), w));
+                }
+                else if (i1 != i2) {
+                    sb.append(centerPad(creationPath.indexOf(node) + "(" + i2 + ")", w));
+                }
+                else {
+                    sb.append(centerPad(String.valueOf(i1), w));
+                }
+            }
+            sb.append('\n');
+        }
+
+        System.out.println(sb);
     }
 
     public ArrayList<Node> getNeighborsOf(Node node) {
@@ -84,12 +199,6 @@ public class Maze {
         types[y][x] = type;
     }
 
-    public void removeNode(Node node) {
-        // Node.Type type = types[node.Y][node.X];
-        types[node.Y][node.X] = null;
-        // nodes.get(type).remove(node);
-    }
-
     public void setStartNode(Node node) {
         startNode = node;
         set(startNode, Node.Type.START);
@@ -101,11 +210,11 @@ public class Maze {
     }
 
     // returns true if valid move, false if invalid move
-    public boolean userMove(KeyHandler.ActionKey action) {
+    public boolean userMove(Maze.Direction dir) {
 
-        Node newNode = currentNode.getNeighbor(action.toDirection());
+        Node newNode = currentNode.getNeighbor(dir);
 
-        if (nodeWithinBounds(newNode) && nodeTypeWalkable(newNode)) {
+        if (walkable(newNode)) {
             
             if (get(currentNode) == Node.Type.DOUBLE) {
                 set(currentNode, Node.Type.TOUCHED);
@@ -162,8 +271,8 @@ public class Maze {
         }
     }
 
-    // returns ActionKey in which grid direction the step occured
-    public KeyHandler.ActionKey step(int direction){
+    // returns grid direction in which the step occured
+    public Direction step(int direction){
         
         if (direction == -1) {
             
@@ -189,7 +298,7 @@ public class Maze {
                     }
                 }
 
-                else {
+                else if (get(lastNode) == Node.Type.BLOCKED) {
                     set(lastNode, Node.Type.GROUND);
                 }
 
@@ -197,15 +306,22 @@ public class Maze {
                 if (currentNode.equals(startNode)) {
                     set(currentNode, Node.Type.START);
                 }
-                else if (getOriginal(currentNode) == Node.Type.DOUBLE) {
+                else if (get(currentNode) == Node.Type.TOUCHED) {
+                    if (currentNode.equals(endNode)) {
+                        set(currentNode, Node.Type.END_DOUBLE);
+                    }
+                    else {
+                        set(currentNode, Node.Type.DOUBLE);
+                    }
+                }
+                else if (getOriginal(currentNode) == Node.Type.DOUBLE || getOriginal(currentNode) == Node.Type.END_DOUBLE) {
                     set(currentNode, Node.Type.TOUCHED);
                 }
                 else {
                     set(currentNode, Node.Type.GROUND);
                 }
-
                 
-                return KeyHandler.ActionKey.getActionFromMovement(lastNode, currentNode);
+                return Maze.Direction.getFromMovement(lastNode, currentNode);
             }
         }
         else {
@@ -214,22 +330,18 @@ public class Maze {
                 Node lastNode = currentNode;
                 Node newNode = pathHistoryRedo.peek();      // NOTE: doesn't pop, since that is done in userMove()
 
-                KeyHandler.ActionKey action = KeyHandler.ActionKey.getActionFromMovement(lastNode, newNode);
-                userMove(action);
+                Maze.Direction dir = Maze.Direction.getFromMovement(lastNode, newNode);
+                userMove(dir);
                 
-                return action;
+                return dir;
             }
         }
         
         return null;
     }
 
-    private boolean nodeTypeWalkable(Node node) {
-        return get(node) != Node.Type.WALL && get(node) != Node.Type.BLOCKED;
-    }
-
     public boolean walkable(Node node) {
-        return nodeWithinBounds(node) && nodeTypeWalkable(node);
+        return nodeWithinBounds(node) && get(node) != Node.Type.WALL && get(node) != Node.Type.BLOCKED;
     }
 
 }

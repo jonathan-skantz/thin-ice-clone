@@ -25,15 +25,15 @@ public class MazeSolver {
 
         // print comparison
         System.out.println("Maze with creation path:");
-        MazePrinter.printMazeWithPath(maze, maze.creationPath);
+        maze.printCreationPath();
 
         System.out.println("longest: ");
         System.out.println(solver.longestPath);
-        MazePrinter.printMazeWithPath(maze, solver.longestPath);
-
+        maze.printPath(solver.longestPath);
+        
         System.out.println("\nshortest:");
         System.out.println(solver.shortestPath);
-        MazePrinter.printMazeWithPath(maze, solver.shortestPath);
+        maze.printPath(solver.shortestPath);
     }
 
     public MazeSolver(Maze maze) {
@@ -188,7 +188,7 @@ public class MazeSolver {
 
     private void unwalk(Node node) {
         if (mazeCopy[node.Y][node.X] == Node.Type.TOUCHED) {
-            mazeCopy[node.Y][node.X] = Node.Type.DOUBLE;
+            mazeCopy[node.Y][node.X] = Node.Type.DOUBLE;        // TODO: could also be set to END_DOUBLE
         }
         else if (mazeCopy[node.Y][node.X] == Node.Type.END) {
             mazeCopy[node.Y][node.X] = Node.Type.END_DOUBLE;

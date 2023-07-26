@@ -1,6 +1,8 @@
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+
 import org.junit.Before;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -14,9 +16,7 @@ public class MazeGenTest {
 
     @Before
     public void setup() {
-        MazeGen.Amount.GROUND.setPriority(0);
-        MazeGen.Amount.DOUBLES.setPriority(1);
-        MazeGen.Amount.WALLS.setPriority(2);
+        MazeGen.Amount.priority = new ArrayList<>(MazeGen.Amount.priorityDefault);
     }
 
     @Test
@@ -112,10 +112,10 @@ public class MazeGenTest {
         
         for (int[] size : sizes) {
             // act
-            MazeGen.Amount.DOUBLES.setPriority(0);
             MazeGen.setSize(size[0], size[1]);
-            MazeGen.Amount.GROUND.set(99);
+            MazeGen.Amount.DOUBLES.setPriority(0);
             MazeGen.Amount.DOUBLES.set(1);
+            MazeGen.Amount.GROUND.set(99);      // TODO: why must doubles be set first?
             MazeGen.generate();
             
             // assert
@@ -158,78 +158,6 @@ public class MazeGenTest {
             assertThat(MazeGen.Amount.DOUBLES.get(), equalTo(0));
         }
     }
-
-    // @Test
-    // public void mazeHasNoNullNodes() {
-
-    //     // TODO: test with endCanBeDouble=true
-    //     MazeGen.setEndCanBeDouble(false);
-
-    //     // test all mazes from size 1x1 to 3x3 with all type combinations
-    //     for (int height=1; height<=3; height++) {
-    //         for (int width=1; width<=3; width++) {
-
-    //             for (int doubles=0; doubles<=6; doubles++) {
-    //                 for (int ground=0; ground<=7; ground++) {
-                        
-    //                     // arrange
-    //                     MazeGen.setSize(width, height);
-    //                     MazeGen.Amount.DOUBLES.set(doubles);
-    //                     MazeGen.Amount.DOUBLES.set(ground);
-    //                     MazeGen.generate();
-                        
-    //                     // act
-    //                     for (int y=0; y<MazeGen.getHeight(); y++) {
-    //                         for (int x=0; x<MazeGen.getWidth(); x++) {
-    //                             // assert
-    //                             assertNotNull(MazeGen.get(x, y));
-    //                         }
-    //                     }
-
-    //                 }
-    //             }
-
-    //         }
-    //     }
-
-    // }
-
-    // @Test
-    // public void mazeWithThreeNodesAndTwoDoublesRequiresEndToBeDouble() {
-        
-    //     int[][] sizes = new int[][]{{1, 3}, {3, 1}};
-
-    //     for (int[] size : sizes) {
-    //         // arrange #1
-    //         MazeGen.setSize(size[0], size[1]);
-    //         MazeGen.setEndCanBeDouble(false);
-    //         MazeGen.Amount.DOUBLES.set(2);
-    //         MazeGen.Amount.GROUND.set(0);
-
-    //         // act #1
-    //         MazeGen.generate();
-            
-    //         // assert #1
-    //         assertThat(MazeGen.Amount.DOUBLES.getMax(), equalTo(0));
-    //         assertThat(MazeGen.Amount.GROUND.get(), equalTo(0));
-    //         assertThat(MazeGen.Amount.DOUBLES.nodes.size(), equalTo(0));
-            
-    //         // arrange #2
-    //         MazeGen.setEndCanBeDouble(true);
-    //         MazeGen.Amount.DOUBLES.set(2);
-    //         MazeGen.Amount.GROUND.set(0);
-            
-    //         // act #2
-    //         MazeGen.generate();
-
-    //         // assert #2
-    //         assertThat(MazeGen.Amount.DOUBLES.getMax(), equalTo(2));
-    //         assertThat(MazeGen.Amount.GROUND.get(), equalTo(2));
-    //         assertThat(MazeGen.Amount.DOUBLES.nodes.size(), equalTo(2));
-    //     }
-
-
-    // }
 
     @Test
     public void decreasingSizeAdjustsNodeTypesCorrectly() {
