@@ -19,12 +19,13 @@ public class Main {
     
     // sprites
     public static Block player;
-    public static JLabel textNextLevel;
+    public static JLabel textLevelComplete;
     private static JLabel textGenerating;
+    private static JLabel textGameOver;
     public static Block[][] mazeBlocks;
 
     // animations
-    private static final boolean ENABLE_ANIMATIONS = true;
+    private static final boolean ENABLE_ANIMATIONS = false;
     private static boolean animationsFinished = true;
 
     private static TimedCounter tcSpawnPlayer;
@@ -37,6 +38,7 @@ public class Main {
     private static Font hintFont = new Font("verdana", Font.BOLD, (int)(0.5*Config.blockSize));
 
     private static volatile boolean mazeGenThreadDone = true;
+    private static boolean gameOver = false;
 
     public static void main(String[] args) {
 
@@ -57,26 +59,7 @@ public class Main {
         player.velocity = Config.blockSize;
         player.setVisible(false);
         
-        // setup next-level-text
-        Font font = new Font("arial", Font.PLAIN, 20);
-        textNextLevel = new JLabel("Level complete");
-        textNextLevel.setVisible(false);
-        textNextLevel.setFont(font);
-        textNextLevel.setForeground(Color.BLACK);
-        textNextLevel.setSize(textNextLevel.getPreferredSize());
-        
-        int y = 50;
-        textNextLevel.setLocation(Window.getXCentered(textNextLevel), y);
-        Window.sprites.add(textNextLevel);
-        
-        // setup generating text
-        textGenerating = new JLabel("Generating...");
-        textGenerating.setVisible(false);
-        textGenerating.setFont(font);
-        textGenerating.setForeground(Color.BLACK);
-        textGenerating.setSize(textGenerating.getPreferredSize());
-        textGenerating.setLocation(Window.getXCentered(textGenerating), y);
-        Window.sprites.add(textGenerating);
+        setupText();
 
         UI.setupConfigs();
 
@@ -86,6 +69,32 @@ public class Main {
         mazeBeforeThread = oldMaze;
         createWallBlocks();
         Window.sprites.setVisible(true);
+
+    }
+
+    private static void setupText() {
+
+        Font font = new Font("arial", Font.PLAIN, 20);
+
+        // level complete
+        textLevelComplete = new JLabel("Level complete");
+        textLevelComplete.setForeground(Color.BLACK);
+        
+        // generating
+        textGenerating = new JLabel("Generating...");
+        textGenerating.setForeground(Color.DARK_GRAY);
+        
+        // game over
+        textGameOver = new JLabel("Game over");
+        textGameOver.setForeground(Color.RED);
+        
+        for (JLabel label : new JLabel[]{textLevelComplete, textGenerating, textGameOver}) {
+            label.setVisible(false);
+            label.setFont(font);
+            label.setSize(label.getPreferredSize());
+            label.setLocation(Window.getXCentered(label), 50);
+            Window.sprites.add(label);
+        }
 
     }
 
@@ -194,7 +203,9 @@ public class Main {
         if (!mazeGenThreadDone || !animationsFinished) {
             return;
         }
-        
+
+        textGameOver.setVisible(false);
+        textLevelComplete.setVisible(false);
         removeHintTexts();
 
         if (ENABLE_ANIMATIONS) {
@@ -215,7 +226,7 @@ public class Main {
 
     public static void showHint() {
 
-        if (!animationsFinished || maze.currentNode == null || maze.complete) {
+        if (gameOver || !animationsFinished || maze.currentNode == null || maze.complete) {
             return;
         }
 
@@ -282,7 +293,7 @@ public class Main {
 
     public static void tryToMove(Maze.Direction dir) {
 
-        if (!mazeGenThreadDone || maze.complete || !animationsFinished) {
+        if (gameOver || !mazeGenThreadDone || maze.complete || !animationsFinished) {
             return;
         }
 
@@ -307,11 +318,20 @@ public class Main {
                         Window.sprites.remove(hintLabel);
                     }
                     hints.clear();
+                    Window.sprites.repaint();   // some labels are still visible
                 }
             }
 
             if (maze.complete) {
-                textNextLevel.setVisible(true);
+                textLevelComplete.setVisible(true);
+            }
+
+            else {
+                MazeSolver solver = new MazeSolver(maze);
+                if (solver.findShortestPath().size() == 0) {
+                    textGameOver.setVisible(true);
+                    gameOver = true;
+                }
             }
         }
 
@@ -325,17 +345,20 @@ public class Main {
         KeyHandler.Action.MOVE_RIGHT.setCallback(() -> { tryToMove(Maze.Direction.RIGHT); });
         
         KeyHandler.Action.MAZE_NEW.setCallback(() -> { generateNewMaze(); });
-        KeyHandler.Action.MAZE_RESET.setCallback(() -> { resetMazeGraphics(); });
+        KeyHandler.Action.MAZE_RESET.setCallback(() -> {
+            gameOver = false;
+            resetMazeGraphics();
+        });
         KeyHandler.Action.MAZE_HINT.setCallback(() -> { showHint(); });
         
         KeyHandler.Action.MAZE_STEP_UNDO.setCallback(() -> {
-            if (mazeGenThreadDone && tcReset.finished) {
+            if (!gameOver && mazeGenThreadDone && tcReset.finished) {
                step(-1);
             }
         });
 
         KeyHandler.Action.MAZE_STEP_REDO.setCallback(() -> {
-            if (mazeGenThreadDone && tcReset.finished) {
+            if (!gameOver && mazeGenThreadDone && tcReset.finished) {
                 step(1);
             }
         });
@@ -449,7 +472,7 @@ public class Main {
 
         block.setType(type);
 
-        for (Node neighbor : maze.getNeighborsOf(node)) {
+        for (Node neighbor : maze.getNeighborsOf(node, false)) {
             boolean nodeCausesFrost = maze.get(node) == Node.Type.DOUBLE || maze.get(node) == Node.Type.END_DOUBLE;
             mazeBlocks[neighbor.Y][neighbor.X].setFrost(neighbor, node, nodeCausesFrost);
         }
@@ -517,11 +540,11 @@ public class Main {
 
     public static void generateNewMaze() {
         
-        if (!animationsFinished) {
+        if (gameOver || !animationsFinished) {
             return;
         }
 
-        textNextLevel.setVisible(false);
+        textLevelComplete.setVisible(false);
         textGenerating.setVisible(true);
 
         MazeGen.cancel = mazeGenThreadDone != true;

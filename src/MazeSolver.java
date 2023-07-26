@@ -101,6 +101,10 @@ public class MazeSolver {
             currentNode = parent[currentNode.Y][currentNode.X];
         }
 
+        if (shortestPath.size() == 1) {
+            shortestPath.clear();
+        }
+
         return shortestPath;
     }
 
@@ -110,6 +114,10 @@ public class MazeSolver {
         longestPath.clear();
 
         exploreNewNode();
+
+        if (longestPath.size() == 1) {
+            longestPath.clear();
+        }
 
         return longestPath;
     }
