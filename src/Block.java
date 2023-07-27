@@ -62,7 +62,7 @@ public class Block extends JComponent {
                 public void onTick() {
                     bottomImage = Image.repeat(bottomImageOriginal, startX, y);
                     combineFrost();
-                    if (++startX == getWidth()) {
+                    if (++startX >= getWidth()) {
                         startX = 0;
                     }
                 }

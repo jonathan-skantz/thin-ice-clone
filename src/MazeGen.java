@@ -433,6 +433,11 @@ public class MazeGen {
 
     private static boolean validCreationPath(Maze maze) {
 
+        // too few double nodes
+        if (Amount.DOUBLES.remaining() > 0) {
+            return false;
+        }
+
         // check if endNode can/must be a double
         if (Amount.DOUBLES.nodes.contains(maze.creationPath.getLast())) {
             if (!endCanBeDouble) {
@@ -495,8 +500,6 @@ public class MazeGen {
 
     // sets the first node type of a node
     private static void setType(Maze maze, Node node) {
-
-        // int doublesLeft = Node.Type.DOUBLE.getAmount() - Node.Type.DOUBLE.nodes.size();
 
         if (maze.get(node) == Node.Type.TOUCHED) {
             maze.set(node, Node.Type.GROUND);

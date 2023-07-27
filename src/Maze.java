@@ -62,6 +62,32 @@ public class Maze {
         typesOriginal = new Node.Type[height][width];
     }
 
+    // copy other maze
+    public Maze(Maze maze) {
+        complete = maze.complete;
+        // NOTE: Node instances cannot be modified,
+        // therefore it is safe to use the same instances
+        pathHistory.addAll(maze.pathHistory);
+        pathHistoryRedo.addAll(maze.pathHistoryRedo);
+        creationPath.addAll(maze.creationPath);
+        width = maze.width;
+        height = maze.height;
+        startNode = maze.startNode;
+        endNode = maze.endNode;
+        currentNode = maze.currentNode;
+        
+        types = new Node.Type[height][width];
+        for (int y=0; y<height; y++) {
+            types[y] = maze.types[y].clone();
+        }
+
+        typesOriginal = new Node.Type[height][width];
+        for (int y=0; y<height; y++) {
+            typesOriginal[y] = maze.typesOriginal[y].clone();
+        }
+
+    }
+
     public void printTypes() {
         
         HashSet<Integer> wideCols = new HashSet<>();
@@ -155,7 +181,7 @@ public class Maze {
                     sb.append(centerPad(Node.Type.WALL.toString(), w));
                 }
                 else if (i1 != i2) {
-                    sb.append(centerPad(creationPath.indexOf(node) + "(" + i2 + ")", w));
+                    sb.append(centerPad(i1 + "(" + i2 + ")", w));
                 }
                 else {
                     sb.append(centerPad(String.valueOf(i1), w));
@@ -167,12 +193,18 @@ public class Maze {
         System.out.println(sb);
     }
 
-    public ArrayList<Node> getNeighborsOf(Node node) {
+    public ArrayList<Node> getNeighborsOf(Node node, boolean mustBeWalkable) {
         
         ArrayList<Node> neighbors = new ArrayList<>(4);
         for (Direction dir : Direction.values()) {
             Node neighbor = node.getNeighbor(dir);
-            if (nodeWithinBounds(neighbor)) {
+
+            if (mustBeWalkable) {
+                if (walkable(neighbor)) {
+                    neighbors.add(neighbor);
+                }
+            }
+            else if (nodeWithinBounds(neighbor)) {
                 neighbors.add(neighbor);
             }
         }
@@ -278,50 +310,32 @@ public class Maze {
             
             if (pathHistory.size() > 1) {
                 
-                Node lastNode = pathHistory.pop();      // pops currentNode
-                pathHistoryRedo.add(lastNode);
+                Node poppedNode = pathHistory.pop();      // pops currentNode
+                pathHistoryRedo.add(poppedNode);
                 
                 currentNode = pathHistory.peek();
 
-                // adjust lastNode
-                if (get(lastNode) == Node.Type.TOUCHED) {
-
-                    // don't set to double since it was
-                    // just about to be set to GROUND when left
-                    if (!pathHistory.contains(lastNode)) {
-                        if (lastNode.equals(endNode)) {
-                            set(lastNode, Node.Type.END_DOUBLE);
-                        }
-                        else {
-                            set(lastNode, Node.Type.DOUBLE);
-                        }
-                    }
-                }
-
-                else if (get(lastNode) == Node.Type.BLOCKED) {
-                    set(lastNode, Node.Type.GROUND);
-                }
-
                 // adjust currentNode
-                if (currentNode.equals(startNode)) {
-                    set(currentNode, Node.Type.START);
-                }
-                else if (get(currentNode) == Node.Type.TOUCHED) {
-                    if (currentNode.equals(endNode)) {
-                        set(currentNode, Node.Type.END_DOUBLE);
+                if (get(currentNode) == Node.Type.BLOCKED) {
+                    if (getOriginal(currentNode) == Node.Type.DOUBLE) {
+                        set(currentNode, Node.Type.TOUCHED);
+                    }
+                    else if (getOriginal(currentNode) == Node.Type.END_DOUBLE) {
+                        set(currentNode, Node.Type.END);
                     }
                     else {
-                        set(currentNode, Node.Type.DOUBLE);
+                        // set to either GROUND or START
+                        set(currentNode, getOriginal(currentNode));
                     }
                 }
-                else if (getOriginal(currentNode) == Node.Type.DOUBLE || getOriginal(currentNode) == Node.Type.END_DOUBLE) {
-                    set(currentNode, Node.Type.TOUCHED);
+                else if (get(currentNode) == Node.Type.TOUCHED) {
+                    set(currentNode, Node.Type.DOUBLE);
                 }
-                else {
-                    set(currentNode, Node.Type.GROUND);
+                else if (get(currentNode) == Node.Type.END) {
+                    set(currentNode, Node.Type.END_DOUBLE);
                 }
                 
-                return Maze.Direction.getFromMovement(lastNode, currentNode);
+                return Maze.Direction.getFromMovement(poppedNode, currentNode);
             }
         }
         else {
