@@ -310,48 +310,32 @@ public class Maze {
             
             if (pathHistory.size() > 1) {
                 
-                Node lastNode = pathHistory.pop();      // pops currentNode
-                pathHistoryRedo.add(lastNode);
+                Node poppedNode = pathHistory.pop();      // pops currentNode
+                pathHistoryRedo.add(poppedNode);
                 
                 currentNode = pathHistory.peek();
 
-                // adjust lastNode
-                if (get(lastNode) == Node.Type.TOUCHED) {
-
-                    // don't set to double since it was
-                    // just about to be set to GROUND when left
-                    if (!pathHistory.contains(lastNode)) {
-                        if (lastNode.equals(endNode)) {
-                            set(lastNode, Node.Type.END_DOUBLE);
-                        }
-                        else {
-                            set(lastNode, Node.Type.DOUBLE);
-                        }
-                    }
-                }
-
-                else if (get(lastNode) == Node.Type.BLOCKED) {
-                    set(lastNode, Node.Type.GROUND);
-                }
-
                 // adjust currentNode
-                if (currentNode.equals(startNode)) {
-                    set(currentNode, Node.Type.START);
+                if (get(currentNode) == Node.Type.BLOCKED) {
+                    if (getOriginal(currentNode) == Node.Type.DOUBLE) {
+                        set(currentNode, Node.Type.TOUCHED);
+                    }
+                    else if (getOriginal(currentNode) == Node.Type.END_DOUBLE) {
+                        set(currentNode, Node.Type.END);
+                    }
+                    else {
+                        // set to either GROUND or START
+                        set(currentNode, getOriginal(currentNode));
+                    }
                 }
                 else if (get(currentNode) == Node.Type.TOUCHED) {
                     set(currentNode, Node.Type.DOUBLE);
                 }
-                else if (getOriginal(currentNode) == Node.Type.DOUBLE) {
-                    set(currentNode, Node.Type.TOUCHED);
-                }
-                else if (getOriginal(currentNode) == Node.Type.END_DOUBLE) {
-                    set(currentNode, Node.Type.END);
-                }
-                else {
-                    set(currentNode, Node.Type.GROUND);
+                else if (get(currentNode) == Node.Type.END) {
+                    set(currentNode, Node.Type.END_DOUBLE);
                 }
                 
-                return Maze.Direction.getFromMovement(lastNode, currentNode);
+                return Maze.Direction.getFromMovement(poppedNode, currentNode);
             }
         }
         else {
