@@ -94,11 +94,25 @@ public class MazeSolver {
             }
         }
 
-        // reset shortest path
+        // build shortest path
         Node currentNode = maze.endNode;
         while (currentNode != null) {
             shortestPath.addFirst(currentNode);
             currentNode = parent[currentNode.Y][currentNode.X];
+        }
+
+        // if end is double, two more steps must be added
+        if (mazeCopy.get(mazeCopy.endNode) == Node.Type.END_DOUBLE) {
+            for (Node neighbor : mazeCopy.getNeighborsOf(mazeCopy.endNode, true)) {
+
+                boolean touched = shortestPath.contains(neighbor);
+
+                if (!touched || (touched && mazeCopy.get(neighbor) == Node.Type.DOUBLE)) {
+                    shortestPath.add(neighbor);
+                    shortestPath.add(mazeCopy.endNode);
+                    break;
+                }
+            }
         }
 
         if (shortestPath.size() == 1) {
