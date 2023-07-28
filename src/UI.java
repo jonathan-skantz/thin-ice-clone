@@ -29,8 +29,6 @@ import javax.swing.border.Border;
 
 public class UI {
  
-    private static boolean mazeConfigIsNew = false;
-
     private static final int SLIDER_WIDTH = 100;
     private static final int SLIDER_HEIGHT = 250;
 
@@ -353,7 +351,6 @@ public class UI {
         
         endMustBeDoubleCheckbox.addItemListener(e -> {
             MazeGen.setEndMustBeDouble(e.getStateChange() == ItemEvent.SELECTED);
-            mazeConfigIsNew = true;
         });
 
         return row;
@@ -522,7 +519,6 @@ public class UI {
         
         pathLengthLabel.setText("Resulting path length: " + MazeGen.pathLength);
         
-        mazeConfigIsNew = true;
     }
 
     private static JSlider getNewSlider(int min, int max, int currentVal) {
@@ -576,11 +572,6 @@ public class UI {
                 @Override
                 public void windowClosed(WindowEvent e) {
                     Window.frame.requestFocus();  // prevents focus back to the config btn and rather the game canvas
-                    
-                    if (mazeConfigIsNew) {
-                        Main.generateNewMaze();
-                        mazeConfigIsNew = false;
-                    }
                 }
             });
         });
