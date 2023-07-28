@@ -10,25 +10,28 @@ import javax.swing.JLayeredPane;
 
 public class MazeContainer {
     
-    public Maze maze;
+    private Maze maze;
     private Maze oldMaze;
-    public MazeSolver solver;
-    public boolean gameOver;
+    private MazeSolver solver;
+    private boolean gameOver;
     
     private TimedCounter tcReset;
     private TimedCounter tcSpawnPlayer;
     private TimedCounter tcNewMaze;
     private LinkedList<Node> nodesToChange = new LinkedList<>();
 
-    public int startX;
-    public int startY;
-    public Block player;
-    public Block[][] blocks;
-    public JLabel textGameOver;
-    public JLabel textLevelComplete;
-    public LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>(Config.hintMax);
+    private int startX;
+    private int startY;
+
+    private Block player;
+    private Block[][] blocks;
+    private JLabel textStatus;
+    private JLabel textPoints;
+    
+    private LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>(Config.hintMax);
 
     public JLayeredPane sprites = new JLayeredPane();
+    // sprites.setOpaque(false);    // TODO: possible with JPanel?
 
     public MazeContainer() {
 
@@ -41,17 +44,7 @@ public class MazeContainer {
         player.setVisible(false);
         sprites.add(player);
 
-        textGameOver = Main.createLabel("Game over");
-        textGameOver.setForeground(Color.RED);
-        int x = (Window.mazeWidth - textGameOver.getPreferredSize().width) / 2;
-        textGameOver.setLocation(x, 50);
-        sprites.add(textGameOver);
-        
-        textLevelComplete = Main.createLabel("Level complete");
-        textLevelComplete.setForeground(Color.BLACK);
-        x = (Window.mazeWidth - textLevelComplete.getPreferredSize().width) / 2;
-        textLevelComplete.setLocation(x, 50);
-        sprites.add(textLevelComplete);
+        setupText();
 
         createWallBlocks();
 
@@ -63,6 +56,20 @@ public class MazeContainer {
         setupTimerSpawnPlayer();
         setupTimerNewMaze();
 
+    }
+
+    private void setupText() {
+        
+        textPoints = Main.createLabel("Points: 0/0");
+        textPoints.setVisible(true);
+        textPoints.setForeground(Color.BLUE);
+        textPoints.setLocation(Window.getXCenteredMaze(textPoints), 10);
+
+        sprites.add(textPoints);
+        textStatus = Main.createLabel("Game over");
+        textStatus.setForeground(Color.RED);
+        textStatus.setLocation(Window.getXCenteredMaze(textStatus), textPoints.getY() + textPoints.getHeight() + 10);
+        sprites.add(textStatus);
     }
 
     private boolean allowInput() {
@@ -334,8 +341,7 @@ public class MazeContainer {
 
         gameOver = false;
 
-        textGameOver.setVisible(false);
-        textLevelComplete.setVisible(false);
+        textStatus.setVisible(false);
         removeHintTexts();
 
         if (Main.ENABLE_ANIMATIONS) {
@@ -356,7 +362,7 @@ public class MazeContainer {
 
     private void testGameOver() {
         if (solver.findShortestPath().size() == 0) {
-            textGameOver.setVisible(true);
+            updateTextStatus("Game over");
             gameOver = true;
         }
     }
@@ -370,6 +376,8 @@ public class MazeContainer {
         Node lastNode = maze.currentNode;
 
         if (maze.userMove(dir)) {
+
+            updateTextPoints();
 
             player.move(dir);
             mirrorPlayer(dir);
@@ -393,7 +401,62 @@ public class MazeContainer {
             }
 
             if (maze.complete) {
-                textLevelComplete.setVisible(true);
+                updateTextStatus("Complete");
+
+                if (!Config.multiplayer) {
+                    return;
+                }
+                int pointsLeft = Main.mazeLeft.maze.pathHistory.size();
+                int pointsRight = Main.mazeRight.maze.pathHistory.size();
+                int pointsMax = Main.mazeLeft.maze.creationPath.size();     // both have same max points
+
+                boolean completeLeft = Main.mazeLeft.maze.complete;
+                boolean completeRight = Main.mazeRight.maze.complete;
+
+                int winner = 0;
+                // or only one winner who steps on all
+                if (completeLeft) {
+
+                    if (pointsLeft == pointsMax) {
+                        winner = 1;
+                    }
+
+                    else if (completeRight) {
+                        if (pointsRight == pointsMax) {
+                            winner = 2;
+                        }
+                        
+                        else {
+                            // both left and right complete, but none walked on all steps
+                            if (pointsLeft > pointsRight) {
+                                winner = 1;
+                            }
+                            else if (pointsLeft < pointsRight) {
+                                winner = 2;
+                            }
+                            else {
+                                winner = 3;
+                            }
+                        }
+                    }
+                }
+                else if (completeRight && pointsRight == pointsMax) {
+                    winner = 2;
+                }
+
+                if (winner != 0) {
+                    if (winner == 3) {
+                        Main.textMazeStatus.setText("Winner: draw");
+                    }
+                    else {
+                        Main.textMazeStatus.setText("Winner: player " + winner);
+                    }
+                    Main.textMazeStatus.setSize(Main.textMazeStatus.getPreferredSize());
+                    Main.textMazeStatus.setLocation(Window.getXCentered(Main.textMazeStatus), Main.textMazeStatus.getY());
+                    Main.textMazeStatus.setVisible(true);
+                    Main.firstMazeCreated = false;  // prevents moving
+                }
+
             }
 
             else {
@@ -415,6 +478,8 @@ public class MazeContainer {
 
         if (dir != null) {
             
+            updateTextPoints();
+
             removeHintTexts();
             player.move(dir);
             mirrorPlayer(dir);
@@ -424,7 +489,7 @@ public class MazeContainer {
 
                 if (gameOver) {
                     gameOver = false;
-                    textGameOver.setVisible(false);
+                    textStatus.setVisible(false);
                 }
                 refreshBlockGraphics(maze.currentNode);
             }
@@ -435,6 +500,28 @@ public class MazeContainer {
         
     }
 
+    private void updateTextPoints() {
+        int points = maze.pathHistory.size();
+        int max = maze.creationPath.size();
+        textPoints.setText("Points: " + points + "/" + max);
+        textPoints.setSize(textPoints.getPreferredSize());
+        textPoints.setLocation(Window.getXCenteredMaze(textPoints), 10);
+    }
+
+    private void updateTextStatus(String status) {
+        
+        if (status == "Complete") {
+            textStatus.setForeground(Color.GREEN);
+        }
+        else {
+            textStatus.setForeground(Color.RED);
+        }
+        textStatus.setText(status);
+        textStatus.setSize(textStatus.getPreferredSize());
+        textStatus.setLocation(Window.getXCenteredMaze(textStatus), textPoints.getY() + textPoints.getHeight() + 10);
+        textStatus.setVisible(true);
+    }
+
     // also resets texts
     public void setMaze(Maze maze) {
         
@@ -443,8 +530,9 @@ public class MazeContainer {
 
         removeHintTexts();
         gameOver = false;
-        textGameOver.setVisible(false);
-        textLevelComplete.setVisible(false);
+        textStatus.setVisible(false);
+        
+        updateTextPoints();
 
         solver = new MazeSolver(maze);
 

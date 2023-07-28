@@ -61,7 +61,6 @@ public class Main {
 
             @Override
             public void onFinish() {
-                System.out.println("countdown FINISH");
                 textMazeStatus.setVisible(false);
             }
         };
@@ -89,7 +88,7 @@ public class Main {
         }
         setupKeyCallbacks();
         textMazeStatus.setLocation(Window.getXCentered(textMazeStatus), textMazeStatus.getY());
-        // TODO: move mazeConfig button
+        UI.buttons.setSize(Window.width, UI.buttons.getHeight());
     }
 
     public static void setupKeyCallbacks() {

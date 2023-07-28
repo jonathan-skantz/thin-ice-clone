@@ -54,6 +54,8 @@ public class UI {
 
     private static GridBagConstraints verticalGbc = new GridBagConstraints();
     
+    public static JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+
     static {
         horizontalGbcCol1.gridx = 0;
         horizontalGbcCol1.insets = insets;
@@ -66,17 +68,22 @@ public class UI {
     }
 
     public static void setupConfigs() {
-        setupMultiplayerButton();
         setupKeyConfig();
+        setupMultiplayerButton();
         setupMazeConfig();
+
+        buttons.setSize(Window.width, buttons.getPreferredSize().height);
+        buttons.setLocation(0, Window.height - buttons.getHeight());
+        buttons.setOpaque(false);
+        Window.sprites.add(buttons);
     }
 
 
     private static void setupMultiplayerButton() {
         JButton btn = new JButton("Players: " + (Config.multiplayer ? "2" : "1"));
         btn.setSize(btn.getPreferredSize());
-        btn.setLocation(10, 10);
-        Window.sprites.add(btn);
+        // btn.setLocation(Window.getXCentered(btn), Window.height - btn.getHeight() - 10);
+        buttons.add(btn);
 
         btn.addActionListener(e -> {
             Window.frame.requestFocus();
@@ -108,10 +115,7 @@ public class UI {
         setupKeyConfigContinuousMovement(panel);
 
         // add config button to bottom left
-        JButton btnConfig = getConfigPopupButton("Key config", panel);
-        int pad = 10;
-        int y = Window.height - btnConfig.getHeight() - pad;
-        btnConfig.setLocation(pad, y);
+        buttons.add(getConfigPopupButton("Key config", panel));
     }
 
     private static void setupKeyConfigKeybinds(JPanel panel) {
@@ -214,11 +218,8 @@ public class UI {
         panel.add(rightCol, c);
 
         // add config button to bottom right
-        JButton btn = getConfigPopupButton("Maze config", panel);
-        int pad = 10;
-        int x = Window.width - btn.getWidth() - pad;
-        int y = Window.height - btn.getHeight() - pad;
-        btn.setLocation(x, y);
+        buttons.add(getConfigPopupButton("Maze config", panel));
+
     }
 
     private static JPanel setupMazeConfigNodeTypes() {
@@ -550,7 +551,6 @@ public class UI {
         // setup button that opens a dialog
         JButton btn = new JButton(title);
         btn.setSize(btn.getPreferredSize());
-        Window.sprites.add(btn);
 
         // open popup with `contentPane`
         btn.addActionListener(e -> {

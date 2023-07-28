@@ -60,6 +60,10 @@ public class Window {
         return (height - comp.getHeight()) / 2;
     }
 
+    public static int getXCenteredMaze(JComponent comp) {
+        return (mazeWidth - comp.getWidth()) / 2 ;
+    }
+
     public static Point getXYCentered(JComponent comp) {
         return new Point(getXCentered(comp), getYCentered(comp));
     }
