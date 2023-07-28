@@ -8,16 +8,19 @@ public class Main {
 
     private static Maze maze;   // will be copied into mazeLeft (and potentially mazeRight)
 
-    private static MazeContainer mazeLeft;
-    private static MazeContainer mazeRight;
+    public static boolean firstMazeCreated = false;   // to prevent starting until first maze is created
 
-    public static JLabel textGenerating;
+    public static MazeContainer mazeLeft;
+    public static MazeContainer mazeRight;
+
+    public static JLabel textMazeStatus;
     public static final boolean ENABLE_ANIMATIONS = true;
 
     public static Font font = new Font("arial", Font.PLAIN, 20);
     public static Font hintFont = new Font("verdana", Font.BOLD, (int)(0.5*Config.blockSize));
 
     public static volatile boolean mazeGenThreadDone = true;
+    public static TimedCounter tcCountdown;
 
     public static void main(String[] args) {
 
@@ -25,19 +28,43 @@ public class Main {
         Config.apply();
 
         setupKeyCallbacks();
+        setupCountdownTimer();
 
         Window.sprites.setVisible(false);   // prevents redrawing while setting up
         
-        textGenerating = createLabel("Generating...");
-        textGenerating.setLocation(Window.getXCentered(textGenerating), 50);
+        textMazeStatus = createLabel("Generating...");
+        textMazeStatus.setLocation(Window.getXCentered(textMazeStatus), 50);
 
         UI.setupConfigs();
 
         // make first maze consist of walls only
         maze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
-        mazeLeft = new MazeContainer(true);
+        mazeLeft = new MazeContainer();
         Window.sprites.setVisible(true);
 
+    }
+
+    private static void setupCountdownTimer() {
+        tcCountdown = new TimedCounter(2, 2) {
+            @Override
+            public void onStart() {
+                textMazeStatus.setText("Starting in 3...");
+                textMazeStatus.setSize(textMazeStatus.getPreferredSize());
+                textMazeStatus.setVisible(true);
+            }
+            
+            @Override
+            public void onTick() {
+                textMazeStatus.setText("Starting in " + String.valueOf(frames - frame) + "...");
+                System.out.println(frames - frame);
+            }
+
+            @Override
+            public void onFinish() {
+                System.out.println("countdown FINISH");
+                textMazeStatus.setVisible(false);
+            }
+        };
     }
 
     public static JLabel createLabel(String text) {
@@ -52,7 +79,8 @@ public class Main {
     public static void toggleMultiplayer() {
 
         if (Config.multiplayer) {
-            mazeRight = new MazeContainer(false);
+            mazeRight = new MazeContainer();
+            mazeRight.sprites.setLocation(Window.mazeWidth, 0);
             mazeRight.setMaze(new Maze(maze));
         }
         else {
@@ -60,7 +88,7 @@ public class Main {
             mazeRight = null;
         }
         setupKeyCallbacks();
-        textGenerating.setLocation(Window.getXCentered(textGenerating), textGenerating.getY());
+        textMazeStatus.setLocation(Window.getXCentered(textMazeStatus), textMazeStatus.getY());
         // TODO: move mazeConfig button
     }
 
@@ -91,6 +119,14 @@ public class Main {
         KeyHandler.Action.MAZE_NEW.setCallback(() -> { generateNewMaze(); });
         KeyHandler.Action.ZOOM_IN.setCallback(() -> { zoom(1); });
         KeyHandler.Action.ZOOM_OUT.setCallback(() -> { zoom(-1); });
+        
+        KeyHandler.Action.START.setCallback(() -> {
+            if (firstMazeCreated && Config.multiplayer &&
+                mazeLeft.animationsFinished() && mazeRight.animationsFinished()) {
+                
+                tcCountdown.start();
+            }
+        });
     }
 
     public static void zoom(int direction) {
@@ -112,7 +148,9 @@ public class Main {
             return;
         }
 
-        textGenerating.setVisible(true);
+        textMazeStatus.setText("Generating...");
+        textMazeStatus.setSize(textMazeStatus.getPreferredSize());
+        textMazeStatus.setVisible(true);
 
         MazeGen.cancel = mazeGenThreadDone != true;
         while (!mazeGenThreadDone); {}
@@ -124,10 +162,12 @@ public class Main {
             maze = MazeGen.generate();
 
             if (!MazeGen.cancel) {
+                firstMazeCreated = true;
+                
                 System.out.println(maze.creationPath);
                 maze.printCreationPath();
 
-                mazeLeft.setMaze(maze);
+                mazeLeft.setMaze(new Maze(maze));
 
                 if (Config.multiplayer) {
                     mazeRight.setMaze(new Maze(maze));

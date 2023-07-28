@@ -33,7 +33,8 @@ public class KeyHandler extends KeyAdapter {
         // not user-specific
         MAZE_NEW(KeyEvent.VK_SPACE),
         ZOOM_IN(KeyEvent.VK_PLUS),
-        ZOOM_OUT(KeyEvent.VK_MINUS);
+        ZOOM_OUT(KeyEvent.VK_MINUS),
+        START(KeyEvent.VK_ENTER);
 
         private Action(int keyCode) {
             this.keyCode = keyCode;

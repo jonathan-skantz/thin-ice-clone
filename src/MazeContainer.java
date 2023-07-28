@@ -30,14 +30,10 @@ public class MazeContainer {
 
     public JLayeredPane sprites = new JLayeredPane();
 
-    public MazeContainer(boolean left) {
+    public MazeContainer() {
 
         maze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
         setStartPosition();
-
-        if (!left) {
-            sprites.setLocation(Window.mazeWidth, 0);
-        }
 
         // setup UI
         player = new Block("src/textures/player.png", Config.blockSize - 2);
@@ -70,6 +66,21 @@ public class MazeContainer {
     }
 
     private boolean allowInput() {
+
+        if (!Main.firstMazeCreated) {
+            return false;
+        }
+        else if (Config.multiplayer) {
+
+            if (!Main.tcCountdown.finished) {
+                return false;
+            }
+            if (!Main.mazeLeft.animationsFinished() || !Main.mazeRight.animationsFinished()) {
+                // prevent moving until both players can move
+                return false;
+            }
+        }
+
         return animationsFinished() &&
                 Main.mazeGenThreadDone &&
                 !gameOver &&
@@ -77,7 +88,8 @@ public class MazeContainer {
     }
 
     private boolean allowReset() {
-        return animationsFinished() &&
+        return Main.firstMazeCreated &&
+                animationsFinished() &&
                 Main.mazeGenThreadDone;
     }
 
@@ -161,7 +173,7 @@ public class MazeContainer {
                 Node node = nodesToChange.get(frame-1);   // since last node should be changed twice
                 blocks[node.Y][node.X].setBorder(null);
                 
-                Main.textGenerating.setVisible(false);  // NOTE: is hidden twice if multiplayer
+                Main.textMazeStatus.setVisible(false);  // NOTE: is hidden twice if multiplayer
                 tcSpawnPlayer.start();
             }
         };
@@ -444,10 +456,10 @@ public class MazeContainer {
             }
             sprites.repaint();      // some old blocks are still visible
             setStartPosition();
-
+            
             blocks = new Block[maze.height][maze.width];
             oldMaze = new Maze(maze.width, maze.height, Node.Type.WALL);
-
+            
             player.setVisible(false);
             createWallBlocks();
         }
@@ -475,7 +487,7 @@ public class MazeContainer {
             tcNewMaze.start();
         }
         else {
-            Main.textGenerating.setVisible(false);
+            Main.textMazeStatus.setVisible(false);
             player.setVisible(true);
             movePlayerGraphicsTo(maze.startNode);
             mirrorPlayer(null);
