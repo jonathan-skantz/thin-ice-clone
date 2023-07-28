@@ -66,10 +66,36 @@ public class UI {
     }
 
     public static void setupConfigs() {
+        setupMultiplayerButton();
         setupKeyConfig();
         setupMazeConfig();
     }
 
+
+    private static void setupMultiplayerButton() {
+        JButton btn = new JButton("Players: " + (Config.multiplayer ? "2" : "1"));
+        btn.setSize(btn.getPreferredSize());
+        btn.setLocation(10, 10);
+        Window.sprites.add(btn);
+
+        btn.addActionListener(e -> {
+            Window.frame.requestFocus();
+
+            Config.multiplayer = !Config.multiplayer;
+            if (Config.multiplayer) {
+                btn.setText("Players: 2");
+                Window.setSize(Window.width * 2, Window.height);
+            }
+            else {
+                btn.setText("Players: 1");
+                Window.setSize(Window.width / 2, Window.height);
+            }
+
+            Main.toggleMultiplayer();
+        });
+
+
+    }
 
 
     // ---------- KEY CONFIG ----------

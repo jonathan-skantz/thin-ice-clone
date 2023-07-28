@@ -12,18 +12,26 @@ public class KeyHandler extends KeyAdapter {
     // define actions and their corresponding key
     public enum Action {
 
-        MOVE_UP(KeyEvent.VK_W),
-        MOVE_DOWN(KeyEvent.VK_S),
-        MOVE_LEFT(KeyEvent.VK_A),
-        MOVE_RIGHT(KeyEvent.VK_D),
-
-        MAZE_NEW(KeyEvent.VK_SPACE),
-        MAZE_RESET(KeyEvent.VK_ESCAPE),
-        MAZE_HINT(KeyEvent.VK_H),
-
-        MAZE_STEP_UNDO(KeyEvent.VK_LEFT),
-        MAZE_STEP_REDO(KeyEvent.VK_RIGHT),
+        P1_MOVE_UP(KeyEvent.VK_W),
+        P1_MOVE_DOWN(KeyEvent.VK_S),
+        P1_MOVE_LEFT(KeyEvent.VK_A),
+        P1_MOVE_RIGHT(KeyEvent.VK_D),
+        P1_MAZE_RESET(KeyEvent.VK_ESCAPE),
+        P1_MAZE_HINT(KeyEvent.VK_H),
+        P1_MAZE_STEP_UNDO(KeyEvent.VK_Q),
+        P1_MAZE_STEP_REDO(KeyEvent.VK_E),
         
+        P2_MOVE_UP(KeyEvent.VK_UP),
+        P2_MOVE_DOWN(KeyEvent.VK_DOWN),
+        P2_MOVE_LEFT(KeyEvent.VK_LEFT),
+        P2_MOVE_RIGHT(KeyEvent.VK_RIGHT),
+        P2_MAZE_RESET(KeyEvent.VK_NUMPAD0),
+        P2_MAZE_HINT(KeyEvent.VK_NUMPAD1),
+        P2_MAZE_STEP_UNDO(KeyEvent.VK_NUMPAD4),
+        P2_MAZE_STEP_REDO(KeyEvent.VK_NUMPAD6),
+
+        // not user-specific
+        MAZE_NEW(KeyEvent.VK_SPACE),
         ZOOM_IN(KeyEvent.VK_PLUS),
         ZOOM_OUT(KeyEvent.VK_MINUS);
 

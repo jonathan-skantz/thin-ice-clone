@@ -7,6 +7,8 @@ import javax.swing.border.Border;
 
 public class Config {
     
+    public static boolean multiplayer = false;
+
     public static Random rand = new Random(1);
 
     public static final int MAZE_WIDTH_MIN = 1;
@@ -19,10 +21,6 @@ public class Config {
 
     public static final int DEFAULT_AMOUNT_GROUND = 10;
     public static final int DEFAULT_AMOUNT_DOUBLES = 2;
-    
-    // coordinates of topleft of maze
-    public static int mazeStartX;
-    public static int mazeStartY;
 
     // block graphics
     public static int blockSize = 30;
@@ -39,10 +37,6 @@ public class Config {
         put(Node.Type.END_DOUBLE, get(Node.Type.END));
     }};
     
-    public static final int BLOCK_BORDER_WIDTH = 1;
-    
-    public static final Border BLOCK_BORDER = BorderFactory.createLineBorder(new Color(0, 0, 0, 50), BLOCK_BORDER_WIDTH);
-
     // separate border to visualize the new blocks during generation
     public static final Border BLOCK_BORDER_GEN = BorderFactory.createLineBorder(new Color(255, 255, 150), 2);
 
