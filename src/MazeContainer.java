@@ -33,6 +33,27 @@ public class MazeContainer {
     public JLayeredPane sprites = new JLayeredPane();
     // sprites.setOpaque(false);    // TODO: possible with JPanel?
 
+    public enum Status {
+        COMPLETE(Color.GREEN),
+        INCOMPLETE(Color.ORANGE),
+        UNSOLVABLE(Color.RED);
+
+        public final Color color;
+        private final String display;
+
+        private Status(Color color) {
+            this.color = color;
+            String d = super.toString().toLowerCase();
+            d = String.valueOf(d.charAt(0)).toUpperCase() + d.substring(1);
+            display = d;
+        }
+
+        @Override
+        public String toString() {
+            return display;
+        }
+    }
+
     public MazeContainer() {
 
         maze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
@@ -66,7 +87,7 @@ public class MazeContainer {
         textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
 
         sprites.add(textSteps);
-        textStatus = Main.createLabel("Unsolvable");
+        textStatus = Main.createLabel(Status.UNSOLVABLE.toString());
         textStatus.setForeground(Color.RED);
         textStatus.setLocation(Window.getXCenteredMaze(textStatus), textSteps.getY() + textSteps.getHeight() + 10);
         sprites.add(textStatus);
@@ -363,10 +384,10 @@ public class MazeContainer {
         if (Config.showUnsolvable && solver.findShortestPath().size() == 0) {
             
             if (maze.get(maze.currentNode) == Node.Type.END) {
-                updateTextStatus("Incomplete");
+                updateTextStatus(Status.INCOMPLETE);
             }
             else {
-                updateTextStatus("Unsolvable");
+                updateTextStatus(Status.UNSOLVABLE);
             }
             gameOver = true;
         }
@@ -411,14 +432,11 @@ public class MazeContainer {
 
                 if (Config.multiplayer) {
                     int winner = this == Main.mazeLeft ? 1 : 2;
-                    Main.textMazeStatus.setText("Winner: player " + winner);
+                    Main.updateTextStatus("Winner: player " + winner);
                 }
                 else {
-                    updateTextStatus("Complete");
+                    updateTextStatus(Status.COMPLETE);
                 }
-                Main.textMazeStatus.setSize(Main.textMazeStatus.getPreferredSize());
-                Main.textMazeStatus.setLocation(Window.getXCentered(Main.textMazeStatus), Main.textMazeStatus.getY());
-                Main.textMazeStatus.setVisible(true);
                 Main.firstMazeCreated = false;  // prevents moving
             }
             else {
@@ -470,19 +488,9 @@ public class MazeContainer {
         textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
     }
 
-    private void updateTextStatus(String status) {
-        // status: "Complete", "Incomplete", or "Unsolvable"
-        
-        if (status == "Complete") {
-            textStatus.setForeground(Color.GREEN);
-        }
-        else if (status == "Incomplete") {
-            textStatus.setForeground(Color.ORANGE);
-        }
-        else {
-            textStatus.setForeground(Color.RED);
-        }
-        textStatus.setText(status);
+    private void updateTextStatus(Status status) {
+        textStatus.setText(status.toString());
+        textStatus.setForeground(status.color);
         textStatus.setSize(textStatus.getPreferredSize());
         textStatus.setLocation(Window.getXCenteredMaze(textStatus), textSteps.getY() + textSteps.getHeight() + 10);
         textStatus.setVisible(true);

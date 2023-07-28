@@ -44,19 +44,23 @@ public class Main {
 
     }
 
+    public static void updateTextStatus(String status) {
+        textMazeStatus.setText(status);
+        textMazeStatus.setSize(textMazeStatus.getPreferredSize());
+        textMazeStatus.setLocation(Window.getXCentered(textMazeStatus), textMazeStatus.getY());
+        textMazeStatus.setVisible(true);
+    }
+
     private static void setupCountdownTimer() {
         tcCountdown = new TimedCounter(2, 2) {
             @Override
             public void onStart() {
-                textMazeStatus.setText("Starting in 3...");
-                textMazeStatus.setSize(textMazeStatus.getPreferredSize());
-                textMazeStatus.setVisible(true);
+                updateTextStatus("Starting in 3...");
             }
             
             @Override
             public void onTick() {
                 textMazeStatus.setText("Starting in " + String.valueOf(frames - frame) + "...");
-                System.out.println(frames - frame);
             }
 
             @Override
@@ -147,9 +151,7 @@ public class Main {
             return;
         }
 
-        textMazeStatus.setText("Generating...");
-        textMazeStatus.setSize(textMazeStatus.getPreferredSize());
-        textMazeStatus.setVisible(true);
+        updateTextStatus("Generating...");
 
         MazeGen.cancel = mazeGenThreadDone != true;
         while (!mazeGenThreadDone); {}
@@ -162,7 +164,7 @@ public class Main {
 
             if (!MazeGen.cancel) {
                 firstMazeCreated = true;
-                
+
                 System.out.println(maze.creationPath);
                 maze.printCreationPath();
 
