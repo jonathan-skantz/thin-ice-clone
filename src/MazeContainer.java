@@ -66,7 +66,7 @@ public class MazeContainer {
         textPoints.setLocation(Window.getXCenteredMaze(textPoints), 10);
 
         sprites.add(textPoints);
-        textStatus = Main.createLabel("Game over");
+        textStatus = Main.createLabel("Unsolvable");
         textStatus.setForeground(Color.RED);
         textStatus.setLocation(Window.getXCenteredMaze(textStatus), textPoints.getY() + textPoints.getHeight() + 10);
         sprites.add(textStatus);
@@ -360,9 +360,9 @@ public class MazeContainer {
         }
     }
 
-    private void testGameOver() {
-        if (solver.findShortestPath().size() == 0) {
-            updateTextStatus("Game over");
+    public void testGameOver() {
+        if (Config.showUnsolvable && solver.findShortestPath().size() == 0) {
+            updateTextStatus("Unsolvable");
             gameOver = true;
         }
     }

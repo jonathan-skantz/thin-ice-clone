@@ -44,6 +44,7 @@ public class Config {
     public static int hintMax = 1;
     public static final Color HINT_COLOR = new Color(150, 150, 255);
     public static boolean hintTypeLongest = true;   // either longest or shortest
+    public static boolean showUnsolvable = true;
 
     // flags for updates
     public static boolean newHintMax = false;

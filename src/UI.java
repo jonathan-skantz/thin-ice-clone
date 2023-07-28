@@ -449,36 +449,46 @@ public class UI {
             setHintTypeText(btnHintType);
         });
 
-        // --- checkbox 1: doubles are placed first ---
+        // --- checkboxes ---
         JPanel checkboxes = new JPanel();
         checkboxes.setLayout(new BoxLayout(checkboxes, BoxLayout.Y_AXIS));
+        
+        // --- checkbox 1: show "unsolvable" ---
+        JCheckBox cb = new JCheckBox("Show \"unsolvable\"");
+        cb.setSelected(Config.showUnsolvable);
+        JPanel panel = getPanelWithToolTipAndCheckBox(cb, "Also requires stepback or reset to continue");
+        cb.addItemListener(e -> {
+            Config.showUnsolvable = e.getStateChange() == ItemEvent.SELECTED;
+            Main.mazeLeft.testGameOver();
+            
+            if (Main.mazeRight != null) {
+                Main.mazeRight.testGameOver();
+            }
+        });
+        checkboxes.add(panel);
 
-        JCheckBox cbDoublesArePlacedFirst = new JCheckBox("Doubles are placed first (faster)");
-        cbDoublesArePlacedFirst.setSelected(MazeGen.doublesArePlacedFirst);
-        JPanel doublesAndToolTip = getPanelWithToolTipAndCheckBox(cbDoublesArePlacedFirst,
-                                    "Place doubles one after another right after start node");
-                                    
-        // --- checkbox 2: change types during backtrack
-        JCheckBox cbChangeTypes = new JCheckBox("Change types during backtrack");
-        cbChangeTypes.setSelected(MazeGen.tryChangeNodeType);
-        JPanel changeTypesAndToolTip = getPanelWithToolTipAndCheckBox(cbChangeTypes,
-        "Change type from double to ground or ground to double during generation, instead of trying another path");
-
-        // add callbacks
-        cbDoublesArePlacedFirst.addItemListener(e -> {
+        // --- checkbox 2: doubles are placed first ---
+        cb = new JCheckBox("Doubles are placed first (faster)");
+        cb.setSelected(MazeGen.doublesArePlacedFirst);
+        panel = getPanelWithToolTipAndCheckBox(cb, "Place doubles one after another right after start node");
+        cb.addItemListener(e -> {
             MazeGen.doublesArePlacedFirst = e.getStateChange() == ItemEvent.SELECTED;
         });
-        cbChangeTypes.addItemListener(e -> {
+        checkboxes.add(Box.createVerticalStrut(5));
+        checkboxes.add(panel);
+
+        // --- checkbox 3: change types during backtrack
+        cb = new JCheckBox("Change types during backtrack");
+        cb.setSelected(MazeGen.tryChangeNodeType);
+        panel = getPanelWithToolTipAndCheckBox(cb,
+        "Change type from double to ground or ground to double during generation, instead of trying another path");
+        cb.addItemListener(e -> {
             MazeGen.tryChangeNodeType = e.getStateChange() == ItemEvent.SELECTED;
         });
-        
-        // add checkboxes
-        checkboxes.add(doublesAndToolTip);
         checkboxes.add(Box.createVerticalStrut(5));
-        checkboxes.add(changeTypesAndToolTip);
-        checkboxes.add(Box.createVerticalStrut(5));
+        checkboxes.add(panel);
 
-        c.gridy = 1;
+        c.gridy = 2;
         subPanel.add(checkboxes, c);
 
         return subPanel;
