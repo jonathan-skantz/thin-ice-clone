@@ -5,8 +5,6 @@ import java.util.Stack;
 
 public class Maze {
     
-    public boolean complete = false;
-
     // keep track of the user's path, in order to be able to backtrack
     public Stack<Node> pathHistory = new Stack<>();
     private Stack<Node> pathHistoryRedo = new Stack<>();
@@ -64,7 +62,6 @@ public class Maze {
 
     // copy other maze
     public Maze(Maze maze) {
-        complete = maze.complete;
         // NOTE: Node instances cannot be modified,
         // therefore it is safe to use the same instances
         pathHistory.addAll(maze.pathHistory);
@@ -270,10 +267,6 @@ public class Maze {
                 }
             }
             
-            if (newNode.equals(endNode) && get(newNode) == Node.Type.END) {
-                complete = true;
-            }
-
             currentNode = newNode;
             return true;
         }
@@ -293,8 +286,6 @@ public class Maze {
         pathHistoryRedo.clear();
         
         pathHistory.add(startNode);
-
-        complete = false;
 
         for (int y=0; y<height; y++) {
             for (int x=0; x<width; x++) {

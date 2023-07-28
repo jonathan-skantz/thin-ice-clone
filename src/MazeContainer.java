@@ -26,7 +26,7 @@ public class MazeContainer {
     private Block player;
     private Block[][] blocks;
     private JLabel textStatus;
-    private JLabel textPoints;
+    private JLabel textSteps;
     
     private LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>(Config.hintMax);
 
@@ -60,15 +60,15 @@ public class MazeContainer {
 
     private void setupText() {
         
-        textPoints = Main.createLabel("Points: 0/0");
-        textPoints.setVisible(true);
-        textPoints.setForeground(Color.BLUE);
-        textPoints.setLocation(Window.getXCenteredMaze(textPoints), 10);
+        textSteps = Main.createLabel("Steps: 0/0");
+        textSteps.setVisible(true);
+        textSteps.setForeground(Color.BLUE);
+        textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
 
-        sprites.add(textPoints);
+        sprites.add(textSteps);
         textStatus = Main.createLabel("Unsolvable");
         textStatus.setForeground(Color.RED);
-        textStatus.setLocation(Window.getXCenteredMaze(textStatus), textPoints.getY() + textPoints.getHeight() + 10);
+        textStatus.setLocation(Window.getXCenteredMaze(textStatus), textSteps.getY() + textSteps.getHeight() + 10);
         sprites.add(textStatus);
     }
 
@@ -90,8 +90,7 @@ public class MazeContainer {
 
         return animationsFinished() &&
                 Main.mazeGenThreadDone &&
-                !gameOver &&
-                !maze.complete;
+                !gameOver;
     }
 
     private boolean allowReset() {
@@ -362,7 +361,13 @@ public class MazeContainer {
 
     public void testGameOver() {
         if (Config.showUnsolvable && solver.findShortestPath().size() == 0) {
-            updateTextStatus("Unsolvable");
+            
+            if (maze.get(maze.currentNode) == Node.Type.END) {
+                updateTextStatus("Incomplete");
+            }
+            else {
+                updateTextStatus("Unsolvable");
+            }
             gameOver = true;
         }
     }
@@ -377,7 +382,7 @@ public class MazeContainer {
 
         if (maze.userMove(dir)) {
 
-            updateTextPoints();
+            updateTextSteps();
 
             player.move(dir);
             mirrorPlayer(dir);
@@ -400,65 +405,22 @@ public class MazeContainer {
                 }
             }
 
-            if (maze.complete) {
-                updateTextStatus("Complete");
+            int stepsMax = Main.mazeLeft.maze.creationPath.size();     // both have same max steps
 
-                if (!Config.multiplayer) {
-                    return;
+            if (maze.pathHistory.size() == stepsMax) {
+
+                if (Config.multiplayer) {
+                    int winner = this == Main.mazeLeft ? 1 : 2;
+                    Main.textMazeStatus.setText("Winner: player " + winner);
                 }
-                int pointsLeft = Main.mazeLeft.maze.pathHistory.size();
-                int pointsRight = Main.mazeRight.maze.pathHistory.size();
-                int pointsMax = Main.mazeLeft.maze.creationPath.size();     // both have same max points
-
-                boolean completeLeft = Main.mazeLeft.maze.complete;
-                boolean completeRight = Main.mazeRight.maze.complete;
-
-                int winner = 0;
-                // or only one winner who steps on all
-                if (completeLeft) {
-
-                    if (pointsLeft == pointsMax) {
-                        winner = 1;
-                    }
-
-                    else if (completeRight) {
-                        if (pointsRight == pointsMax) {
-                            winner = 2;
-                        }
-                        
-                        else {
-                            // both left and right complete, but none walked on all steps
-                            if (pointsLeft > pointsRight) {
-                                winner = 1;
-                            }
-                            else if (pointsLeft < pointsRight) {
-                                winner = 2;
-                            }
-                            else {
-                                winner = 3;
-                            }
-                        }
-                    }
+                else {
+                    updateTextStatus("Complete");
                 }
-                else if (completeRight && pointsRight == pointsMax) {
-                    winner = 2;
-                }
-
-                if (winner != 0) {
-                    if (winner == 3) {
-                        Main.textMazeStatus.setText("Winner: draw");
-                    }
-                    else {
-                        Main.textMazeStatus.setText("Winner: player " + winner);
-                    }
-                    Main.textMazeStatus.setSize(Main.textMazeStatus.getPreferredSize());
-                    Main.textMazeStatus.setLocation(Window.getXCentered(Main.textMazeStatus), Main.textMazeStatus.getY());
-                    Main.textMazeStatus.setVisible(true);
-                    Main.firstMazeCreated = false;  // prevents moving
-                }
-
+                Main.textMazeStatus.setSize(Main.textMazeStatus.getPreferredSize());
+                Main.textMazeStatus.setLocation(Window.getXCentered(Main.textMazeStatus), Main.textMazeStatus.getY());
+                Main.textMazeStatus.setVisible(true);
+                Main.firstMazeCreated = false;  // prevents moving
             }
-
             else {
                 testGameOver();
             }
@@ -478,7 +440,7 @@ public class MazeContainer {
 
         if (dir != null) {
             
-            updateTextPoints();
+            updateTextSteps();
 
             removeHintTexts();
             player.move(dir);
@@ -500,25 +462,29 @@ public class MazeContainer {
         
     }
 
-    private void updateTextPoints() {
-        int points = maze.pathHistory.size();
+    private void updateTextSteps() {
+        int steps = maze.pathHistory.size();
         int max = maze.creationPath.size();
-        textPoints.setText("Points: " + points + "/" + max);
-        textPoints.setSize(textPoints.getPreferredSize());
-        textPoints.setLocation(Window.getXCenteredMaze(textPoints), 10);
+        textSteps.setText("Steps: " + steps + "/" + max);
+        textSteps.setSize(textSteps.getPreferredSize());
+        textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
     }
 
     private void updateTextStatus(String status) {
+        // status: "Complete", "Incomplete", or "Unsolvable"
         
         if (status == "Complete") {
             textStatus.setForeground(Color.GREEN);
+        }
+        else if (status == "Incomplete") {
+            textStatus.setForeground(Color.ORANGE);
         }
         else {
             textStatus.setForeground(Color.RED);
         }
         textStatus.setText(status);
         textStatus.setSize(textStatus.getPreferredSize());
-        textStatus.setLocation(Window.getXCenteredMaze(textStatus), textPoints.getY() + textPoints.getHeight() + 10);
+        textStatus.setLocation(Window.getXCenteredMaze(textStatus), textSteps.getY() + textSteps.getHeight() + 10);
         textStatus.setVisible(true);
     }
 
@@ -532,7 +498,7 @@ public class MazeContainer {
         gameOver = false;
         textStatus.setVisible(false);
         
-        updateTextPoints();
+        updateTextSteps();
 
         solver = new MazeSolver(maze);
 
