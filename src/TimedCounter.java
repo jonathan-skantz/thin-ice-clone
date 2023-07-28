@@ -25,7 +25,7 @@ public class TimedCounter {
         setup(duration, fps);
     }
     
-    // duration: in ms
+    // duration: in seconds
     private void setup(float duration, int fps) {
         this.duration = duration;
         this.fps = fps;
@@ -87,7 +87,10 @@ public class TimedCounter {
                 Timer delayTimer = new Timer((int)(onFinishDelay * 1000), null);
                 delayTimer.addActionListener(e -> {
                     onFinish();
+                    delayTimer.stop();
                 });
+
+                delayTimer.start();
             }
             else {
                 onFinish();

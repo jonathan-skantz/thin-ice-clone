@@ -133,15 +133,18 @@ public class MazeContainer {
     private void setupTimerNewMaze() {
         tcNewMaze = new TimedCounter(10) {
             public void onStart() {               
-                tcNewMaze.setFramesAndPreserveFPS(nodesToChange.size());
+                setFramesAndPreserveFPS(nodesToChange.size());
+
+                // call onFinish() after one frame's delay
+                onFinishDelay = (float)oneFrameInSeconds();
             }
 
             public void onTick() {
-                Node node = nodesToChange.get(tcNewMaze.frame-1);
+                Node node = nodesToChange.get(frame-1);
                 
-                if (tcNewMaze.frame > 1) {
+                if (frame > 1) {
                     // remove border from last node
-                    Node lastNode = nodesToChange.get(tcNewMaze.frame-2);
+                    Node lastNode = nodesToChange.get(frame-2);
                     blocks[lastNode.Y][lastNode.X].setBorder(null);
                 }
                 
@@ -155,7 +158,7 @@ public class MazeContainer {
 
             @Override
             public void onFinish() {
-                Node node = nodesToChange.get(tcNewMaze.frame-1);   // since last node should be changed twice
+                Node node = nodesToChange.get(frame-1);   // since last node should be changed twice
                 blocks[node.Y][node.X].setBorder(null);
                 
                 Main.textGenerating.setVisible(false);  // NOTE: is hidden twice if multiplayer
@@ -163,8 +166,6 @@ public class MazeContainer {
             }
         };
 
-        // call onFinish() after one frame's delay
-        tcNewMaze.onFinishDelay = (float)tcNewMaze.oneFrameInSeconds();
         tcNewMaze.finished = true;
     }
 
@@ -349,10 +350,6 @@ public class MazeContainer {
     }
 
     public void tryToMove(Maze.Direction dir) {
-        
-        // if (gameOver || !Main.mazeGenThreadDone || maze.complete || !animationsFinished) {
-        //     return;
-        // }
 
         if (!allowInput()) {
             return;
