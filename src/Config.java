@@ -8,6 +8,7 @@ import javax.swing.border.Border;
 public class Config {
     
     public static boolean multiplayer = false;
+    public static boolean mirrorRightMaze = false;
 
     public static Random rand = new Random(1);
 

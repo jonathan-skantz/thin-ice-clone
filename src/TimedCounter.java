@@ -9,7 +9,7 @@ public class TimedCounter {
     
     public int frame;
     public int frames;
-    public float onFinishDelay;
+    private Timer onFinishTimer = new Timer(0, null);
 
     public boolean finished;
 
@@ -34,6 +34,10 @@ public class TimedCounter {
 
         timer.setDelay((int)(1000/fps));
         timer.addActionListener(e -> { tick(); });
+        onFinishTimer.addActionListener(e -> {
+            onFinishTimer.stop();
+            onFinish();
+        });
     }
 
     private void updateAmountFrames() {
@@ -74,6 +78,10 @@ public class TimedCounter {
         return duration / frames;
     }
 
+    public void setOnFinishDelay(float delay) {
+        onFinishTimer.setInitialDelay((int)(delay * 1000));
+    }
+
     public void tick() {
 
         frame++;
@@ -83,14 +91,8 @@ public class TimedCounter {
             timer.stop();
             finished = true;
             
-            if (onFinishDelay > 0) {
-                Timer delayTimer = new Timer((int)(onFinishDelay * 1000), null);
-                delayTimer.addActionListener(e -> {
-                    onFinish();
-                    delayTimer.stop();
-                });
-
-                delayTimer.start();
+            if (onFinishTimer.getInitialDelay() > 0) {
+                onFinishTimer.start();
             }
             else {
                 onFinish();
@@ -110,6 +112,10 @@ public class TimedCounter {
 
     public void start() {
         // NOTE: auto-stops
+
+        timer.stop();
+        onFinishTimer.stop();
+
         frame = 0;
         finished = false;
         onStart();
@@ -118,6 +124,8 @@ public class TimedCounter {
     
     public void reset() {
         timer.stop();
+        onFinishTimer.stop();
+
         frame = 0;
         finished = false;
     }

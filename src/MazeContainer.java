@@ -20,6 +20,8 @@ public class MazeContainer {
     private TimedCounter tcNewMaze;
     private LinkedList<Node> nodesToChange = new LinkedList<>();
 
+    private boolean isMirrored;
+
     private int startX;
     private int startY;
 
@@ -140,6 +142,9 @@ public class MazeContainer {
                 step(-1, false);
                 movePlayerGraphicsTo(maze.currentNode);
             }
+
+            @Override
+            public void onFinish() { updateMirror(); }
         };
 
         tcReset.finished = true;    // used to allow manual stepping
@@ -163,6 +168,9 @@ public class MazeContainer {
             
                 movePlayerGraphicsTo(maze.currentNode);
             }
+
+            @Override
+            public void onFinish() { updateMirror(); }
         };
 
         tcSpawnPlayer.finished = true;
@@ -175,11 +183,12 @@ public class MazeContainer {
                 setFramesAndPreserveFPS(nodesToChange.size());
 
                 // call onFinish() after one frame's delay
-                onFinishDelay = (float)oneFrameInSeconds();
+                setOnFinishDelay((float)oneFrameInSeconds());
             }
 
             public void onTick() {
                 Node node = nodesToChange.get(frame-1);
+                // maze.set(node, newMaze.get(node));
                 
                 if (frame > 1) {
                     // remove border from last node
@@ -496,11 +505,39 @@ public class MazeContainer {
         textStatus.setVisible(true);
     }
 
+    public void updateMirror() {
+
+        if (this == Main.mazeRight && Config.mirrorRightMaze != isMirrored) {
+
+            if (animationsFinished()) {
+                setMaze(maze);
+                isMirrored = Config.mirrorRightMaze;
+            }
+        }
+    }
+
     // also resets texts
     public void setMaze(Maze maze) {
         
+        if (!animationsFinished() || (this == Main.mazeRight && !Config.multiplayer)) {
+            return;
+        }
+
         oldMaze = this.maze;
-        this.maze = maze;
+        
+        this.maze = new Maze(maze);
+
+        if (this == Main.mazeRight) {
+            if (Config.mirrorRightMaze) {
+                // mirror first time
+                this.maze.mirror();
+                isMirrored = Config.mirrorRightMaze;
+            }
+            else if (Config.mirrorRightMaze != isMirrored) {
+                // revert mirror (parameter `maze` is already mirrored, called from updateMirror())
+                this.maze.mirror();
+            }
+        }
 
         removeHintTexts();
         gameOver = false;
@@ -510,7 +547,7 @@ public class MazeContainer {
 
         solver = new MazeSolver(maze);
 
-        if (maze.width != oldMaze.width || maze.height != oldMaze.height) {
+        if (this.maze.width != oldMaze.width || this.maze.height != oldMaze.height) {
             for (Block[] row : blocks) {
                 for (Block spr : row) {
                     sprites.remove(spr);
@@ -519,24 +556,23 @@ public class MazeContainer {
             sprites.repaint();      // some old blocks are still visible
             setStartPosition();
             
-            blocks = new Block[maze.height][maze.width];
-            oldMaze = new Maze(maze.width, maze.height, Node.Type.WALL);
-            
+            blocks = new Block[this.maze.height][this.maze.width];
+            oldMaze = new Maze(this.maze.width, this.maze.height, Node.Type.WALL);
+
             player.setVisible(false);
             createWallBlocks();
         }
 
         // determine which nodes should change
-        nodesToChange = new LinkedList<>();
-        for (int y=0; y<maze.height; y++) {
-            for (int x=0; x<maze.width; x++) {
+        nodesToChange.clear();
+        for (int y=0; y<this.maze.height; y++) {
+            for (int x=0; x<this.maze.width; x++) {
                 
                 Node node = new Node(x, y);
                 
-                if (maze.get(node) == oldMaze.get(node) && !(node.equals(oldMaze.currentNode))) {
-                    continue;
+                if (this.maze.get(node) != oldMaze.get(node) || node.equals(oldMaze.currentNode)) {
+                    nodesToChange.add(node);
                 }
-                nodesToChange.add(node);
             }
         }
 

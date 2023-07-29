@@ -464,7 +464,21 @@ public class UI {
         });
         checkboxes.add(panel);
 
-        // --- checkbox 2: doubles are placed first ---
+        // --- checkbox 2: mirror right maze ---
+        cb = new JCheckBox("Mirror right maze");
+        cb.setSelected(Config.mirrorRightMaze);
+        panel = getPanelWithToolTipAndCheckBox(cb, null);
+        cb.addItemListener(e -> {
+            
+            Config.mirrorRightMaze = e.getStateChange() == ItemEvent.SELECTED;
+            System.out.println("mirror click");
+            if (Main.mazeRight != null) {
+                Main.mazeRight.updateMirror();
+            }
+        });
+        checkboxes.add(panel);
+
+        // --- checkbox 3: doubles are placed first ---
         cb = new JCheckBox("Doubles are placed first (faster)");
         cb.setSelected(MazeGen.doublesArePlacedFirst);
         panel = getPanelWithToolTipAndCheckBox(cb, "Place doubles one after another right after start node");
@@ -474,7 +488,7 @@ public class UI {
         checkboxes.add(Box.createVerticalStrut(5));
         checkboxes.add(panel);
 
-        // --- checkbox 3: change types during backtrack
+        // --- checkbox 4: change types during backtrack
         cb = new JCheckBox("Change types during backtrack");
         cb.setSelected(MazeGen.tryChangeNodeType);
         panel = getPanelWithToolTipAndCheckBox(cb,
@@ -541,10 +555,17 @@ public class UI {
 
         JLabel toolTip = new JLabel("?");
         toolTip.setPreferredSize(new Dimension(15, 15));
-        toolTip.setOpaque(true);
-        toolTip.setBackground(Color.YELLOW);
-        toolTip.setToolTipText(tip);
-        toolTip.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        if (tip == null) {
+            // take up invisible space to horizontally align
+            toolTip.setForeground(new Color(0, 0, 0, 0));
+        }
+        else {
+            toolTip.setOpaque(true);
+            toolTip.setBackground(Color.YELLOW);
+            toolTip.setToolTipText(tip);
+            toolTip.setHorizontalAlignment(SwingConstants.CENTER);
+        }
         
         panel.add(toolTip);
         panel.add(cb);

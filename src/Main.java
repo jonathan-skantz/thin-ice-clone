@@ -84,11 +84,10 @@ public class Main {
         if (Config.multiplayer) {
             mazeRight = new MazeContainer();
             mazeRight.sprites.setLocation(Window.mazeWidth, 0);
-            mazeRight.setMaze(new Maze(maze));
+            mazeRight.setMaze(maze);
         }
         else {
             mazeRight.dispose();
-            mazeRight = null;
         }
         setupKeyCallbacks();
         textMazeStatus.setLocation(Window.getXCentered(textMazeStatus), textMazeStatus.getY());
@@ -168,10 +167,10 @@ public class Main {
                 System.out.println(maze.creationPath);
                 maze.printCreationPath();
 
-                mazeLeft.setMaze(new Maze(maze));
+                mazeLeft.setMaze(maze);
 
                 if (Config.multiplayer) {
-                    mazeRight.setMaze(new Maze(maze));
+                    mazeRight.setMaze(maze);
                 }
 
             }

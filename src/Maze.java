@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Stack;
 
 public class Maze {
@@ -188,6 +189,47 @@ public class Maze {
         }
 
         System.out.println(sb);
+    }
+
+    public boolean mirror() {
+        
+        if (creationPath.size() == 0) {
+            return false;
+        }
+        
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width/2; x++) {
+                Node.Type temp = types[y][x];
+                types[y][x] = types[y][width-1-x];
+                types[y][width-1-x] = temp;
+
+                temp = typesOriginal[y][x];
+                typesOriginal[y][x] = typesOriginal[y][width-1-x];
+                typesOriginal[y][width-1-x] = temp;
+            }
+        }
+
+        reversePath(creationPath);
+        reversePath(pathHistory);
+        reversePath(pathHistoryRedo);
+
+        startNode = creationPath.getFirst();
+        endNode = creationPath.getLast();
+        currentNode = startNode;
+
+        return true;
+    }
+
+    // y-coord is intact, only x is mirrored
+    private void reversePath(List<Node> path) {
+
+        LinkedList<Node> old = new LinkedList<>(path);
+
+        for (int i=0; i<old.size(); i++) {
+            Node node = old.get(i);
+            path.set(i, new Node(width-1-node.X, node.Y));
+        }
+
     }
 
     public ArrayList<Node> getNeighborsOf(Node node, boolean mustBeWalkable) {
