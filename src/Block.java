@@ -21,7 +21,7 @@ public class Block extends JComponent {
 
     public String path;
 
-    private TimedCounter tc;
+    public TimedCounter tcWater;
     private int startX;
     private boolean mirrored;
 
@@ -47,7 +47,6 @@ public class Block extends JComponent {
         bottomImageOriginal = Image.copy(bottomImage);
         combinedImage = Image.copy(bottomImage);
 
-        Window.sprites.add(this);
         setBounds(0, 0, size, size);
 
         beginAnimation();
@@ -57,7 +56,7 @@ public class Block extends JComponent {
     private void beginAnimation() {
         if (path.endsWith("blocked.png")) {
             int y = rand.nextInt(getHeight()/2);
-            tc = new TimedCounter(-1, 5) {
+            tcWater = new TimedCounter(-1, 5) {
                 @Override
                 public void onTick() {
                     bottomImage = Image.repeat(bottomImageOriginal, startX, y);
@@ -67,10 +66,10 @@ public class Block extends JComponent {
                     }
                 }
             };
-            tc.start();
+            tcWater.start();
         }
-        else if (tc != null) {
-            tc.reset();
+        else if (tcWater != null) {
+            tcWater.reset();
         }
     }
 

@@ -15,8 +15,11 @@ public class Window {
     private static final Color BG_COLOR = Color.LIGHT_GRAY;
     private static final String TITLE = "Thin Ice";
     
-    public static int width = 500;        // actual canvas size, excluding border
+    public static int width = 500;        // actual canvas size, excluding border/insets
     public static int height = 500;
+
+    public static int mazeWidth = 500;
+    public static int mazeHeight = 500;
 
     public static JPanel sprites = new JPanel();   // a panel containing all sprites
 
@@ -27,7 +30,6 @@ public class Window {
         frame = new JFrame(TITLE);
         frame.addKeyListener(new KeyHandler());
 
-        frame.setSize(width, height);
         frame.setLocationRelativeTo(null);        // center the window on screen
 
         frame.setResizable(false);
@@ -36,19 +38,18 @@ public class Window {
 
         sprites.setLayout(null);
 
-        frame.setVisible(true);
+        frame.pack();   // so that insets are calculated
         Insets ins = frame.getInsets();
         
-        width = width - ins.left - ins.right;
-        height = height - ins.top - ins.bottom;
-
-        sprites.setBounds(ins.left, ins.top, width, height);
-        sprites.setBackground(BG_COLOR);
-
-        sprites.setLocation(0, 0);
+        int frameW = width + ins.left + ins.right;
+        int frameH = height + ins.top + ins.bottom;
+        frame.setSize(frameW, frameH);
         
+        sprites.setBounds(0, 0, width, height);
+        sprites.setBackground(BG_COLOR);        
         frame.add(sprites);   // finally add the panel
-
+        
+        frame.setVisible(true);
     }
 
     public static int getXCentered(JComponent comp) {
@@ -59,8 +60,23 @@ public class Window {
         return (height - comp.getHeight()) / 2;
     }
 
+    public static int getXCenteredMaze(JComponent comp) {
+        return (mazeWidth - comp.getWidth()) / 2 ;
+    }
+
     public static Point getXYCentered(JComponent comp) {
         return new Point(getXCentered(comp), getYCentered(comp));
+    }
+
+    public static void setSize(int width, int height) {
+        Window.width = width;
+        Window.height = height;
+        
+        Insets ins = frame.getInsets();
+        int frameW = width + ins.left + ins.right;
+        int frameH = height + ins.top + ins.bottom;
+        frame.setSize(frameW, frameH);
+        sprites.setSize(width, height);
     }
 
 }

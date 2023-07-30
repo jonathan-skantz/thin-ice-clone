@@ -101,8 +101,12 @@ public class MazeSolver {
             currentNode = parent[currentNode.Y][currentNode.X];
         }
 
+        if (shortestPath.size() == 1 && maze.get(maze.currentNode) != Node.Type.END_DOUBLE) {
+            shortestPath.clear();
+        }
+
         // if end is double, two more steps must be added
-        if (mazeCopy.get(mazeCopy.endNode) == Node.Type.END_DOUBLE) {
+        else if (mazeCopy.get(mazeCopy.endNode) == Node.Type.END_DOUBLE) {
             for (Node neighbor : mazeCopy.getNeighborsOf(mazeCopy.endNode, true)) {
 
                 boolean touched = shortestPath.contains(neighbor);
@@ -113,10 +117,6 @@ public class MazeSolver {
                     break;
                 }
             }
-        }
-
-        if (shortestPath.size() == 1) {
-            shortestPath.clear();
         }
 
         return shortestPath;

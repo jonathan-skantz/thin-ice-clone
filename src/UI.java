@@ -29,8 +29,6 @@ import javax.swing.border.Border;
 
 public class UI {
  
-    private static boolean mazeConfigIsNew = false;
-
     private static final int SLIDER_WIDTH = 100;
     private static final int SLIDER_HEIGHT = 250;
 
@@ -54,6 +52,8 @@ public class UI {
 
     private static GridBagConstraints verticalGbc = new GridBagConstraints();
     
+    public static JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+
     static {
         horizontalGbcCol1.gridx = 0;
         horizontalGbcCol1.insets = insets;
@@ -67,9 +67,40 @@ public class UI {
 
     public static void setupConfigs() {
         setupKeyConfig();
+        setupMultiplayerButton();
         setupMazeConfig();
+
+        buttons.setSize(Window.width, buttons.getPreferredSize().height);
+        buttons.setLocation(0, Window.height - buttons.getHeight());
+        buttons.setOpaque(false);
+        Window.sprites.add(buttons);
     }
 
+
+    private static void setupMultiplayerButton() {
+        JButton btn = new JButton("Players: " + (Config.multiplayer ? "2" : "1"));
+        btn.setSize(btn.getPreferredSize());
+        // btn.setLocation(Window.getXCentered(btn), Window.height - btn.getHeight() - 10);
+        buttons.add(btn);
+
+        btn.addActionListener(e -> {
+            Window.frame.requestFocus();
+
+            Config.multiplayer = !Config.multiplayer;
+            if (Config.multiplayer) {
+                btn.setText("Players: 2");
+                Window.setSize(Window.width * 2, Window.height);
+            }
+            else {
+                btn.setText("Players: 1");
+                Window.setSize(Window.width / 2, Window.height);
+            }
+
+            Main.toggleMultiplayer();
+        });
+
+
+    }
 
 
     // ---------- KEY CONFIG ----------
@@ -82,10 +113,7 @@ public class UI {
         setupKeyConfigContinuousMovement(panel);
 
         // add config button to bottom left
-        JButton btnConfig = getConfigPopupButton("Key config", panel);
-        int pad = 10;
-        int y = Window.height - btnConfig.getHeight() - pad;
-        btnConfig.setLocation(pad, y);
+        buttons.add(getConfigPopupButton("Key config", panel));
     }
 
     private static void setupKeyConfigKeybinds(JPanel panel) {
@@ -188,11 +216,8 @@ public class UI {
         panel.add(rightCol, c);
 
         // add config button to bottom right
-        JButton btn = getConfigPopupButton("Maze config", panel);
-        int pad = 10;
-        int x = Window.width - btn.getWidth() - pad;
-        int y = Window.height - btn.getHeight() - pad;
-        btn.setLocation(x, y);
+        buttons.add(getConfigPopupButton("Maze config", panel));
+
     }
 
     private static JPanel setupMazeConfigNodeTypes() {
@@ -326,7 +351,6 @@ public class UI {
         
         endMustBeDoubleCheckbox.addItemListener(e -> {
             MazeGen.setEndMustBeDouble(e.getStateChange() == ItemEvent.SELECTED);
-            mazeConfigIsNew = true;
         });
 
         return row;
@@ -422,36 +446,63 @@ public class UI {
             setHintTypeText(btnHintType);
         });
 
-        // --- checkbox 1: doubles are placed first ---
+        // --- checkboxes ---
         JPanel checkboxes = new JPanel();
         checkboxes.setLayout(new BoxLayout(checkboxes, BoxLayout.Y_AXIS));
+        
+        // --- checkbox 1: show "unsolvable" ---
+        JCheckBox cb = new JCheckBox("Show \"unsolvable\"");
+        cb.setSelected(Config.showUnsolvable);
+        JPanel panel = getPanelWithToolTipAndCheckBox(cb, "Also requires stepback or reset to continue");
+        cb.addItemListener(e -> {
+            Config.showUnsolvable = e.getStateChange() == ItemEvent.SELECTED;
+            
+            if (Main.firstMazeCreated) {
+                Main.mazeLeft.testGameOver();
+                
+                if (Main.mazeRight != null) {
+                    Main.mazeRight.testGameOver();
+                }
+            }
+        });
+        checkboxes.add(panel);
 
-        JCheckBox cbDoublesArePlacedFirst = new JCheckBox("Doubles are placed first (faster)");
-        cbDoublesArePlacedFirst.setSelected(MazeGen.doublesArePlacedFirst);
-        JPanel doublesAndToolTip = getPanelWithToolTipAndCheckBox(cbDoublesArePlacedFirst,
-                                    "Place doubles one after another right after start node");
-                                    
-        // --- checkbox 2: change types during backtrack
-        JCheckBox cbChangeTypes = new JCheckBox("Change types during backtrack");
-        cbChangeTypes.setSelected(MazeGen.tryChangeNodeType);
-        JPanel changeTypesAndToolTip = getPanelWithToolTipAndCheckBox(cbChangeTypes,
-        "Change type from double to ground or ground to double during generation, instead of trying another path");
+        // --- checkbox 2: mirror right maze ---
+        cb = new JCheckBox("Mirror right maze");
+        cb.setSelected(Config.mirrorRightMaze);
+        panel = getPanelWithToolTipAndCheckBox(cb, null);
+        cb.addItemListener(e -> {
+            
+            Config.mirrorRightMaze = e.getStateChange() == ItemEvent.SELECTED;
+            System.out.println("mirror click");
+            if (Main.mazeRight != null) {
+                Main.mazeRight.updateMirror();
+            }
+        });
+        checkboxes.add(panel);
 
-        // add callbacks
-        cbDoublesArePlacedFirst.addItemListener(e -> {
+        // --- checkbox 3: doubles are placed first ---
+        cb = new JCheckBox("Doubles are placed first (faster)");
+        cb.setSelected(MazeGen.doublesArePlacedFirst);
+        panel = getPanelWithToolTipAndCheckBox(cb, "Place doubles one after another right after start node");
+        cb.addItemListener(e -> {
             MazeGen.doublesArePlacedFirst = e.getStateChange() == ItemEvent.SELECTED;
         });
-        cbChangeTypes.addItemListener(e -> {
+        checkboxes.add(Box.createVerticalStrut(5));
+        checkboxes.add(panel);
+
+        // --- checkbox 4: change types during backtrack
+        cb = new JCheckBox("Change types during backtrack");
+        cb.setSelected(MazeGen.tryChangeNodeType);
+        panel = getPanelWithToolTipAndCheckBox(cb,
+        "Change type from double to ground or ground to double during generation, instead of trying another path");
+        cb.addItemListener(e -> {
             MazeGen.tryChangeNodeType = e.getStateChange() == ItemEvent.SELECTED;
         });
-        
-        // add checkboxes
-        checkboxes.add(doublesAndToolTip);
         checkboxes.add(Box.createVerticalStrut(5));
-        checkboxes.add(changeTypesAndToolTip);
-        checkboxes.add(Box.createVerticalStrut(5));
+        checkboxes.add(panel);
 
-        c.gridy = 1;
+        c.gridy = 2;
         subPanel.add(checkboxes, c);
 
         return subPanel;
@@ -485,7 +536,6 @@ public class UI {
         
         pathLengthLabel.setText("Resulting path length: " + MazeGen.pathLength);
         
-        mazeConfigIsNew = true;
     }
 
     private static JSlider getNewSlider(int min, int max, int currentVal) {
@@ -508,10 +558,17 @@ public class UI {
 
         JLabel toolTip = new JLabel("?");
         toolTip.setPreferredSize(new Dimension(15, 15));
-        toolTip.setOpaque(true);
-        toolTip.setBackground(Color.YELLOW);
-        toolTip.setToolTipText(tip);
-        toolTip.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        if (tip == null) {
+            // take up invisible space to horizontally align
+            toolTip.setForeground(new Color(0, 0, 0, 0));
+        }
+        else {
+            toolTip.setOpaque(true);
+            toolTip.setBackground(Color.YELLOW);
+            toolTip.setToolTipText(tip);
+            toolTip.setHorizontalAlignment(SwingConstants.CENTER);
+        }
         
         panel.add(toolTip);
         panel.add(cb);
@@ -524,7 +581,6 @@ public class UI {
         // setup button that opens a dialog
         JButton btn = new JButton(title);
         btn.setSize(btn.getPreferredSize());
-        Window.sprites.add(btn);
 
         // open popup with `contentPane`
         btn.addActionListener(e -> {
@@ -540,11 +596,6 @@ public class UI {
                 @Override
                 public void windowClosed(WindowEvent e) {
                     Window.frame.requestFocus();  // prevents focus back to the config btn and rather the game canvas
-                    
-                    if (mazeConfigIsNew) {
-                        Main.generateNewMaze();
-                        mazeConfigIsNew = false;
-                    }
                 }
             });
         });
