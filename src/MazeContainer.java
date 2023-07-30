@@ -35,7 +35,7 @@ public class MazeContainer {
     public JLayeredPane sprites = new JLayeredPane();
     // sprites.setOpaque(false);    // TODO: possible with JPanel?
 
-    public enum Status {
+    private enum Status {
         COMPLETE(Color.GREEN),
         INCOMPLETE(Color.ORANGE),
         UNSOLVABLE(Color.RED);
@@ -209,7 +209,7 @@ public class MazeContainer {
                 Node node = nodesToChange.get(frame-1);   // since last node should be changed twice
                 blocks[node.Y][node.X].setBorder(null);
                 
-                Main.textMazeStatus.setVisible(false);  // NOTE: is hidden twice if multiplayer
+                Main.textStatus.setVisible(false);  // NOTE: is hidden twice if multiplayer
                 tcSpawnPlayer.start();
             }
         };
@@ -509,10 +509,14 @@ public class MazeContainer {
 
         if (this == Main.mazeRight && Config.mirrorRightMaze != isMirrored) {
 
-            if (animationsFinished()) {
+            if (animationsFinished() && Main.firstMazeCreated) {
+                Main.updateTextStatus("Mirroring...");
                 setMaze(maze);
                 isMirrored = Config.mirrorRightMaze;
             }
+        }
+        else {
+            Main.textStatus.setVisible(false);
         }
     }
 
@@ -524,7 +528,6 @@ public class MazeContainer {
         }
 
         oldMaze = this.maze;
-        
         this.maze = new Maze(maze);
 
         if (this == Main.mazeRight) {
@@ -541,7 +544,6 @@ public class MazeContainer {
 
         removeHintTexts();
         gameOver = false;
-        textStatus.setVisible(false);
         
         updateTextSteps();
 
@@ -578,6 +580,7 @@ public class MazeContainer {
 
         if (nodesToChange.size() == 0) {
             // when switching to multiplayer without any maze generated
+            textStatus.setVisible(false);
             return;
         }
 
@@ -585,9 +588,9 @@ public class MazeContainer {
             tcNewMaze.start();
         }
         else {
-            Main.textMazeStatus.setVisible(false);
+            Main.textStatus.setVisible(false);
             player.setVisible(true);
-            movePlayerGraphicsTo(maze.startNode);
+            movePlayerGraphicsTo(this.maze.startNode);
             mirrorPlayer(null);
 
             for (Node node : nodesToChange) {

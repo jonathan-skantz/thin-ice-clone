@@ -13,7 +13,7 @@ public class Main {
     public static MazeContainer mazeLeft;
     public static MazeContainer mazeRight;
 
-    public static JLabel textMazeStatus;
+    public static JLabel textStatus;
     public static final boolean ENABLE_ANIMATIONS = true;
 
     public static Font font = new Font("arial", Font.PLAIN, 20);
@@ -32,8 +32,8 @@ public class Main {
 
         Window.sprites.setVisible(false);   // prevents redrawing while setting up
         
-        textMazeStatus = createLabel("Generating...");
-        textMazeStatus.setLocation(Window.getXCentered(textMazeStatus), 50);
+        textStatus = createLabel("Generating...");
+        textStatus.setLocation(Window.getXCentered(textStatus), 50);
 
         UI.setupConfigs();
 
@@ -45,10 +45,10 @@ public class Main {
     }
 
     public static void updateTextStatus(String status) {
-        textMazeStatus.setText(status);
-        textMazeStatus.setSize(textMazeStatus.getPreferredSize());
-        textMazeStatus.setLocation(Window.getXCentered(textMazeStatus), textMazeStatus.getY());
-        textMazeStatus.setVisible(true);
+        textStatus.setText(status);
+        textStatus.setSize(textStatus.getPreferredSize());
+        textStatus.setLocation(Window.getXCentered(textStatus), textStatus.getY());
+        textStatus.setVisible(true);
     }
 
     private static void setupCountdownTimer() {
@@ -60,12 +60,12 @@ public class Main {
             
             @Override
             public void onTick() {
-                textMazeStatus.setText("Starting in " + String.valueOf(frames - frame) + "...");
+                textStatus.setText("Starting in " + String.valueOf(frames - frame) + "...");
             }
 
             @Override
             public void onFinish() {
-                textMazeStatus.setVisible(false);
+                textStatus.setVisible(false);
             }
         };
     }
@@ -90,7 +90,7 @@ public class Main {
             mazeRight.dispose();
         }
         setupKeyCallbacks();
-        textMazeStatus.setLocation(Window.getXCentered(textMazeStatus), textMazeStatus.getY());
+        textStatus.setLocation(Window.getXCentered(textStatus), textStatus.getY());
         UI.buttons.setSize(Window.width, UI.buttons.getHeight());
     }
 
