@@ -456,10 +456,13 @@ public class UI {
         JPanel panel = getPanelWithToolTipAndCheckBox(cb, "Also requires stepback or reset to continue");
         cb.addItemListener(e -> {
             Config.showUnsolvable = e.getStateChange() == ItemEvent.SELECTED;
-            Main.mazeLeft.testGameOver();
             
-            if (Main.mazeRight != null) {
-                Main.mazeRight.testGameOver();
+            if (Main.firstMazeCreated) {
+                Main.mazeLeft.testGameOver();
+                
+                if (Main.mazeRight != null) {
+                    Main.mazeRight.testGameOver();
+                }
             }
         });
         checkboxes.add(panel);
