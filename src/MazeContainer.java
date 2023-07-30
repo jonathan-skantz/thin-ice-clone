@@ -85,7 +85,7 @@ public class MazeContainer {
         
         textSteps = Main.createLabel("Steps: 0/0");
         textSteps.setVisible(true);
-        textSteps.setForeground(Color.BLUE);
+        textSteps.setForeground(Color.BLACK);
         textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
 
         sprites.add(textSteps);
@@ -511,8 +511,8 @@ public class MazeContainer {
         if (this == Main.mazeRight && Config.mirrorRightMaze != isMirrored) {
 
             if (animationsFinished() && Main.firstMazeCreated) {
-                Main.updateTextStatus("Mirroring...");
                 setMaze(maze);
+                Main.updateTextStatus("Mirroring...");
                 isMirrored = Config.mirrorRightMaze;
             }
         }
@@ -543,12 +543,13 @@ public class MazeContainer {
             }
         }
 
+        textStatus.setVisible(false);
         removeHintTexts();
         gameOver = false;
         
         updateTextSteps();
 
-        solver = new MazeSolver(maze);
+        solver = new MazeSolver(this.maze);
 
         if (this.maze.width != oldMaze.width || this.maze.height != oldMaze.height) {
             for (Block[] row : blocks) {
