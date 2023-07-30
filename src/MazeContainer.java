@@ -154,6 +154,7 @@ public class MazeContainer {
         tcSpawnPlayer = new TimedCounter(0.5f, 15) {
             @Override
             public void onStart() {
+                player.setSize(1, 1);       // prevent spawning full sized from previous spawn
                 player.setVisible(true);
                 movePlayerGraphicsTo(maze.currentNode);
                 mirrorPlayer(null);
