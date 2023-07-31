@@ -36,13 +36,23 @@ public class KeyHandler extends KeyAdapter {
         ZOOM_OUT(KeyEvent.VK_MINUS),
         START(KeyEvent.VK_ENTER);
 
+        public int keyCode;
+        private Runnable defaultCallback = () -> { System.out.println("not implemented: action \"" + this + "\""); };
+        public Runnable callback = defaultCallback;
+        private static final HashSet<Action> P2_ACTIONS = new HashSet<>() {{
+            add(P2_MOVE_UP);
+            add(P2_MOVE_DOWN);
+            add(P2_MOVE_LEFT);
+            add(P2_MOVE_RIGHT);
+            add(P2_MAZE_RESET);
+            add(P2_MAZE_HINT);
+            add(P2_MAZE_STEP_UNDO);
+            add(P2_MAZE_STEP_REDO);
+        }};
+
         private Action(int keyCode) {
             this.keyCode = keyCode;
         }
-
-        public int keyCode;
-        private Runnable defaultCallback = () -> { System.out.println("not implemented: action \"" + this + "\""); };
-        private Runnable callback = defaultCallback;
         
         /**
          * Gets an Action based on the key code.
@@ -82,6 +92,10 @@ public class KeyHandler extends KeyAdapter {
         // if the key has an action, or if (ctrl and +) or (ctrl and -) is pressed
         if (action != null ||
             (e.isControlDown() && (action == Action.ZOOM_IN || action == Action.ZOOM_OUT))) {
+            
+            if (Action.P2_ACTIONS.contains(action) && !Config.multiplayerOffline) {
+                return;     // allows for setting callbacks without pressing the button
+            }
             keysPressed.add(keyCode);
             action.callback.run();          // executes corresponding action
         }

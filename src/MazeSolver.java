@@ -15,7 +15,7 @@ public class MazeSolver {
     public static void main(String[] args) {
 
         // generate maze
-        Config.apply();
+        Config.applyDefault();
         Maze maze = MazeGen.generate();
 
         // find solutions

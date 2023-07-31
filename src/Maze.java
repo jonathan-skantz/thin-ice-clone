@@ -1,10 +1,11 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
-public class Maze {
+public class Maze implements Serializable {
     
     // keep track of the user's path, in order to be able to backtrack
     public Stack<Node> pathHistory = new Stack<>();

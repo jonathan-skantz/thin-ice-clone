@@ -6,6 +6,8 @@ import java.awt.Font;
  */
 public class Main {
 
+    private static boolean started;
+
     private static Maze maze;   // will be copied into mazeLeft (and potentially mazeRight)
 
     public static boolean firstMazeCreated = false;   // to prevent starting until first maze is created
@@ -24,8 +26,8 @@ public class Main {
 
     public static void main(String[] args) {
 
+        Config.applyDefault();
         Window.setup();
-        Config.apply();
 
         setupKeyCallbacks();
         setupCountdownTimer();
@@ -66,6 +68,7 @@ public class Main {
             @Override
             public void onFinish() {
                 textStatus.setVisible(false);
+                started = true;
             }
         };
     }
@@ -79,10 +82,10 @@ public class Main {
         return label;
     }
 
-    public static void toggleMultiplayer() {
+    public static void updateMultiplayer() {
 
         if (Config.multiplayer) {
-            mazeRight = new MazeContainer();
+            mazeRight = new MazeContainer();        // TODO: create mazeRight in main()?
             mazeRight.sprites.setLocation(Window.mazeWidth, 0);
             mazeRight.setMaze(maze);
         }
@@ -96,17 +99,53 @@ public class Main {
 
     public static void setupKeyCallbacks() {
 
-        KeyHandler.Action.P1_MOVE_UP.setCallback(() -> { mazeLeft.tryToMove(Maze.Direction.UP); });
-        KeyHandler.Action.P1_MOVE_DOWN.setCallback(() -> { mazeLeft.tryToMove(Maze.Direction.DOWN); });
-        KeyHandler.Action.P1_MOVE_LEFT.setCallback(() -> { mazeLeft.tryToMove(Maze.Direction.LEFT); });
-        KeyHandler.Action.P1_MOVE_RIGHT.setCallback(() -> { mazeLeft.tryToMove(Maze.Direction.RIGHT); });
+        // NOTE: events are only sent if the action is allowed locally
 
-        KeyHandler.Action.P1_MAZE_RESET.setCallback(() -> { mazeLeft.resetMazeGraphics(); });
-        KeyHandler.Action.P1_MAZE_HINT.setCallback(() -> { mazeLeft.showHint(); });
-        KeyHandler.Action.P1_MAZE_STEP_UNDO.setCallback(() -> { mazeLeft.step(-1, true); });
-        KeyHandler.Action.P1_MAZE_STEP_REDO.setCallback(() -> { mazeLeft.step(1, true); });
+        KeyHandler.Action.P1_MOVE_UP.setCallback(() -> {
+            if (mazeLeft.tryToMove(Maze.Direction.UP)) {
+                OnlineSocket.send(KeyHandler.Action.P2_MOVE_UP);
+            }
+        });
+        KeyHandler.Action.P1_MOVE_DOWN.setCallback(() -> {
+            if (mazeLeft.tryToMove(Maze.Direction.DOWN)) {
+                OnlineSocket.send(KeyHandler.Action.P2_MOVE_DOWN);
+            }
+        });
+        KeyHandler.Action.P1_MOVE_LEFT.setCallback(() -> {
+            if (mazeLeft.tryToMove(Maze.Direction.LEFT)) {
+                OnlineSocket.send(KeyHandler.Action.P2_MOVE_LEFT);
+            }
+        });
+        KeyHandler.Action.P1_MOVE_RIGHT.setCallback(() -> {
+            if (mazeLeft.tryToMove(Maze.Direction.RIGHT)) {
+                OnlineSocket.send(KeyHandler.Action.P2_MOVE_RIGHT);
+            }
+        });
+
+        KeyHandler.Action.P1_MAZE_RESET.setCallback(() -> {
+            if (mazeLeft.resetMazeGraphics()) {
+                OnlineSocket.send(KeyHandler.Action.P2_MAZE_RESET);
+            }
+        });
+        KeyHandler.Action.P1_MAZE_HINT.setCallback(() -> {
+            if (mazeLeft.showHint()) {
+                OnlineSocket.send(KeyHandler.Action.P2_MAZE_HINT);
+            }
+        });
+
+        KeyHandler.Action.P1_MAZE_STEP_UNDO.setCallback(() -> {
+            if (mazeLeft.step(-1, true)) {
+                OnlineSocket.send(KeyHandler.Action.P2_MAZE_STEP_UNDO);
+            }
+        });
+        KeyHandler.Action.P1_MAZE_STEP_REDO.setCallback(() -> {
+            if (mazeLeft.step(1, true)) {
+                OnlineSocket.send(KeyHandler.Action.P2_MAZE_STEP_REDO);
+            }});
         
         if (Config.multiplayer) {
+            // p2 shouldn't send any events through OnlineSocket since
+            // if p2 can click on these buttons, the gamemode must be local
             KeyHandler.Action.P2_MOVE_UP.setCallback(() -> { mazeRight.tryToMove(Maze.Direction.UP); });
             KeyHandler.Action.P2_MOVE_DOWN.setCallback(() -> { mazeRight.tryToMove(Maze.Direction.DOWN); });
             KeyHandler.Action.P2_MOVE_LEFT.setCallback(() -> { mazeRight.tryToMove(Maze.Direction.LEFT); });
@@ -118,15 +157,22 @@ public class Main {
             KeyHandler.Action.P2_MAZE_STEP_REDO.setCallback(() -> { mazeRight.step(1, true); });
         }
 
-        KeyHandler.Action.MAZE_NEW.setCallback(() -> { generateNewMaze(); });
+        KeyHandler.Action.MAZE_NEW.setCallback(() -> {
+            generateNewMaze();
+            // NOTE: does OnlineSocket.send() in the mazegen thread
+        });
+
+        // zoom shouldn't affect the online opponent's view
         KeyHandler.Action.ZOOM_IN.setCallback(() -> { zoom(1); });
         KeyHandler.Action.ZOOM_OUT.setCallback(() -> { zoom(-1); });
         
         KeyHandler.Action.START.setCallback(() -> {
-            if (firstMazeCreated && Config.multiplayer &&
+            
+            if (Config.multiplayer && !started && firstMazeCreated &&
                 mazeLeft.animationsFinished() && mazeRight.animationsFinished()) {
-                
+
                 tcCountdown.start();
+                OnlineSocket.send(KeyHandler.Action.START);
             }
         });
     }
@@ -170,9 +216,10 @@ public class Main {
                 mazeLeft.setMaze(maze);
 
                 if (Config.multiplayer) {
+                    started = false;
                     mazeRight.setMaze(maze);
+                    OnlineSocket.send(maze);
                 }
-
             }
 
             mazeGenThreadDone = true;
@@ -180,5 +227,19 @@ public class Main {
         }).start();
 
     }
+
+    // used in OnlineSocket to set a maze without having to call generateNewMaze()
+    public static void setMaze(Maze maze) {
+        updateTextStatus("Generating...");
+        firstMazeCreated = true;
+        Main.maze = maze;
+        mazeLeft.setMaze(maze);
+
+        if (Config.multiplayer) {
+            started = false;
+            mazeRight.setMaze(maze);
+        }
+    }
+
 
 }

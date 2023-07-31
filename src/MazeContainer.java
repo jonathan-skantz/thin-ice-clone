@@ -105,8 +105,10 @@ public class MazeContainer {
             if (!Main.tcCountdown.finished) {
                 return false;
             }
-            if (!Main.mazeLeft.animationsFinished() || !Main.mazeRight.animationsFinished()) {
+            if ((!Main.mazeLeft.tcNewMaze.finished && !Main.mazeLeft.tcSpawnPlayer.finished) ||
+                (!Main.mazeRight.tcNewMaze.finished && !Main.mazeRight.tcSpawnPlayer.finished)) {
                 // prevent moving until both players can move
+                // NOTE: reset animation doesn't prevent opponent from moving
                 return false;
             }
         }
@@ -271,10 +273,10 @@ public class MazeContainer {
         
     }
 
-    public void showHint() {
+    public boolean showHint() {
 
         if (!allowInput() || maze.currentNode == null) {
-            return;
+            return false;
         }
 
         sprites.setVisible(false);
@@ -334,6 +336,7 @@ public class MazeContainer {
         }
 
         sprites.setVisible(true);
+        return true;
         
     }
 
@@ -363,10 +366,10 @@ public class MazeContainer {
     }
 
     // also resets maze
-    public void resetMazeGraphics() {
+    public boolean resetMazeGraphics() {
         
         if (!allowReset()) {
-            return;
+            return false;
         }
 
         gameOver = false;
@@ -388,6 +391,8 @@ public class MazeContainer {
             movePlayerGraphicsTo(maze.currentNode);
             mirrorPlayer(null);
         }
+
+        return true;
     }
 
     public void testGameOver() {
@@ -403,10 +408,10 @@ public class MazeContainer {
         }
     }
 
-    public void tryToMove(Maze.Direction dir) {
+    public boolean tryToMove(Maze.Direction dir) {
 
         if (!allowInput()) {
-            return;
+            return false;
         }
 
         Node lastNode = maze.currentNode;
@@ -452,14 +457,18 @@ public class MazeContainer {
             else {
                 testGameOver();
             }
+
+            return true;
         }
+
+        return false;
 
     }
 
-    public void step(int direction, boolean checkAllowInput) {
+    public boolean step(int direction, boolean checkAllowInput) {
 
         if (!gameOver && checkAllowInput && !allowInput()) {
-            return;
+            return false;
         }
         
         Node lastNode = maze.currentNode;
@@ -486,7 +495,11 @@ public class MazeContainer {
             else {
                 testGameOver();
             }
+
+            return true;
         }
+
+        return false;
         
     }
 

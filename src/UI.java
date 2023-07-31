@@ -1,4 +1,5 @@
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagLayout;
@@ -18,12 +19,14 @@ import javax.swing.ButtonGroup;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSlider;
+import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 
@@ -66,8 +69,8 @@ public class UI {
     }
 
     public static void setupConfigs() {
-        setupKeyConfig();
         setupMultiplayerButton();
+        setupKeyConfig();
         setupMazeConfig();
 
         buttons.setSize(Window.width, buttons.getPreferredSize().height);
@@ -77,29 +80,87 @@ public class UI {
     }
 
 
+    private static void updateMultiplayerUI() {
+        Config.multiplayer = Config.multiplayerOffline || Config.multiplayerOnline;
+        
+        if (Config.multiplayer) {
+            Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
+        }
+        else {
+            Window.setSize(Window.mazeWidth, Window.mazeHeight);
+        }
+        
+        Main.updateMultiplayer();
+    }
+
     private static void setupMultiplayerButton() {
-        JButton btn = new JButton("Players: " + (Config.multiplayer ? "2" : "1"));
-        btn.setSize(btn.getPreferredSize());
-        // btn.setLocation(Window.getXCentered(btn), Window.height - btn.getHeight() - 10);
-        buttons.add(btn);
+       
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-        btn.addActionListener(e -> {
-            Window.frame.requestFocus();
+        JButton btn = getConfigPopupButton("Multiplayer", panel);
+        btn.setLocation(10, 10);        // topleft of window
+        Window.sprites.add(btn);
 
-            Config.multiplayer = !Config.multiplayer;
-            if (Config.multiplayer) {
-                btn.setText("Players: 2");
-                Window.setSize(Window.width * 2, Window.height);
+        // local gamemode
+        JCheckBox cb = new JCheckBox("Local");
+        cb.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                Config.multiplayerOffline = true;
+                Config.multiplayerOnline = false;
+                OnlineSocket.disconnect();
+                // TODO: if ticked, prevent ticking others
+            }
+            updateMultiplayerUI();
+        });
+        cb.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(cb);
+
+        // online: join
+        FlowLayout subPanelLayout = new FlowLayout(FlowLayout.LEFT, cb.getInsets().left, cb.getInsets().top);
+        Border emptyBorder = BorderFactory.createEmptyBorder(0, 0, 0, 0);
+        JPanel subPanel = new JPanel(subPanelLayout);
+        
+        cb = new JCheckBox("Join port: ");
+        JTextField textFieldJoin = new JTextField("12345", 5);
+        cb.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                Config.multiplayerOnline = true;
+                OnlineSocket.join(Integer.valueOf(textFieldJoin.getText()));
             }
             else {
-                btn.setText("Players: 1");
-                Window.setSize(Window.width / 2, Window.height);
+                Config.multiplayerOnline = false;
+                OnlineSocket.disconnect();
             }
-
-            Main.toggleMultiplayer();
+            updateMultiplayerUI();
         });
-
-
+        cb.setBorder(emptyBorder);
+        subPanel.add(cb);
+        subPanel.add(textFieldJoin);
+        subPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(subPanel);
+        
+        // online: host
+        subPanel = new JPanel(subPanelLayout);
+        cb = new JCheckBox("Host port: ");
+        JTextField textFieldHost = new JTextField("12345", 5);
+        cb.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                // TODO: clean-up textfield
+                Config.multiplayerOnline = true;
+                OnlineSocket.host(Integer.valueOf(textFieldHost.getText()));
+            }
+            else {
+                Config.multiplayerOnline = false;
+                OnlineSocket.disconnect();
+            }
+            updateMultiplayerUI();
+        });
+        cb.setBorder(emptyBorder);
+        subPanel.add(cb);
+        subPanel.add(textFieldHost);
+        subPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(subPanel);
     }
 
 
@@ -552,7 +613,7 @@ public class UI {
         return slider;
     }
 
-    private static JPanel getPanelWithToolTipAndCheckBox(JCheckBox cb, String tip) {
+    private static JPanel getPanelWithToolTipAndCheckBox(JComponent cb, String tip) {
 
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
 

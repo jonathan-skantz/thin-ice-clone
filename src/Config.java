@@ -6,8 +6,10 @@ import javax.swing.BorderFactory;
 import javax.swing.border.Border;
 
 public class Config {
-    
-    public static boolean multiplayer = false;
+
+    public static boolean multiplayer = false;  // either online or offline
+    public static boolean multiplayerOnline = false;
+    public static boolean multiplayerOffline = false;
     public static boolean mirrorRightMaze = false;
 
     public static Random rand = new Random(1);
@@ -51,7 +53,7 @@ public class Config {
     public static boolean newHintMax = false;
     public static boolean newBlockColor = false;
 
-    public static void apply() {
+    public static void applyDefault() {
         // setup maze config
         MazeGen.setSize(MAZE_DEFAULT_WIDTH, MAZE_DEFAULT_HEIGHT);
         MazeGen.Amount.GROUND.set(DEFAULT_AMOUNT_GROUND);
