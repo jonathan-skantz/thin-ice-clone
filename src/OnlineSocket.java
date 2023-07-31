@@ -10,6 +10,8 @@ public class OnlineSocket {
     // NOTE: either socket or server should be used, not both
     private static Socket socket;
     private static ServerSocket server;
+    public static boolean connected;
+    public static boolean isServer;
 
     private static boolean handledReceived = true;       // prevents sending back same event to opponent
     
@@ -22,12 +24,15 @@ public class OnlineSocket {
             
             try {
                 server = new ServerSocket(port);
+                isServer = true;
                 System.out.println("SERVER: created, listening on port " + port);
                 // TODO: prevent two hosts on same port
 
                 while (true) {
                     System.out.println("SERVER: waiting for user");
                     socket = server.accept();   // NOTE: saves the opponent as `socket`
+                    connected = true;
+                    Main.updateUserConnection();
                     System.out.println("SERVER: user " + socket + " connected");
                     
                     listen();
@@ -38,6 +43,9 @@ public class OnlineSocket {
                 System.out.println("SERVER: closed (and set to null)");
                 server = null;
                 socket = null;
+                connected = false;
+                isServer = false;
+                Main.updateUserConnection();
             }
     
             System.out.println("SERVER: end");
@@ -52,6 +60,8 @@ public class OnlineSocket {
             while (true) {
                 try {
                     socket = new Socket("localhost", port);
+                    connected = true;
+                    Main.updateUserConnection();
                     System.out.println("CLIENT: connected as " + socket);
                     
                     listen();
@@ -81,6 +91,8 @@ public class OnlineSocket {
                 catch (IOException e) {
                     System.out.println("CLIENT: disconnected (socket broken, set to null)");
                     socket = null;
+                    connected = false;
+                    Main.updateUserConnection();
                     break;
                 }
             }
@@ -100,7 +112,9 @@ public class OnlineSocket {
 
             try {
                 server.close();
-                socket.close();
+                if (socket != null) {
+                    socket.close();
+                }
                 System.out.println("SERVER: closed (manually)");
             }
             catch (IOException e) {
@@ -165,12 +179,15 @@ public class OnlineSocket {
                 e.printStackTrace();
                 break;
             } catch (IOException e) {
+                
                 if (server == null) {
                     System.out.println("CLIENT: disconnected (LISTEN stopped)");
                 }
                 else {
                     System.out.println("SERVER: client disconnected (LISTEN stopped)");
                 }
+                connected = false;
+                Main.updateMultiplayer();
                 try {
                     socket.close();
                 } catch (IOException e1) {
@@ -181,7 +198,5 @@ public class OnlineSocket {
         }
 
     }
-
-
 
 }
