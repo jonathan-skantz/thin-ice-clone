@@ -29,6 +29,7 @@ public class MazeContainer {
     private Block[][] blocks;
     private JLabel textStatus;
     private JLabel textSteps;
+    public JLabel textUser;
     
     private LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>(Config.hintMax);
 
@@ -56,7 +57,7 @@ public class MazeContainer {
         }
     }
 
-    public MazeContainer() {
+    public MazeContainer(int windowX) {
 
         maze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
         setStartPosition();
@@ -71,7 +72,7 @@ public class MazeContainer {
 
         createWallBlocks();
 
-        sprites.setSize(Window.mazeWidth, Window.mazeHeight);
+        sprites.setBounds(windowX, 0, Window.mazeWidth, Window.mazeHeight);
 
         Window.sprites.add(sprites);
 
@@ -83,16 +84,34 @@ public class MazeContainer {
 
     private void setupText() {
         
-        textSteps = Main.createLabel("Steps: 0/0");
-        textSteps.setVisible(true);
+        textSteps = new JLabel("Steps: 0/0");
+        textSteps.setFont(Main.font);
+        textSteps.setSize(textSteps.getPreferredSize());
         textSteps.setForeground(Color.BLACK);
         textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
-
         sprites.add(textSteps);
-        textStatus = Main.createLabel(Status.UNSOLVABLE.toString());
+
+        textStatus = new JLabel(Status.UNSOLVABLE.toString());
+        textStatus.setFont(Main.font);
+        textStatus.setSize(textStatus.getPreferredSize());
         textStatus.setForeground(Color.RED);
         textStatus.setLocation(Window.getXCenteredMaze(textStatus), textSteps.getY() + textSteps.getHeight() + 10);
+        textStatus.setVisible(false);
         sprites.add(textStatus);
+
+        textUser = new JLabel("Offline play");
+        textUser.setFont(Main.font);
+        textUser.setSize(textUser.getPreferredSize());
+        textUser.setForeground(new Color(0, 0, 0, 100));
+        updateTextUserPosition();
+        sprites.add(textUser);
+    }
+
+    public void setUserText(String text) {
+        textUser.setText(text);
+        textUser.setSize(textUser.getPreferredSize());
+        updateTextUserPosition();        
+        textUser.setVisible(true);
     }
 
     private boolean allowInput() {
@@ -220,7 +239,8 @@ public class MazeContainer {
         tcNewMaze.finished = true;
     }
 
-    public void dispose() {
+    // pauses animations
+    public void freeze() {
 
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
@@ -230,8 +250,6 @@ public class MazeContainer {
                 }
             }
         }
-
-        sprites.removeAll();
 
         tcReset.reset();
         tcNewMaze.reset();
@@ -340,11 +358,14 @@ public class MazeContainer {
         
     }
 
+    private void updateTextUserPosition() {
+        textUser.setLocation(Window.getXCenteredMaze(textUser), startY + maze.height * Config.blockSize + 10);
+    }
+
     public void zoom(int ch) {
         player.velocity += ch;
             
-        startY = (Window.height - Config.blockSize * maze.height) / 2;
-        startX = (Window.mazeWidth - Config.blockSize * maze.width) / 2;
+        setStartPosition();
 
         if (maze.currentNode != null) {
             player.setSize(player.getWidth() + ch, player.getHeight() + ch);
@@ -363,6 +384,9 @@ public class MazeContainer {
             label.setFont(Main.hintFont);
             label.setLocation(getBlockPosition(hints.get(label)));
         }
+
+        updateTextUserPosition();
+        
     }
 
     // also resets maze
@@ -580,6 +604,8 @@ public class MazeContainer {
             createWallBlocks();
         }
 
+        updateTextUserPosition();
+
         // determine which nodes should change
         nodesToChange.clear();
         for (int y=0; y<this.maze.height; y++) {
@@ -662,8 +688,8 @@ public class MazeContainer {
     }
 
     private void setStartPosition() {
-        startY = (Window.height - Config.blockSize * maze.height) / 2;
         startX = (Window.mazeWidth - Config.blockSize * maze.width) / 2;
+        startY = (Window.height - Config.blockSize * maze.height) / 2;
     }
 
     public Point getBlockPosition(Node node) {

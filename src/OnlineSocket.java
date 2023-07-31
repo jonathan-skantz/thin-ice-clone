@@ -14,6 +14,8 @@ public class OnlineSocket {
     private static ObjectInputStream thisIn;
 
     private static boolean handledReceived = true;       // prevents sending back same event to opponent
+    
+    private static final int RECONNECT_DELAY = 1000;    // in ms
 
     // host server
     public static void host(int port) {
@@ -65,14 +67,14 @@ public class OnlineSocket {
                 }
                 catch (ConnectException e) {
                     
-                    if (!Config.multiplayerOnline) {
-                        System.out.println("CLIENT: cancelled connection attempt (in UI)");
-                        break;
-                    }
-
                     try {
                         System.out.println("CLIENT: attempting to connect to " + port);
-                        Thread.sleep(1000);
+                        Thread.sleep(RECONNECT_DELAY);
+                        
+                        if (!Config.multiplayerOnline) {
+                            System.out.println("CLIENT: cancelled connection attempt (in UI)");
+                            break;
+                        }
                     }
                     catch (InterruptedException e1) {
                         e1.printStackTrace();

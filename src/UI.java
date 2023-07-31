@@ -103,61 +103,71 @@ public class UI {
         Window.sprites.add(btn);
 
         // local gamemode
-        JCheckBox cb = new JCheckBox("Local");
-        cb.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                Config.multiplayerOffline = true;
-                Config.multiplayerOnline = false;
+        JCheckBox cbLocal = new JCheckBox("Local");
+        JCheckBox cbJoin = new JCheckBox("Join port: ");
+        JCheckBox cbHost = new JCheckBox("Host port: ");
+
+        cbLocal.addItemListener(e -> {
+            
+            boolean selected = e.getStateChange() == ItemEvent.SELECTED;
+            if (selected) {
                 OnlineSocket.disconnect();
-                // TODO: if ticked, prevent ticking others
             }
+            Config.multiplayerOffline = selected;
+            cbJoin.setEnabled(!selected);
+            cbHost.setEnabled(!selected);
+
             updateMultiplayerUI();
         });
-        cb.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(cb);
+        cbLocal.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(cbLocal);
 
         // online: join
-        FlowLayout subPanelLayout = new FlowLayout(FlowLayout.LEFT, cb.getInsets().left, cb.getInsets().top);
+        FlowLayout subPanelLayout = new FlowLayout(FlowLayout.LEFT, cbLocal.getInsets().left, cbLocal.getInsets().top);
         Border emptyBorder = BorderFactory.createEmptyBorder(0, 0, 0, 0);
         JPanel subPanel = new JPanel(subPanelLayout);
         
-        cb = new JCheckBox("Join port: ");
         JTextField textFieldJoin = new JTextField("12345", 5);
-        cb.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                Config.multiplayerOnline = true;
+        cbJoin.addItemListener(e -> {
+            boolean selected = e.getStateChange() == ItemEvent.SELECTED;
+            if (selected) {
                 OnlineSocket.join(Integer.valueOf(textFieldJoin.getText()));
             }
             else {
-                Config.multiplayerOnline = false;
                 OnlineSocket.disconnect();
             }
+            Config.multiplayerOnline = selected;
+            cbLocal.setEnabled(!selected);
+            cbHost.setEnabled(!selected);
+            
             updateMultiplayerUI();
         });
-        cb.setBorder(emptyBorder);
-        subPanel.add(cb);
+        cbJoin.setBorder(emptyBorder);
+        subPanel.add(cbJoin);
         subPanel.add(textFieldJoin);
         subPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(subPanel);
         
         // online: host
         subPanel = new JPanel(subPanelLayout);
-        cb = new JCheckBox("Host port: ");
         JTextField textFieldHost = new JTextField("12345", 5);
-        cb.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                // TODO: clean-up textfield
-                Config.multiplayerOnline = true;
+        cbHost.addItemListener(e -> {
+            // TODO: clean-up textfield
+            boolean selected = e.getStateChange() == ItemEvent.SELECTED;
+            if (selected) {
                 OnlineSocket.host(Integer.valueOf(textFieldHost.getText()));
             }
             else {
-                Config.multiplayerOnline = false;
                 OnlineSocket.disconnect();
             }
+            Config.multiplayerOnline = selected;
+            cbLocal.setEnabled(!selected);
+            cbJoin.setEnabled(!selected);
+
             updateMultiplayerUI();
         });
-        cb.setBorder(emptyBorder);
-        subPanel.add(cb);
+        cbHost.setBorder(emptyBorder);
+        subPanel.add(cbHost);
         subPanel.add(textFieldHost);
         subPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(subPanel);

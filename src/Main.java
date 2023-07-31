@@ -34,14 +34,19 @@ public class Main {
 
         Window.sprites.setVisible(false);   // prevents redrawing while setting up
         
-        textStatus = createLabel("Generating...");
+        textStatus = new JLabel("Generating...");
+        textStatus.setFont(font);
+        textStatus.setSize(textStatus.getPreferredSize());
         textStatus.setLocation(Window.getXCentered(textStatus), 50);
+        textStatus.setVisible(false);
+        Window.sprites.add(textStatus);
 
         UI.setupConfigs();
 
         // make first maze consist of walls only
         maze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
-        mazeLeft = new MazeContainer();
+        mazeLeft = new MazeContainer(0);
+        mazeRight = new MazeContainer(Window.mazeWidth);
         Window.sprites.setVisible(true);
 
     }
@@ -73,24 +78,23 @@ public class Main {
         };
     }
 
-    public static JLabel createLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(font);
-        label.setVisible(false);
-        label.setSize(label.getPreferredSize());
-        Window.sprites.add(label);
-        return label;
-    }
-
     public static void updateMultiplayer() {
 
         if (Config.multiplayer) {
-            mazeRight = new MazeContainer();        // TODO: create mazeRight in main()?
-            mazeRight.sprites.setLocation(Window.mazeWidth, 0);
             mazeRight.setMaze(maze);
+            
+            if (Config.multiplayerOffline) {
+                mazeLeft.setUserText("Player 1");
+                mazeRight.setUserText("Player 2");
+            }
+            else {
+                mazeLeft.setUserText("You");
+                mazeRight.setUserText("Opponent");
+            }
         }
         else {
-            mazeRight.dispose();
+            mazeRight.freeze();
+            mazeLeft.setUserText("Offline play");
         }
         setupKeyCallbacks();
         textStatus.setLocation(Window.getXCentered(textStatus), textStatus.getY());
@@ -184,10 +188,7 @@ public class Main {
         hintFont = new Font(hintFont.getName(), hintFont.getStyle(), (int)(0.5*Config.blockSize));
 
         mazeLeft.zoom(ch);
-        if (Config.multiplayer) {
-            mazeRight.zoom(ch);
-        }
-
+        mazeRight.zoom(ch);
     }
 
     public static void generateNewMaze() {
