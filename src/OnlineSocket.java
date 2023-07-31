@@ -10,8 +10,6 @@ public class OnlineSocket {
     // NOTE: either socket or server should be used, not both
     private static Socket socket;
     private static ServerSocket server;
-    private static ObjectOutputStream opponentOut;
-    private static ObjectInputStream thisIn;
 
     private static boolean handledReceived = true;       // prevents sending back same event to opponent
     
@@ -29,18 +27,17 @@ public class OnlineSocket {
 
                 while (true) {
                     System.out.println("SERVER: waiting for user");
-                    Socket opponent = server.accept();
-                    System.out.println("SERVER: user " + opponent + " connected");
-                    
-                    opponentOut = new ObjectOutputStream(opponent.getOutputStream());
-                    thisIn = new ObjectInputStream(opponent.getInputStream());
+                    socket = server.accept();   // NOTE: saves the opponent as `socket`
+                    System.out.println("SERVER: user " + socket + " connected");
                     
                     listen();
                     // continues here when opponent disconnects --> loop, wait for new user
                 }
             }
             catch (IOException e) {
-                System.out.println("SERVER: closed");
+                System.out.println("SERVER: closed (and set to null)");
+                server = null;
+                socket = null;
             }
     
             System.out.println("SERVER: end");
@@ -57,13 +54,13 @@ public class OnlineSocket {
                     socket = new Socket("localhost", port);
                     System.out.println("CLIENT: connected as " + socket);
                     
-                    opponentOut = new ObjectOutputStream(socket.getOutputStream());
-                    thisIn = new ObjectInputStream(socket.getInputStream());
-                    
                     listen();
 
-                    System.out.println("CLIENT: stopped searching for server");
-                    break;
+                    if (socket.isClosed()) {
+                        System.out.println("CLIENT: stopped searching for server");
+                        break;
+                    }
+                    // else: server was closed, but client is still searching --> continue
                 }
                 catch (ConnectException e) {
                     
@@ -82,13 +79,15 @@ public class OnlineSocket {
                     }
                 }
                 catch (IOException e) {
-                    System.out.println("CLIENT: disconnected (socket broken)");
+                    System.out.println("CLIENT: disconnected (socket broken, set to null)");
+                    socket = null;
                     break;
                 }
             }
             
-            System.out.println("CLIENT: end");
             // TODO: show that host right maze is offline
+            System.out.println("CLIENT: end");
+            
 
         }).start();
 
@@ -101,13 +100,12 @@ public class OnlineSocket {
 
             try {
                 server.close();
+                socket.close();
                 System.out.println("SERVER: closed (manually)");
             }
             catch (IOException e) {
                 System.out.println("SERVER: error when closing:");
             }
-
-            server = null;
         }
 
         else if (socket != null) {
@@ -118,9 +116,6 @@ public class OnlineSocket {
                 System.out.println("CLIENT: error when disconnecting:");
                 e.printStackTrace();
             }
-
-            socket = null;
-
         }
 
     }
@@ -130,12 +125,15 @@ public class OnlineSocket {
         if (!(Config.multiplayerOnline && handledReceived)) {
             return;
         }
-        try {
-            opponentOut.writeObject(obj);
+
+        try (ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
+            out.writeObject(obj);
         }
         catch (IOException e) {
+            System.out.println("CLIENT/SERVER: couldn't send due to:");
             e.printStackTrace();
         }
+
     }
 
     private static void listen() {
@@ -143,7 +141,9 @@ public class OnlineSocket {
         while (true) {
 
             try {
-                Object received = thisIn.readObject();
+                ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+                Object received = in.readObject();
+
                 handledReceived = false;
                 
                 System.out.println("received: " + received);
@@ -165,7 +165,17 @@ public class OnlineSocket {
                 e.printStackTrace();
                 break;
             } catch (IOException e) {
-                System.out.println("LISTEN: user disconnected (server or client)");
+                if (server == null) {
+                    System.out.println("CLIENT: disconnected (LISTEN stopped)");
+                }
+                else {
+                    System.out.println("SERVER: client disconnected (LISTEN stopped)");
+                }
+                try {
+                    socket.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
                 break;
             }
         }

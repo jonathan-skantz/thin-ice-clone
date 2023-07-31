@@ -79,8 +79,11 @@ public class Main {
     }
 
     public static void updateMultiplayer() {
+        
+        Config.multiplayer = Config.multiplayerOffline || Config.multiplayerOnline;
 
         if (Config.multiplayer) {
+            Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
             mazeRight.setMaze(maze);
             
             if (Config.multiplayerOffline) {
@@ -93,6 +96,7 @@ public class Main {
             }
         }
         else {
+            Window.setSize(Window.mazeWidth, Window.mazeHeight);
             mazeRight.freeze();
             mazeLeft.setUserText("Offline play");
         }

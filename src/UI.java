@@ -79,20 +79,6 @@ public class UI {
         Window.sprites.add(buttons);
     }
 
-
-    private static void updateMultiplayerUI() {
-        Config.multiplayer = Config.multiplayerOffline || Config.multiplayerOnline;
-        
-        if (Config.multiplayer) {
-            Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
-        }
-        else {
-            Window.setSize(Window.mazeWidth, Window.mazeHeight);
-        }
-        
-        Main.updateMultiplayer();
-    }
-
     private static void setupMultiplayerButton() {
        
         JPanel panel = new JPanel();
@@ -117,7 +103,7 @@ public class UI {
             cbJoin.setEnabled(!selected);
             cbHost.setEnabled(!selected);
 
-            updateMultiplayerUI();
+            Main.updateMultiplayer();
         });
         cbLocal.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(cbLocal);
@@ -140,7 +126,7 @@ public class UI {
             cbLocal.setEnabled(!selected);
             cbHost.setEnabled(!selected);
             
-            updateMultiplayerUI();
+            Main.updateMultiplayer();
         });
         cbJoin.setBorder(emptyBorder);
         subPanel.add(cbJoin);
@@ -164,7 +150,7 @@ public class UI {
             cbLocal.setEnabled(!selected);
             cbJoin.setEnabled(!selected);
 
-            updateMultiplayerUI();
+            Main.updateMultiplayer();
         });
         cbHost.setBorder(emptyBorder);
         subPanel.add(cbHost);
