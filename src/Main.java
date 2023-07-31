@@ -84,25 +84,48 @@ public class Main {
 
         if (Config.multiplayer) {
             Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
-            mazeRight.setMaze(maze);
             
             if (Config.multiplayerOffline) {
+                mazeRight.setMaze(maze);
                 mazeLeft.setUserText("Player 1");
                 mazeRight.setUserText("Player 2");
             }
             else {
                 mazeLeft.setUserText("You");
-                mazeRight.setUserText("Opponent");
+                mazeRight.setUserText("Waiting for opponent...");
             }
         }
         else {
             Window.setSize(Window.mazeWidth, Window.mazeHeight);
             mazeRight.freeze();
-            mazeLeft.setUserText("Offline play");
+            mazeLeft.setUserText("Singleplayer");
         }
         setupKeyCallbacks();
         textStatus.setLocation(Window.getXCentered(textStatus), textStatus.getY());
         UI.buttons.setSize(Window.width, UI.buttons.getHeight());
+
+        updateUserConnection();
+
+    }
+
+    public static void updateUserConnection() {
+        
+        if (!Config.multiplayer) {
+            mazeRight.clearMaze();
+        }
+
+        if (!Config.multiplayerOnline) {
+            return;
+        }
+
+        if (OnlineSocket.connected) {
+            mazeRight.setUserText("Opponent");
+            mazeRight.setMaze(maze);
+        }
+        else {
+            mazeRight.setUserText("Waiting for opponent...");
+            mazeRight.clearMaze();
+        }
     }
 
     public static void setupKeyCallbacks() {
@@ -197,7 +220,18 @@ public class Main {
 
     public static void generateNewMaze() {
         
-        if (!mazeLeft.animationsFinished() || (Config.multiplayer && !mazeRight.animationsFinished())) {
+        if (Config.multiplayerOnline) {
+            if (!OnlineSocket.connected) {
+                // still waiting for connection, not generating
+                return;
+            }
+        }
+        else if (Config.multiplayer) {
+            if (!mazeRight.animationsFinished()) {
+                return;
+            }
+        }
+        else if (!mazeLeft.animationsFinished()) {
             return;
         }
 
