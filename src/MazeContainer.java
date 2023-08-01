@@ -13,8 +13,7 @@ public class MazeContainer {
     private Maze maze;
     private Maze oldMaze;
     private MazeSolver solver;
-    private boolean gameOver;
-    
+
     private TimedCounter tcReset;
     private TimedCounter tcSpawnPlayer;
     private TimedCounter tcNewMaze;
@@ -22,7 +21,12 @@ public class MazeContainer {
 
     private boolean isMirrored;
 
-
+    public boolean allowMove;
+    public boolean allowStep;
+    public boolean allowReset;
+    public boolean allowNewMaze = true;     // TODO: determine when to disallow
+    public boolean allowStart = true;       // <-- ignored in singleplayer
+    
     private Block player;
     private Block[][] blocks;
     private JLabel textStatus;
@@ -117,35 +121,6 @@ public class MazeContainer {
         textUser.setVisible(true);
     }
 
-    private boolean allowInput() {
-
-        if (!Main.firstMazeCreated) {
-            return false;
-        }
-        else if (Config.multiplayer) {
-
-            if (!Main.tcCountdown.finished) {
-                return false;
-            }
-            if ((!Main.mazeLeft.tcNewMaze.finished && !Main.mazeLeft.tcSpawnPlayer.finished) ||
-                (!Main.mazeRight.tcNewMaze.finished && !Main.mazeRight.tcSpawnPlayer.finished)) {
-                // prevent moving until both players can move
-                // NOTE: reset animation doesn't prevent opponent from moving
-                return false;
-            }
-        }
-
-        return animationsFinished() &&
-                Main.mazeGenThreadDone &&
-                !gameOver;
-    }
-
-    private boolean allowReset() {
-        return Main.firstMazeCreated &&
-                animationsFinished() &&
-                Main.mazeGenThreadDone;
-    }
-
     public boolean animationsFinished() {
         return tcNewMaze.finished &&
                 tcSpawnPlayer.finished &&
@@ -163,7 +138,7 @@ public class MazeContainer {
 
             @Override
             public void onTick() {
-                step(-1, false);
+                step(-1);
                 movePlayerGraphicsTo(maze.currentNode);
             }
 
@@ -195,7 +170,21 @@ public class MazeContainer {
             }
 
             @Override
-            public void onFinish() { updateMirror(); }
+            public void onFinish() {
+                updateMirror();
+                
+                allowStart = true;
+
+                if (!Config.multiplayer) {
+                    allowMove = true;
+                    allowReset = true;
+                    allowStep = true;       // all of these might be set first here
+                }
+                else {
+                    allowMove = false;      // might have been set to true during step(-1) (if maze was incomplete)
+                }
+            
+            }
         };
 
         tcSpawnPlayer.finished = true;
@@ -213,7 +202,6 @@ public class MazeContainer {
 
             public void onTick() {
                 Node node = nodesToChange.get(frame-1);
-                // maze.set(node, newMaze.get(node));
                 
                 if (frame > 1) {
                     // remove border from last node
@@ -314,7 +302,7 @@ public class MazeContainer {
 
     public boolean showHint() {
 
-        if (!allowInput() || maze.currentNode == null) {
+        if (!allowMove) {
             return false;
         }
 
@@ -413,11 +401,9 @@ public class MazeContainer {
     // also resets maze
     public boolean resetMazeGraphics() {
         
-        if (!allowReset()) {
+        if (!allowReset) {
             return false;
         }
-
-        gameOver = false;
 
         textStatus.setVisible(false);
         removeHintTexts();
@@ -434,13 +420,20 @@ public class MazeContainer {
             }
 
             movePlayerGraphicsTo(maze.currentNode);
-            mirrorPlayer(null);
+
+            tcReset.onFinish();
         }
 
         return true;
     }
 
     public void testGameOver() {
+        
+        // first maze hasn't been set yet
+        if (solver == null) {
+            return;
+        }
+        
         if (Config.showUnsolvable && solver.findShortestPath().size() == 0) {
             
             if (maze.get(maze.currentNode) == Node.Type.END) {
@@ -449,13 +442,13 @@ public class MazeContainer {
             else {
                 updateTextStatus(Status.UNSOLVABLE);
             }
-            gameOver = true;
+            allowMove = false;
         }
     }
 
     public boolean tryToMove(Maze.Direction dir) {
 
-        if (!allowInput()) {
+        if (!allowMove) {
             return false;
         }
 
@@ -492,12 +485,26 @@ public class MazeContainer {
 
                 if (Config.multiplayer) {
                     int winner = this == Main.mazeLeft ? 1 : 2;
-                    Main.updateTextStatus("Winner: player " + winner);
+
+                    if (Config.multiplayerOnline) {
+                        if (winner == 1) {
+                            Main.updateTextStatus("Winner: You");
+                        }
+                        else {
+                            Main.updateTextStatus("Winner: Opponent");
+                        }
+                    }
+                    else if (Config.multiplayerOffline) {
+                        Main.updateTextStatus("Winner: Player " + winner);
+                    }
                 }
                 else {
                     updateTextStatus(Status.COMPLETE);
                 }
-                Main.firstMazeCreated = false;  // prevents moving
+                // user won --> only disable mazeLeft movement since mazeRight is not controlled by this player
+                Main.mazeLeft.allowMove = false;
+                Main.mazeLeft.allowReset = false;
+                Main.mazeLeft.allowStep = false;
             }
             else {
                 testGameOver();
@@ -510,9 +517,9 @@ public class MazeContainer {
 
     }
 
-    public boolean step(int direction, boolean checkAllowInput) {
+    public boolean step(int direction) {
 
-        if (!gameOver && checkAllowInput && !allowInput()) {
+        if (!allowStep && !allowReset) {
             return false;
         }
         
@@ -531,8 +538,8 @@ public class MazeContainer {
 
             if (direction == -1) {
 
-                if (gameOver) {
-                    gameOver = false;
+                if (!allowMove) {
+                    allowMove = true;
                     textStatus.setVisible(false);
                 }
                 refreshBlockGraphics(maze.currentNode);
@@ -568,7 +575,7 @@ public class MazeContainer {
 
         if (this == Main.mazeRight && Config.mirrorRightMaze != isMirrored) {
 
-            if (animationsFinished() && Main.firstMazeCreated) {
+            if (animationsFinished()) {
                 setMaze(maze);
                 Main.updateTextStatus("Mirroring...");
                 isMirrored = Config.mirrorRightMaze;
@@ -601,7 +608,7 @@ public class MazeContainer {
     // also resets texts
     public void setMaze(Maze maze) {
 
-        if (!animationsFinished() || (this == Main.mazeRight && !Config.multiplayer)) {
+        if (!allowNewMaze) {
             return;
         }
 
@@ -622,7 +629,6 @@ public class MazeContainer {
 
         textStatus.setVisible(false);
         removeHintTexts();
-        gameOver = false;
         
         updateTextSteps();
 
@@ -663,13 +669,6 @@ public class MazeContainer {
             }
         }
 
-        if (nodesToChange.size() == 0) {
-            // when switching to multiplayer without any maze generated
-            Main.textStatus.setVisible(false);
-            textStatus.setVisible(false);
-            return;
-        }
-
         if (Main.ENABLE_ANIMATIONS) {
             tcNewMaze.start();
         }
@@ -682,7 +681,13 @@ public class MazeContainer {
             for (Node node : nodesToChange) {
                 refreshBlockGraphics(node);
             }
-            
+
+            if (!Config.multiplayer) {
+                allowMove = true;
+                allowReset = true;
+                allowStep = true;
+            }
+
         }
             
     }

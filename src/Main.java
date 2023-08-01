@@ -6,11 +6,7 @@ import java.awt.Font;
  */
 public class Main {
 
-    private static boolean started;
-
     private static Maze maze;   // will be copied into mazeLeft (and potentially mazeRight)
-
-    public static boolean firstMazeCreated = false;   // to prevent starting until first maze is created
 
     public static MazeContainer mazeLeft;
     public static MazeContainer mazeRight;
@@ -51,20 +47,21 @@ public class Main {
 
         OnlineServer.onClientConnect = () -> {
             updateMultiplayer();
+            mazeLeft.setMaze(maze);     // resets current maze and its graphics
             mazeRight.setMaze(maze);
             OnlineServer.send(maze);    // server sends its maze
         };
 
-        // OnlineServer.onClientDisconnect = () -> { 
-        //     // not handled by UI since server is still open
-        //     updateMultiplayer();
-        // };
+        OnlineServer.onClientDisconnect = () -> { 
+            // not handled by UI since server is still open
+            updateMultiplayer();
+        };
         
         OnlineClient.onConnect = () -> { 
             updateMultiplayer();
             // maze is set in OnlineClient.listen() since OnlineServer sends it when client connects
         };
-        // OnlineClient.onDisconnect = OnlineServer.onClientDisconnect;
+        OnlineClient.onDisconnect = OnlineServer.onClientDisconnect;
 
         OnlineServer.onReceived = () -> {
             Object received = OnlineServer.receivedObject;
@@ -115,7 +112,14 @@ public class Main {
             @Override
             public void onFinish() {
                 textStatus.setVisible(false);
-                started = true;
+
+                mazeLeft.allowMove = true;
+                mazeLeft.allowReset = true;
+                mazeLeft.allowStep = true;
+                
+                mazeRight.allowMove = true;     // NOTE: 2nd player might be controlled through socket, rendering these useless
+                mazeRight.allowReset = true;
+                mazeRight.allowStep = true;
             }
         };
     }
@@ -203,12 +207,12 @@ public class Main {
         });
 
         KeyHandler.Action.P1_MAZE_STEP_UNDO.setCallback(() -> {
-            if (mazeLeft.step(-1, true)) {
+            if (mazeLeft.step(-1)) {
                 tryToSend(KeyHandler.Action.P2_MAZE_STEP_UNDO);
             }
         });
         KeyHandler.Action.P1_MAZE_STEP_REDO.setCallback(() -> {
-            if (mazeLeft.step(1, true)) {
+            if (mazeLeft.step(1)) {
                 tryToSend(KeyHandler.Action.P2_MAZE_STEP_REDO);
             }});
         
@@ -222,8 +226,8 @@ public class Main {
 
             KeyHandler.Action.P2_MAZE_RESET.setCallback(() -> { mazeRight.resetMazeGraphics(); });
             KeyHandler.Action.P2_MAZE_HINT.setCallback(() -> { mazeRight.showHint(); });
-            KeyHandler.Action.P2_MAZE_STEP_UNDO.setCallback(() -> { mazeRight.step(-1, true); });
-            KeyHandler.Action.P2_MAZE_STEP_REDO.setCallback(() -> { mazeRight.step(1, true); });
+            KeyHandler.Action.P2_MAZE_STEP_UNDO.setCallback(() -> { mazeRight.step(-1); });
+            KeyHandler.Action.P2_MAZE_STEP_REDO.setCallback(() -> { mazeRight.step(1); });
         }
 
         KeyHandler.Action.MAZE_NEW.setCallback(() -> {
@@ -237,12 +241,23 @@ public class Main {
         
         KeyHandler.Action.START.setCallback(() -> {
             
-            if (Config.multiplayer && !started && firstMazeCreated &&
-                mazeLeft.animationsFinished() && mazeRight.animationsFinished()) {
-
-                tcCountdown.start();
-                tryToSend(KeyHandler.Action.START);
+            if (!Config.multiplayer) {
+                return;
             }
+            if (Config.multiplayerOnline) {
+                if (!OnlineServer.clientConnected && ! OnlineClient.connected) {
+                    return;
+                }
+            }
+            if (!mazeLeft.allowStart && mazeRight.allowStart) {
+                return;
+            }
+
+            mazeLeft.allowStart = false;
+            mazeRight.allowStart = false;
+
+            tcCountdown.start();
+            tryToSend(KeyHandler.Action.START);
         });
     }
 
@@ -279,7 +294,6 @@ public class Main {
             maze = MazeGen.generate();
 
             if (!MazeGen.cancel) {
-                firstMazeCreated = true;
 
                 System.out.println(maze.creationPath);
                 maze.printCreationPath();
@@ -287,7 +301,6 @@ public class Main {
                 mazeLeft.setMaze(maze);
 
                 if (Config.multiplayerOffline || tryToSend(maze)) {
-                    started = false;
                     mazeRight.setMaze(maze);
                 }
             }
@@ -317,12 +330,10 @@ public class Main {
     // used in OnlineSocket to set a maze without having to call generateNewMaze()
     public static void setMaze(Maze maze) {
         updateTextStatus("Generating...");
-        firstMazeCreated = true;
         Main.maze = maze;
         mazeLeft.setMaze(maze);
 
         if (Config.multiplayer) {
-            started = false;
             mazeRight.setMaze(maze);
         }
     }

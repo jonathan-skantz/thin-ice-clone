@@ -514,13 +514,8 @@ public class UI {
         cb.addItemListener(e -> {
             Config.showUnsolvable = e.getStateChange() == ItemEvent.SELECTED;
             
-            if (Main.firstMazeCreated) {
-                Main.mazeLeft.testGameOver();
-                
-                if (Main.mazeRight != null) {
-                    Main.mazeRight.testGameOver();
-                }
-            }
+            Main.mazeLeft.testGameOver();
+            Main.mazeRight.testGameOver();
         });
         checkboxes.add(panel);
 
