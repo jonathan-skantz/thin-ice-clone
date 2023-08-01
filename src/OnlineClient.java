@@ -8,6 +8,7 @@ public class OnlineClient {
 
     public static boolean connected;
     public static boolean handledReceived = true;       // prevents sending back same event to opponent
+    public static boolean kickCallsDisconnect = true;
 
     private static Socket socket;
     private static ObjectOutputStream serverOut;
@@ -19,6 +20,7 @@ public class OnlineClient {
     public static Runnable onConnect = () -> { System.out.println("CLIENT: (default callback) connected as " + socket); };
     public static Runnable onDisconnect = () -> { System.out.println("CLIENT: (default callback) disconnected"); };
     public static Runnable onReceived = () -> {};
+    public static Runnable onKick = () -> { System.out.println("CLIENT: (default callback) kicked"); };
 
     public static Object receivedObject;
 
@@ -26,6 +28,8 @@ public class OnlineClient {
         
         new Thread(() -> {
             
+            tryReconnecting = true;
+
             while (true) {
                 try {
                     socket = new Socket("localhost", port);
@@ -136,7 +140,13 @@ public class OnlineClient {
                 
                 if (connected) {
                     connected = false;
-                    new Thread(onDisconnect).start();       // TODO: prevent immediate reconnect? should this be new thread really?
+
+                    if (kickCallsDisconnect) {
+                        new Thread(onDisconnect).start();       // TODO: prevent immediate reconnect? should this be new thread really?
+                    }
+                    else {
+                        new Thread(onKick).start();
+                    }
                 }
                 // else: disconnected manually
                 break;

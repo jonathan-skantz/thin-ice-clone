@@ -9,19 +9,20 @@ public class OnlineServer {
     public static boolean opened;
     public static boolean clientConnected;
     public static boolean handledReceived = true;
-    public static boolean callClientDisconnectOnClose = false;
+    public static boolean kickCallsDisconnect = true;
 
     private static ServerSocket serverSocket;     // this user
     private static Socket clientSocket;       // other user
     private static ObjectOutputStream clientOut;
     private static ObjectInputStream serverIn;
 
-    public static Runnable onServerOpen = () -> { System.out.println("SERVER: (default callback) server opened"); };
-    public static Runnable onServerClose = () -> { System.out.println("SERVER: (default callback) server closed"); };
-    public static Runnable onServerReceived = () -> {};
+    public static Runnable onOpen = () -> { System.out.println("SERVER: (default callback) server opened"); };
+    public static Runnable onClose = () -> { System.out.println("SERVER: (default callback) server closed"); };
+    public static Runnable onReceived = () -> {};
 
     public static Runnable onClientConnect = () -> { System.out.println("SERVER: (default callback) client connected"); };
     public static Runnable onClientDisconnect = () -> { System.out.println("SERVER: (default callback) client disconnected"); };
+    public static Runnable onClientKick = () -> { System.out.println("SERVER: (default callback) client kicked"); };
 
     public static Object receivedObject;
 
@@ -33,7 +34,7 @@ public class OnlineServer {
                 // TODO: prevent two hosts on same port
                 serverSocket = new ServerSocket(port);
                 opened = true;
-                new Thread(onServerOpen).start();
+                new Thread(onOpen).start();
 
                 while (true) {
                     clientSocket = serverSocket.accept();
@@ -52,7 +53,7 @@ public class OnlineServer {
                     System.out.println("SERVER error: couldn't open");
                     e.printStackTrace();
 
-                    new Thread(onServerClose).start();
+                    new Thread(onClose).start();
                 }
                 // else: was closed manually
             }
@@ -66,13 +67,18 @@ public class OnlineServer {
         try {
             serverSocket.close();
             opened = false;
-            new Thread(onServerClose).start();
+            new Thread(onClose).start();
 
             if (clientConnected) {
                 clientSocket.close();
 
-                if (callClientDisconnectOnClose) {
+                // kick client
+
+                if (kickCallsDisconnect) {
                     new Thread(onClientDisconnect).start();
+                }
+                else {
+                    new Thread(onClientKick).start();
                 }
             }
         }
@@ -118,7 +124,7 @@ public class OnlineServer {
                 System.out.println("SERVER: received " + receivedObject);
                 handledReceived = false;
                 new Thread(() -> {
-                    onServerReceived.run();
+                    onReceived.run();
                     handledReceived = true;
                 }).start();           // TODO: try delay, then receive new, to see what receivedObject refers to
             }
@@ -127,18 +133,24 @@ public class OnlineServer {
                 e.printStackTrace();
             }
             catch (IOException e) {
-                if (opened) {
-                    opened = false;
+                clientSocket.close();
+
+                if (kickCallsDisconnect) {
                     new Thread(onClientDisconnect).start();
-                    
-                    try {
-                        clientSocket.close();
-                        clientConnected = false;
-                    } catch (IOException e1) {
-                        System.out.println("SERVER error: couldn't close clientSocket");
-                        e1.printStackTrace();
-                    }
                 }
+                else {
+                    new Thread(onClientKick).start();
+                }
+
+                
+                try {
+                    clientSocket.close();
+                    clientConnected = false;
+                } catch (IOException e1) {
+                    System.out.println("SERVER error: couldn't close clientSocket");
+                    e1.printStackTrace();
+                }
+                // }
                 // else: was closed manually
 
                 break;

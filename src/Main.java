@@ -49,18 +49,25 @@ public class Main {
         mazeRight = new MazeContainer(Window.mazeWidth);
         Window.sprites.setVisible(true);
 
-
         OnlineServer.onClientConnect = () -> {
             mazeRight.setUserText("Opponent");
             mazeRight.setMaze(maze);
             OnlineServer.send(maze);    // server sends its maze
         };
 
-        OnlineClient.onConnect = () -> {
-            mazeRight.setUserText("Opponent");
+        OnlineServer.onClientDisconnect = () -> { 
+            // not handled by UI since server is still open
+            mazeRight.clearMaze();
+            mazeRight.setUserText("Waiting for opponent...");
         };
+        
+        OnlineClient.onConnect = () -> { 
+            mazeRight.setUserText("Opponent");
+            // maze is set in OnlineClient.listen() since OnlineServer sends it when client connects
+        };
+        OnlineClient.onDisconnect = OnlineServer.onClientDisconnect;
 
-        OnlineServer.onServerReceived = () -> {
+        OnlineServer.onReceived = () -> {
             Object received = OnlineServer.receivedObject;
             handleReceived(received);
         };
@@ -118,6 +125,8 @@ public class Main {
         
         Config.multiplayer = Config.multiplayerOffline || Config.multiplayerOnline;
 
+        mazeRight.clearMaze();
+
         if (Config.multiplayer) {
             Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
             
@@ -128,19 +137,20 @@ public class Main {
             }
             else {
                 mazeLeft.setUserText("You");
-                mazeRight.setUserText("Waiting for opponent...");
+
+                if (!OnlineServer.clientConnected && !OnlineClient.connected) {
+                    mazeRight.setUserText("Waiting for opponent...");
+                }
             }
         }
         else {
             Window.setSize(Window.mazeWidth, Window.mazeHeight);
-            mazeRight.freeze();
             mazeLeft.setUserText("Singleplayer");
         }
         setupKeyCallbacks();
         textStatus.setLocation(Window.getXCentered(textStatus), textStatus.getY());
         UI.buttons.setSize(Window.width, UI.buttons.getHeight());
     }
-
 
     public static void setupKeyCallbacks() {
 

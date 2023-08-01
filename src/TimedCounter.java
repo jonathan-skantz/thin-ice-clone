@@ -16,6 +16,7 @@ public class TimedCounter {
     public void onStart() {}
     public void onTick() {}
     public void onFinish() {}
+    public void onReset() {}
 
     public TimedCounter(int fps) {
         setup(0, fps);
@@ -125,6 +126,8 @@ public class TimedCounter {
     public void reset() {
         timer.stop();
         onFinishTimer.stop();
+
+        onReset();  // NOTE: frame is not reset yet
 
         frame = 0;
         finished = false;

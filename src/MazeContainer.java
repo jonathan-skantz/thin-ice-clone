@@ -231,11 +231,25 @@ public class MazeContainer {
 
             @Override
             public void onFinish() {
-                Node node = nodesToChange.get(frame-1);   // since last node should be changed twice
-                blocks[node.Y][node.X].setBorder(null);
+                onReset();
                 
                 Main.textStatus.setVisible(false);  // NOTE: is hidden twice if multiplayer
                 tcSpawnPlayer.start();
+            }
+            
+            @Override
+            public void onReset() {
+                if (nodesToChange.size() == 0) {
+                    return;
+                }
+                Node node;
+                if (frame == 0) {
+                    node = nodesToChange.get(0);
+                }
+                else {
+                    node = nodesToChange.get(frame-1);
+                }
+                blocks[node.Y][node.X].setBorder(null);
             }
         };
 
@@ -243,7 +257,7 @@ public class MazeContainer {
     }
 
     // pauses animations
-    public void freeze() {
+    private void freeze() {
 
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
@@ -567,6 +581,9 @@ public class MazeContainer {
 
     // used to clear mazeRight when opponent disconnects
     public void clearMaze() {
+        
+        freeze();
+        
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
                 blocks[y][x].clearFrost(new Node(x, y));
@@ -648,6 +665,7 @@ public class MazeContainer {
 
         if (nodesToChange.size() == 0) {
             // when switching to multiplayer without any maze generated
+            Main.textStatus.setVisible(false);
             textStatus.setVisible(false);
             return;
         }
