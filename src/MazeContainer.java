@@ -483,6 +483,8 @@ public class MazeContainer {
 
             if (maze.pathHistory.size() == stepsMax) {
 
+                updateTextStatus(Status.COMPLETE);
+                
                 if (Config.multiplayer) {
                     int winner = this == Main.mazeLeft ? 1 : 2;
 
@@ -498,9 +500,7 @@ public class MazeContainer {
                         Main.updateTextStatus("Winner: Player " + winner);
                     }
                 }
-                else {
-                    updateTextStatus(Status.COMPLETE);
-                }
+
                 // user won --> only disable mazeLeft movement since mazeRight is not controlled by this player
                 Main.mazeLeft.allowMove = false;
                 Main.mazeLeft.allowReset = false;
