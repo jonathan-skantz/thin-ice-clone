@@ -82,7 +82,7 @@ public class OnlineClient {
             try {
                 socket.close();
                 connected = false;
-                new Thread(onDisconnect).start();
+                onDisconnect.run();
             }
             catch (IOException e) {
                 System.out.println("CLIENT error: couldn't disconnect");
@@ -127,10 +127,8 @@ public class OnlineClient {
                 receivedObject = clientIn.readObject();
                 System.out.println("CLIENT: received " + receivedObject);
                 handledReceived = false;
-                new Thread(() -> {
-                    onReceived.run();
-                    handledReceived = true;
-                }).start();           // TODO: try delay, then receive new, to see what receivedObject refers to
+                onReceived.run();
+                handledReceived = true;
             }
             catch (ClassNotFoundException e) {
                 System.out.println("CLIENT: couldn't read object " + receivedObject);
@@ -142,13 +140,14 @@ public class OnlineClient {
                     connected = false;
 
                     if (kickCallsDisconnect) {
-                        new Thread(onDisconnect).start();       // TODO: prevent immediate reconnect? should this be new thread really?
+                        onDisconnect.run();
                     }
                     else {
-                        new Thread(onKick).start();
+                        onKick.run();
                     }
                 }
                 // else: disconnected manually
+                
                 break;
             }
         }

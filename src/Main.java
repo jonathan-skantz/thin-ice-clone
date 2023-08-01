@@ -50,22 +50,21 @@ public class Main {
         Window.sprites.setVisible(true);
 
         OnlineServer.onClientConnect = () -> {
-            mazeRight.setUserText("Opponent");
+            updateMultiplayer();
             mazeRight.setMaze(maze);
             OnlineServer.send(maze);    // server sends its maze
         };
 
-        OnlineServer.onClientDisconnect = () -> { 
-            // not handled by UI since server is still open
-            mazeRight.clearMaze();
-            mazeRight.setUserText("Waiting for opponent...");
-        };
+        // OnlineServer.onClientDisconnect = () -> { 
+        //     // not handled by UI since server is still open
+        //     updateMultiplayer();
+        // };
         
         OnlineClient.onConnect = () -> { 
-            mazeRight.setUserText("Opponent");
+            updateMultiplayer();
             // maze is set in OnlineClient.listen() since OnlineServer sends it when client connects
         };
-        OnlineClient.onDisconnect = OnlineServer.onClientDisconnect;
+        // OnlineClient.onDisconnect = OnlineServer.onClientDisconnect;
 
         OnlineServer.onReceived = () -> {
             Object received = OnlineServer.receivedObject;
@@ -136,10 +135,25 @@ public class Main {
                 mazeRight.setUserText("Player 2");
             }
             else {
-                mazeLeft.setUserText("You");
+                if (OnlineServer.opened) {
+                    mazeLeft.setUserText("You (host)");
 
-                if (!OnlineServer.clientConnected && !OnlineClient.connected) {
-                    mazeRight.setUserText("Waiting for opponent...");
+                    if (OnlineServer.clientConnected) {
+                        mazeRight.setUserText("Opponent");
+                    }
+                    else {
+                        mazeRight.setUserText("Opponent (searching...)");
+                    }
+                }
+                else {
+                    if (OnlineClient.connected) {
+                        mazeLeft.setUserText("You");
+                        mazeRight.setUserText("Opponent (host)");
+                    }
+                    else {
+                        mazeLeft.setUserText("You");
+                        mazeRight.setUserText("Opponent (searching...)");
+                    }
                 }
             }
         }

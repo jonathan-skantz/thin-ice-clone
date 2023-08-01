@@ -34,12 +34,14 @@ public class OnlineServer {
                 // TODO: prevent two hosts on same port
                 serverSocket = new ServerSocket(port);
                 opened = true;
-                new Thread(onOpen).start();
+                // new Thread(onOpen).start();
+                onOpen.run();
 
                 while (true) {
                     clientSocket = serverSocket.accept();
                     clientConnected = true;
                     
+                    // new thread since onClientConnect may try to send
                     new Thread(onClientConnect).start();
                     listen();
 
@@ -53,7 +55,8 @@ public class OnlineServer {
                     System.out.println("SERVER error: couldn't open");
                     e.printStackTrace();
 
-                    new Thread(onClose).start();
+                    // new Thread(onClose).start();
+                    onClose.run();
                 }
                 // else: was closed manually
             }
@@ -67,18 +70,22 @@ public class OnlineServer {
         try {
             serverSocket.close();
             opened = false;
-            new Thread(onClose).start();
+            // new Thread(onClose).start();
+            onClose.run();
 
             if (clientConnected) {
                 clientSocket.close();
 
+                clientConnected = false;
                 // kick client
 
                 if (kickCallsDisconnect) {
-                    new Thread(onClientDisconnect).start();
+                    // new Thread(onClientDisconnect).start();
+                    onClientDisconnect.run();
                 }
                 else {
-                    new Thread(onClientKick).start();
+                    // new Thread(onClientKick).start();
+                    onClientKick.run();
                 }
             }
         }
@@ -123,35 +130,30 @@ public class OnlineServer {
                 receivedObject = serverIn.readObject();
                 System.out.println("SERVER: received " + receivedObject);
                 handledReceived = false;
-                new Thread(() -> {
+                // new Thread(() -> {
                     onReceived.run();
-                    handledReceived = true;
-                }).start();           // TODO: try delay, then receive new, to see what receivedObject refers to
+                handledReceived = true;
+                // }).start();           // TODO: try delay, then receive new, to see what receivedObject refers to
             }
             catch (ClassNotFoundException e) {
                 System.out.println("SERVER error: couldn't read object " + receivedObject);
                 e.printStackTrace();
             }
             catch (IOException e) {
-                clientSocket.close();
 
-                if (kickCallsDisconnect) {
-                    new Thread(onClientDisconnect).start();
-                }
-                else {
-                    new Thread(onClientKick).start();
-                }
+                if (clientConnected) {
 
-                
-                try {
                     clientSocket.close();
                     clientConnected = false;
-                } catch (IOException e1) {
-                    System.out.println("SERVER error: couldn't close clientSocket");
-                    e1.printStackTrace();
+                    
+                    if (kickCallsDisconnect) {
+                        onClientDisconnect.run();
+                    }
+                    else {
+                        onClientKick.run();
+                    }
                 }
-                // }
-                // else: was closed manually
+                // else: client disconnect manually
 
                 break;
             }
