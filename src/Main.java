@@ -49,6 +49,42 @@ public class Main {
         mazeRight = new MazeContainer(Window.mazeWidth);
         Window.sprites.setVisible(true);
 
+
+        OnlineServer.onClientConnect = () -> {
+            mazeRight.setUserText("Opponent");
+            mazeRight.setMaze(maze);
+            OnlineServer.send(maze);    // server sends its maze
+        };
+
+        OnlineClient.onConnect = () -> {
+            mazeRight.setUserText("Opponent");
+        };
+
+        OnlineServer.onServerReceived = () -> {
+            Object received = OnlineServer.receivedObject;
+            handleReceived(received);
+        };
+
+        OnlineClient.onReceived = () -> {
+            Object received = OnlineClient.receivedObject;
+            handleReceived(received);
+        };
+
+    }
+
+    private static void handleReceived(Object obj) {
+        
+        if (obj.getClass() == Maze.Direction.class) {
+            Main.mazeRight.tryToMove((Maze.Direction)obj);
+        }
+        else if (obj.getClass() == Maze.class) {
+            Main.setMaze((Maze)obj);
+        }
+        else if (obj.getClass() == KeyHandler.Action.class) {
+            KeyHandler.Action casted = (KeyHandler.Action) obj;
+            casted.callback.run();
+        }
+        // TODO: handle new maze config
     }
 
     public static void updateTextStatus(String status) {
@@ -103,30 +139,8 @@ public class Main {
         setupKeyCallbacks();
         textStatus.setLocation(Window.getXCentered(textStatus), textStatus.getY());
         UI.buttons.setSize(Window.width, UI.buttons.getHeight());
-
-        updateUserConnection();
-
     }
 
-    public static void updateUserConnection() {
-        
-        if (!Config.multiplayer) {
-            mazeRight.clearMaze();
-        }
-
-        if (!Config.multiplayerOnline) {
-            return;
-        }
-
-        if (OnlineSocket.connected) {
-            mazeRight.setUserText("Opponent");
-            mazeRight.setMaze(maze);
-        }
-        else {
-            mazeRight.setUserText("Waiting for opponent...");
-            mazeRight.clearMaze();
-        }
-    }
 
     public static void setupKeyCallbacks() {
 
@@ -134,44 +148,44 @@ public class Main {
 
         KeyHandler.Action.P1_MOVE_UP.setCallback(() -> {
             if (mazeLeft.tryToMove(Maze.Direction.UP)) {
-                OnlineSocket.send(KeyHandler.Action.P2_MOVE_UP);
+                tryToSend(KeyHandler.Action.P2_MOVE_UP);
             }
         });
         KeyHandler.Action.P1_MOVE_DOWN.setCallback(() -> {
             if (mazeLeft.tryToMove(Maze.Direction.DOWN)) {
-                OnlineSocket.send(KeyHandler.Action.P2_MOVE_DOWN);
+                tryToSend(KeyHandler.Action.P2_MOVE_DOWN);
             }
         });
         KeyHandler.Action.P1_MOVE_LEFT.setCallback(() -> {
             if (mazeLeft.tryToMove(Maze.Direction.LEFT)) {
-                OnlineSocket.send(KeyHandler.Action.P2_MOVE_LEFT);
+                tryToSend(KeyHandler.Action.P2_MOVE_LEFT);
             }
         });
         KeyHandler.Action.P1_MOVE_RIGHT.setCallback(() -> {
             if (mazeLeft.tryToMove(Maze.Direction.RIGHT)) {
-                OnlineSocket.send(KeyHandler.Action.P2_MOVE_RIGHT);
+                tryToSend(KeyHandler.Action.P2_MOVE_RIGHT);
             }
         });
 
         KeyHandler.Action.P1_MAZE_RESET.setCallback(() -> {
             if (mazeLeft.resetMazeGraphics()) {
-                OnlineSocket.send(KeyHandler.Action.P2_MAZE_RESET);
+                tryToSend(KeyHandler.Action.P2_MAZE_RESET);
             }
         });
         KeyHandler.Action.P1_MAZE_HINT.setCallback(() -> {
             if (mazeLeft.showHint()) {
-                OnlineSocket.send(KeyHandler.Action.P2_MAZE_HINT);
+                tryToSend(KeyHandler.Action.P2_MAZE_HINT);
             }
         });
 
         KeyHandler.Action.P1_MAZE_STEP_UNDO.setCallback(() -> {
             if (mazeLeft.step(-1, true)) {
-                OnlineSocket.send(KeyHandler.Action.P2_MAZE_STEP_UNDO);
+                tryToSend(KeyHandler.Action.P2_MAZE_STEP_UNDO);
             }
         });
         KeyHandler.Action.P1_MAZE_STEP_REDO.setCallback(() -> {
             if (mazeLeft.step(1, true)) {
-                OnlineSocket.send(KeyHandler.Action.P2_MAZE_STEP_REDO);
+                tryToSend(KeyHandler.Action.P2_MAZE_STEP_REDO);
             }});
         
         if (Config.multiplayer) {
@@ -203,7 +217,7 @@ public class Main {
                 mazeLeft.animationsFinished() && mazeRight.animationsFinished()) {
 
                 tcCountdown.start();
-                OnlineSocket.send(KeyHandler.Action.START);
+                tryToSend(KeyHandler.Action.START);
             }
         });
     }
@@ -220,13 +234,7 @@ public class Main {
 
     public static void generateNewMaze() {
         
-        if (Config.multiplayerOnline) {
-            if (!OnlineSocket.connected) {
-                // still waiting for connection, not generating
-                return;
-            }
-        }
-        else if (Config.multiplayer) {
+        if (Config.multiplayer) {
             if (!mazeRight.animationsFinished()) {
                 return;
             }
@@ -254,10 +262,9 @@ public class Main {
 
                 mazeLeft.setMaze(maze);
 
-                if (Config.multiplayer) {
+                if (Config.multiplayerOffline || tryToSend(maze)) {
                     started = false;
                     mazeRight.setMaze(maze);
-                    OnlineSocket.send(maze);
                 }
             }
 
@@ -265,6 +272,22 @@ public class Main {
 
         }).start();
 
+    }
+
+    private static boolean tryToSend(Object obj) {
+        if (OnlineClient.connected) {
+            if (OnlineClient.handledReceived) {
+                OnlineClient.send(obj);
+                return true;
+            }
+        }
+        else if (OnlineServer.clientConnected) {
+            if (OnlineServer.handledReceived) {
+                OnlineServer.send(obj);
+                return true;
+            }
+        }
+        return false;
     }
 
     // used in OnlineSocket to set a maze without having to call generateNewMaze()

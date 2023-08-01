@@ -97,7 +97,7 @@ public class UI {
             
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
             if (selected) {
-                OnlineSocket.disconnect();
+                OnlineClient.disconnect();
             }
             Config.multiplayerOffline = selected;
             cbJoin.setEnabled(!selected);
@@ -117,10 +117,10 @@ public class UI {
         cbJoin.addItemListener(e -> {
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
             if (selected) {
-                OnlineSocket.join(Integer.valueOf(textFieldJoin.getText()));
+                OnlineClient.connect(Integer.valueOf(textFieldJoin.getText()));
             }
             else {
-                OnlineSocket.disconnect();
+                OnlineClient.disconnect();
             }
             Config.multiplayerOnline = selected;
             cbLocal.setEnabled(!selected);
@@ -141,10 +141,10 @@ public class UI {
             // TODO: clean-up textfield
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
             if (selected) {
-                OnlineSocket.host(Integer.valueOf(textFieldHost.getText()));
+                OnlineServer.open(Integer.valueOf(textFieldHost.getText()));
             }
             else {
-                OnlineSocket.disconnect();
+                OnlineServer.close();
             }
             Config.multiplayerOnline = selected;
             cbLocal.setEnabled(!selected);
