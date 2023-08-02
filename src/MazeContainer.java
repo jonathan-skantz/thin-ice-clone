@@ -19,7 +19,7 @@ public class MazeContainer {
     private TimedCounter tcNewMaze;
     private LinkedList<Node> nodesToChange = new LinkedList<>();
 
-    private boolean isMirrored;
+    public boolean isMirrored;
 
     public boolean allowMove;
     public boolean allowStep;
@@ -572,6 +572,11 @@ public class MazeContainer {
     }
 
     public void updateMirror() {
+
+        if (maze.currentNode == null) {
+            // maze not set yet
+            return;
+        }
 
         if (this == Main.mazeRight && Config.mirrorRightMaze != isMirrored) {
 

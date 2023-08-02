@@ -524,12 +524,8 @@ public class UI {
         cb.setSelected(Config.mirrorRightMaze);
         panel = getPanelWithToolTipAndCheckBox(cb, null);
         cb.addItemListener(e -> {
-            
             Config.mirrorRightMaze = e.getStateChange() == ItemEvent.SELECTED;
-            System.out.println("mirror click");
-            if (Main.mazeRight != null) {
-                Main.mazeRight.updateMirror();
-            }
+            Main.mazeRight.updateMirror();
         });
         checkboxes.add(panel);
 

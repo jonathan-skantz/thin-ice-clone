@@ -85,6 +85,17 @@ public class Main {
         }
         else if (obj.getClass() == KeyHandler.Action.class) {
             KeyHandler.Action casted = (KeyHandler.Action) obj;
+
+            if (mazeRight.isMirrored) {
+
+                if (casted == KeyHandler.Action.P2_MOVE_LEFT) {
+                    casted = KeyHandler.Action.P2_MOVE_RIGHT;
+                }
+                else if (casted == KeyHandler.Action.P2_MOVE_RIGHT) {
+                    casted = KeyHandler.Action.P2_MOVE_LEFT;
+                }
+            }
+
             casted.callback.run();
         }
         // TODO: handle new maze config
