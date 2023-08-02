@@ -4,6 +4,7 @@ import java.util.LinkedList;
 
 import java.awt.Color;
 import java.awt.Point;
+import java.awt.event.KeyEvent;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -21,16 +22,12 @@ public class MazeContainer {
 
     public boolean isMirrored;
 
-    public boolean allowMove;
-    public boolean allowStep;
-    public boolean allowReset;
-    public boolean allowNewMaze = true;     // TODO: determine when to disallow
-    public boolean allowStart = true;       // <-- ignored in singleplayer
+    public Status status;     // null means first maze is not set
     
     private Block player;
     private Block[][] blocks;
-    private JLabel textStatus;
     private JLabel textSteps;
+    public JLabel textStatus;
     public JLabel textUser;
     
     private LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>(Config.hintMax);
@@ -38,14 +35,33 @@ public class MazeContainer {
     public JPanel sprites = new JPanel(null);
     public JPanel mazePanel = new JPanel(null);
 
-    private enum Status {
-        COMPLETE(Color.GREEN),
+    public enum Status {
+        GAME_WON(Color.GREEN, "Game won"),
         INCOMPLETE(Color.ORANGE),
-        UNSOLVABLE(Color.RED);
+        UNSOLVABLE(Color.RED),
+        GAME_LOST(Color.RED, "Game lost"),
+        
+        READY(Color.GREEN),
+        // TODO: keybinds can change
+        NOT_READY(Color.DARK_GRAY, "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_READY.keyCode) + " to begin"),
+        NOT_READY_P2(Color.DARK_GRAY, "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_READY.keyCode) + " to begin"),
+        NOT_READY_OPPONENT(Color.DARK_GRAY, "Waiting for opponent..."),
+        PLAYING(Color.GREEN, ""),
+        
+        // info
+        RESETTING(Color.DARK_GRAY, "Resetting..."),
+        GENERATING(Color.DARK_GRAY, "Generating..."),
+        MIRRORING(Color.DARK_GRAY, "Mirroring...");
 
         public final Color color;
         private final String display;
 
+        private Status(Color color, String display) {
+            this.color = color;
+            this.display = display;
+        }
+
+        // default display is the capitalized name of the enum field
         private Status(Color color) {
             this.color = color;
             String d = super.toString().toLowerCase();
@@ -98,9 +114,8 @@ public class MazeContainer {
         textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
         sprites.add(textSteps);
 
-        textStatus = new JLabel(Status.UNSOLVABLE.toString());
+        textStatus = new JLabel();
         textStatus.setFont(Main.font);
-        textStatus.setSize(textStatus.getPreferredSize());
         textStatus.setForeground(Color.RED);
         textStatus.setLocation(Window.getXCenteredMaze(textStatus), textSteps.getY() + textSteps.getHeight() + 10);
         textStatus.setVisible(false);
@@ -143,13 +158,19 @@ public class MazeContainer {
             }
 
             @Override
-            public void onFinish() { updateMirror(); }
+            public void onFinish() {
+                setStatus(Status.PLAYING);  // last status must have been PLAYING, since only that allows resetting
+                updateMirror();
+            }
         };
 
         tcReset.finished = true;    // used to allow manual stepping
     }
 
     private void setupTimerSpawnPlayer() {
+
+        MazeContainer thisContainer = this;
+
         tcSpawnPlayer = new TimedCounter(0.5f, 15) {
             @Override
             public void onStart() {
@@ -172,18 +193,22 @@ public class MazeContainer {
             @Override
             public void onFinish() {
                 updateMirror();
-                
-                allowStart = true;
 
-                if (!Config.multiplayer) {
-                    allowMove = true;
-                    allowReset = true;
-                    allowStep = true;       // all of these might be set first here
+                if (thisContainer == Main.mazeLeft) {
+                    if (Main.mazeLeft.status != Status.READY) {
+                        setStatus(Status.NOT_READY);
+                    }
                 }
                 else {
-                    allowMove = false;      // might have been set to true during step(-1) (if maze was incomplete)
+                    if (Main.mazeRight.status != Status.READY) {
+                        if (Config.multiplayerOnline) {
+                            Main.mazeRight.setStatus(Status.NOT_READY_OPPONENT);
+                        }
+                        else if (Config.multiplayerOffline) {
+                            Main.mazeRight.setStatus(Status.NOT_READY_P2);
+                        }
+                    }
                 }
-            
             }
         };
 
@@ -220,8 +245,6 @@ public class MazeContainer {
             @Override
             public void onFinish() {
                 onReset();
-                
-                Main.textStatus.setVisible(false);  // NOTE: is hidden twice if multiplayer
                 tcSpawnPlayer.start();
             }
             
@@ -302,7 +325,7 @@ public class MazeContainer {
 
     public boolean showHint() {
 
-        if (!allowMove) {
+        if (status != Status.PLAYING) {
             return false;
         }
 
@@ -400,12 +423,18 @@ public class MazeContainer {
 
     // also resets maze
     public boolean resetMazeGraphics() {
-        
-        if (!allowReset) {
+
+        if (status != Status.PLAYING && status != Status.INCOMPLETE && status != Status.UNSOLVABLE) {
             return false;
         }
 
-        textStatus.setVisible(false);
+        else if (maze.pathHistory.size() == 1) {
+            // history is empty, no reason to reset
+            return false;
+        }
+
+        setStatus(Status.RESETTING);
+
         removeHintTexts();
 
         if (Main.ENABLE_ANIMATIONS) {
@@ -437,18 +466,17 @@ public class MazeContainer {
         if (Config.showUnsolvable && solver.findShortestPath().size() == 0) {
             
             if (maze.get(maze.currentNode) == Node.Type.END) {
-                updateTextStatus(Status.INCOMPLETE);
+                setStatus(Status.INCOMPLETE);
             }
             else {
-                updateTextStatus(Status.UNSOLVABLE);
+                setStatus(Status.UNSOLVABLE);
             }
-            allowMove = false;
         }
     }
 
     public boolean tryToMove(Maze.Direction dir) {
 
-        if (!allowMove) {
+        if (status != Status.PLAYING) {
             return false;
         }
 
@@ -482,29 +510,9 @@ public class MazeContainer {
             int stepsMax = Main.mazeLeft.maze.creationPath.size();     // both have same max steps
 
             if (maze.pathHistory.size() == stepsMax) {
-
-                updateTextStatus(Status.COMPLETE);
-                
-                if (Config.multiplayer) {
-                    int winner = this == Main.mazeLeft ? 1 : 2;
-
-                    if (Config.multiplayerOnline) {
-                        if (winner == 1) {
-                            Main.updateTextStatus("Winner: You");
-                        }
-                        else {
-                            Main.updateTextStatus("Winner: Opponent");
-                        }
-                    }
-                    else if (Config.multiplayerOffline) {
-                        Main.updateTextStatus("Winner: Player " + winner);
-                    }
-                }
-
-                // user won --> only disable mazeLeft movement since mazeRight is not controlled by this player
-                Main.mazeLeft.allowMove = false;
-                Main.mazeLeft.allowReset = false;
-                Main.mazeLeft.allowStep = false;
+                setStatus(Status.GAME_WON);
+                MazeContainer other = this == Main.mazeLeft ? Main.mazeRight : Main.mazeLeft;
+                other.setStatus(MazeContainer.Status.GAME_LOST);
             }
             else {
                 testGameOver();
@@ -519,7 +527,8 @@ public class MazeContainer {
 
     public boolean step(int direction) {
 
-        if (!allowStep && !allowReset) {
+        if (status != Status.RESETTING && status != Status.PLAYING &&
+            status != Status.INCOMPLETE && status != Status.UNSOLVABLE) {
             return false;
         }
         
@@ -538,9 +547,8 @@ public class MazeContainer {
 
             if (direction == -1) {
 
-                if (!allowMove) {
-                    allowMove = true;
-                    textStatus.setVisible(false);
+                if (status == Status.INCOMPLETE || status == Status.UNSOLVABLE) {
+                    setStatus(Status.PLAYING);
                 }
                 refreshBlockGraphics(maze.currentNode);
             }
@@ -563,7 +571,9 @@ public class MazeContainer {
         textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
     }
 
-    private void updateTextStatus(Status status) {
+    public void setStatus(Status status) {
+        this.status = status;
+
         textStatus.setText(status.toString());
         textStatus.setForeground(status.color);
         textStatus.setSize(textStatus.getPreferredSize());
@@ -582,12 +592,9 @@ public class MazeContainer {
 
             if (animationsFinished()) {
                 setMaze(maze);
-                Main.updateTextStatus("Mirroring...");
+                setStatus(Status.MIRRORING);
                 isMirrored = Config.mirrorRightMaze;
             }
-        }
-        else {
-            Main.textStatus.setVisible(false);
         }
     }
 
@@ -613,10 +620,6 @@ public class MazeContainer {
     // also resets texts
     public void setMaze(Maze maze) {
 
-        if (!allowNewMaze) {
-            return;
-        }
-
         oldMaze = this.maze;
         this.maze = new Maze(maze);
 
@@ -632,7 +635,6 @@ public class MazeContainer {
             }
         }
 
-        textStatus.setVisible(false);
         removeHintTexts();
         
         updateTextSteps();
@@ -674,11 +676,14 @@ public class MazeContainer {
             }
         }
 
+        if (nodesToChange.size() == 0) {
+            return;
+        }
+
         if (Main.ENABLE_ANIMATIONS) {
             tcNewMaze.start();
         }
         else {
-            Main.textStatus.setVisible(false);
             player.setVisible(true);
             movePlayerGraphicsTo(this.maze.startNode);
             mirrorPlayer(null);
@@ -687,10 +692,13 @@ public class MazeContainer {
                 refreshBlockGraphics(node);
             }
 
-            if (!Config.multiplayer) {
-                allowMove = true;
-                allowReset = true;
-                allowStep = true;
+            setStatus(Status.NOT_READY);
+
+            if (Config.multiplayerOffline) {
+                Main.mazeRight.setStatus(Status.NOT_READY_P2);
+            }
+            else if (Config.multiplayerOnline) {
+                Main.mazeRight.setStatus(Status.NOT_READY_OPPONENT);
             }
 
         }
