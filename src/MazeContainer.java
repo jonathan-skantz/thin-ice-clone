@@ -6,6 +6,8 @@ import java.awt.Color;
 import java.awt.Point;
 import java.awt.event.KeyEvent;
 
+import javax.swing.BoxLayout;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
@@ -27,64 +29,84 @@ public class MazeContainer {
     private Block player;
     private Block[][] blocks;
     private JLabel textSteps;
-    public JLabel textStatus;
     public JLabel textUser;
+
+    private JLabel textStatus;
+    private JLabel textInfo;
     
     private LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>(Config.hintMax);
 
     public JPanel sprites = new JPanel(null);
     public JPanel mazePanel = new JPanel(null);
 
+    public JPanel panelStatus = new  JPanel();
+
+    private static final Color COLOR_GREEN = new Color(50, 150, 50);
+    private static final Color COLOR_ORANGE = new Color(200, 150, 50);
+    private static final Color COLOR_RED = new Color(200, 50, 50);
+    private static final Color COLOR_INFO = new Color(50, 50, 50);
+
+    private static final String STRING_NEW_MAZE = "Press " + KeyEvent.getKeyText(KeyHandler.Action.MAZE_NEW.keyCode) + " to generate new maze.";
+
     public enum Status {
-        GAME_WON(Color.GREEN, "Game won"),
-        INCOMPLETE(Color.ORANGE),
-        UNSOLVABLE(Color.RED),
-        GAME_LOST(Color.RED, "Game lost"),
-        SURRENDERED(Color.RED),
+        WAITING_FOR_FIRST_MAZE(COLOR_INFO, null, STRING_NEW_MAZE),
+        GAME_WON(COLOR_GREEN, "Game won.", STRING_NEW_MAZE),
+        INCOMPLETE(COLOR_ORANGE),
+        UNSOLVABLE(COLOR_RED),
+        GAME_LOST(COLOR_RED, "Game lost.", STRING_NEW_MAZE),
+        SURRENDERED(COLOR_RED, "Surrendered.", STRING_NEW_MAZE),
         
-        READY(Color.GREEN),
+        READY(COLOR_GREEN),
         // TODO: keybinds can change
-        NOT_READY(Color.DARK_GRAY, "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_READY.keyCode) + " to begin"),
-        NOT_READY_P2(Color.DARK_GRAY, "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_READY.keyCode) + " to begin"),
-        NOT_READY_OPPONENT(Color.DARK_GRAY, "Waiting for opponent..."),
-        PLAYING(Color.GREEN, ""),
+        NOT_READY(COLOR_INFO, "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_READY.keyCode) + " to begin.",
+                                "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_SURRENDER.keyCode) + " to surrender."),
+        NOT_READY_P2(COLOR_INFO, "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_READY.keyCode) + " to begin.",
+                                "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_SURRENDER.keyCode) + " to surrender."),
+        NOT_READY_OPPONENT(COLOR_INFO, "Waiting for opponent..."),
+        PLAYING(COLOR_GREEN),
         
         // info
-        RESETTING(Color.DARK_GRAY, "Resetting..."),
-        GENERATING(Color.DARK_GRAY, "Generating..."),
-        MIRRORING(Color.DARK_GRAY, "Mirroring...");
+        RESETTING(COLOR_INFO, "Resetting..."),
+        GENERATING(COLOR_INFO, "Generating..."),
+        MIRRORING(COLOR_INFO, "Mirroring...");
 
         public final Color color;
-        private final String display;
+        public final String stringStatus;
+        public final String stringInfo;
 
-        private Status(Color color, String display) {
+        private Status(Color color, String textStatus) {
+            this(color, textStatus, null);
+        }
+
+        private Status(Color color, String textStatus, String textInfo) {
             this.color = color;
-            this.display = display;
+            this.stringStatus = textStatus;
+            this.stringInfo = textInfo;
         }
 
         // default display is the capitalized name of the enum field
         private Status(Color color) {
             this.color = color;
-            String d = super.toString().toLowerCase();
+            String d = toString().toLowerCase();
             d = String.valueOf(d.charAt(0)).toUpperCase() + d.substring(1);
-            display = d;
-        }
-
-        @Override
-        public String toString() {
-            return display;
+            stringStatus = d;
+            stringInfo = null;
         }
     }
 
     public MazeContainer(int windowX) {
 
+        // set up panels
         maze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
         mazePanel.setSize(maze.width * Config.blockSize, maze.height * Config.blockSize);
         setStartPosition();
 
         sprites.setOpaque(false);   // allows buttons to be drawn underneath
 
-        // setup UI
+        panelStatus.setLayout(new BoxLayout(panelStatus, BoxLayout.Y_AXIS));
+        panelStatus.setBackground(new Color(240, 240, 240));
+        sprites.add(panelStatus);       // NOTE: panelStatus size is (0,0) since the labels contain no letters (set in setStatus())
+
         player = new Block("src/textures/player.png", Config.blockSize - 2);
         player.velocity = Config.blockSize;
         player.setVisible(false);
@@ -94,7 +116,6 @@ public class MazeContainer {
 
         createWallBlocks();
 
-        sprites.setBackground(null);
         sprites.setBounds(windowX, 0, Window.mazeWidth, Window.mazeHeight);
         
         sprites.add(mazePanel);
@@ -104,6 +125,7 @@ public class MazeContainer {
         setupTimerSpawnPlayer();
         setupTimerNewMaze();
 
+        setStatus(Status.WAITING_FOR_FIRST_MAZE);
     }
 
     private void setupText() {
@@ -111,16 +133,20 @@ public class MazeContainer {
         textSteps = new JLabel("Steps: 0/0");
         textSteps.setFont(Main.font);
         textSteps.setSize(textSteps.getPreferredSize());
-        textSteps.setForeground(Color.BLACK);
-        textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
+        textSteps.setForeground(new Color(0, 0, 0, 100));
+        textSteps.setLocation(Window.getXCenteredMaze(textSteps), mazePanel.getY() - textSteps.getHeight() - 10);
         sprites.add(textSteps);
 
         textStatus = new JLabel();
-        textStatus.setFont(Main.font);
-        textStatus.setForeground(Color.RED);
-        textStatus.setLocation(Window.getXCenteredMaze(textStatus), textSteps.getY() + textSteps.getHeight() + 10);
-        textStatus.setVisible(false);
-        sprites.add(textStatus);
+        textStatus.setFont(Main.fontInfo);
+        textStatus.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+        panelStatus.add(textStatus);
+
+        textInfo = new JLabel();
+        textInfo.setFont(Main.fontInfo);
+        textInfo.setForeground(COLOR_INFO);
+        textInfo.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+        panelStatus.add(textInfo);
 
         textUser = new JLabel("Singleplayer");
         textUser.setFont(Main.font);
@@ -420,6 +446,7 @@ public class MazeContainer {
         }
 
         updateTextUserPosition();
+        textSteps.setLocation(textSteps.getX(), mazePanel.getY() - textSteps.getHeight() - 10);
         
     }
 
@@ -570,17 +597,31 @@ public class MazeContainer {
         int max = maze.creationPath.size();
         textSteps.setText("Steps: " + steps + "/" + max);
         textSteps.setSize(textSteps.getPreferredSize());
-        textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
+        textSteps.setLocation(Window.getXCenteredMaze(textSteps), textSteps.getY());
     }
 
     public void setStatus(Status status) {
         this.status = status;
 
-        textStatus.setText(status.toString());
-        textStatus.setForeground(status.color);
-        textStatus.setSize(textStatus.getPreferredSize());
-        textStatus.setLocation(Window.getXCenteredMaze(textStatus), textSteps.getY() + textSteps.getHeight() + 10);
-        textStatus.setVisible(true);
+        if (status.stringStatus != null) {
+            textStatus.setVisible(true);
+            textStatus.setText(status.stringStatus);
+            textStatus.setForeground(status.color);
+            textStatus.setSize(textStatus.getPreferredSize());
+            textStatus.revalidate();        // since `panelStatus` and `textInfo` may have been resized
+        }
+
+        if (Config.multiplayerOnline && this == Main.mazeRight) {
+            textInfo.setVisible(false);
+        }
+        else if (status.stringInfo != null) {
+            textInfo.setText(status.stringInfo);
+            textInfo.setSize(textInfo.getPreferredSize());
+            textInfo.setVisible(true);
+        }
+        panelStatus.setVisible(true);
+        panelStatus.setSize(panelStatus.getPreferredSize());
+        panelStatus.setLocation(Window.getXCenteredMaze(panelStatus), 10);
     }
 
     public void updateMirror() {

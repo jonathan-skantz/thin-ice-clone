@@ -84,9 +84,7 @@ public class UI {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-        JButton btn = getConfigPopupButton("Multiplayer", panel);
-        btn.setLocation(10, 10);        // topleft of window
-        Window.sprites.add(btn);
+        buttons.add(getConfigPopupButton("Multiplayer", panel));
 
         // local gamemode
         JCheckBox cbLocal = new JCheckBox("Local");

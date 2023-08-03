@@ -14,6 +14,7 @@ public class Main {
     public static final boolean ENABLE_ANIMATIONS = true;
 
     public static Font font = new Font("arial", Font.PLAIN, 20);
+    public static final Font fontInfo = new Font("roboto", Font.PLAIN, 17);
     public static Font hintFont = new Font("verdana", Font.BOLD, (int)(0.5*Config.blockSize));
 
     public static volatile boolean mazeGenThreadDone = true;
@@ -52,7 +53,7 @@ public class Main {
             }
             mazeRight.setMaze(maze);
 
-            if (mazeLeft.status != null) {
+            if (mazeLeft.status != MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
                 // if-statement to prevent sending empty maze
                 OnlineServer.send(maze);    // server sends its maze
             }
@@ -153,7 +154,7 @@ public class Main {
                 mazeRight.setUserText("Player 2");
             }
             else {
-                mazeRight.textStatus.setVisible(false);
+                mazeRight.panelStatus.setVisible(false);
 
                 if (OnlineServer.opened) {
                     mazeLeft.setUserText("You (host)");
@@ -261,7 +262,7 @@ public class Main {
             });
 
             KeyHandler.Action.P2_SURRENDER.setCallback(() -> {
-                if (mazeRight.status == null || !mazeRight.animationsFinished()) {
+                if (mazeRight.status == MazeContainer.Status.WAITING_FOR_FIRST_MAZE || !mazeRight.animationsFinished()) {
                     return;
                 }
                 if (mazeRight.status == MazeContainer.Status.SURRENDERED || mazeRight.status == MazeContainer.Status.GAME_WON || 
@@ -275,18 +276,19 @@ public class Main {
 
         KeyHandler.Action.P1_READY.setCallback(() -> {
             
-            if (mazeLeft.status == null) {
-                return;     // first maze not set yet
-            }
-            
-            if (!Config.multiplayer) {
-                mazeLeft.setStatus(MazeContainer.Status.PLAYING);
+            if (mazeLeft.status == MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
                 return;
             }
 
             if (mazeLeft.status != MazeContainer.Status.NOT_READY) {
                 return;
             }
+
+            if (!Config.multiplayer) {
+                mazeLeft.setStatus(MazeContainer.Status.PLAYING);
+                return;
+            }
+
 
             mazeLeft.setStatus(MazeContainer.Status.READY);
             tryToSend(KeyHandler.Action.P2_READY);
@@ -297,7 +299,7 @@ public class Main {
         });
 
         KeyHandler.Action.P1_SURRENDER.setCallback(() -> {
-            if (mazeLeft.status == null || !mazeLeft.animationsFinished()) {
+            if (mazeLeft.status == MazeContainer.Status.WAITING_FOR_FIRST_MAZE || !mazeLeft.animationsFinished()) {
                 return;
             }
             
@@ -335,7 +337,7 @@ public class Main {
 
         // only allow new maze if both players have surrendered
 
-        if (mazeLeft.status != null) {
+        if (mazeLeft.status != MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
             if (mazeLeft.status != MazeContainer.Status.GAME_WON && mazeLeft.status != MazeContainer.Status.SURRENDERED) {
                 return;
             }
