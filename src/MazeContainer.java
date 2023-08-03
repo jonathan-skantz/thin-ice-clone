@@ -223,9 +223,25 @@ public class MazeContainer {
                 setStatus(Status.PLAYING);  // last status must have been PLAYING, since only that allows resetting
                 updateMirror();
             }
+
+            @Override
+            public void onSkip() {
+
+                ArrayList<Node> changed = new ArrayList<>(maze.pathHistory);
+                maze.reset();
+
+                for (Node node : changed) {
+                    refreshBlockGraphics(node);
+                }
+
+                movePlayerGraphicsTo(maze.currentNode);
+
+                onFinish();
+            }
         };
 
         tcReset.finished = true;    // used to allow manual stepping
+        // NOTE: the reset animation cannot be skipped
     }
 
     private void setupTimerSpawnPlayer() {
@@ -236,9 +252,9 @@ public class MazeContainer {
             @Override
             public void onStart() {
                 player.setSize(1, 1);       // prevent spawning full sized from previous spawn
-                player.setVisible(true);
-                movePlayerGraphicsTo(maze.currentNode);
                 mirrorPlayer(null);
+                movePlayerGraphicsTo(maze.currentNode);
+                player.setVisible(true);
             }
 
             @Override
@@ -254,6 +270,19 @@ public class MazeContainer {
             @Override
             public void onFinish() {
                 updateMirror();
+                onSkip();
+            }
+
+            @Override
+            public void onSkip() {
+
+                if (status == Status.WAITING_FOR_FIRST_MAZE) {
+                    return;
+                }
+
+                mirrorPlayer(null);
+                movePlayerGraphicsTo(maze.startNode);
+                player.setVisible(true);
 
                 if (thisContainer == Main.mazeLeft) {
                     if (Main.mazeLeft.status != Status.READY) {
@@ -274,7 +303,7 @@ public class MazeContainer {
         };
 
         tcSpawnPlayer.finished = true;
-
+        tcSpawnPlayer.skipOnStart = !Main.ENABLE_ANIMATIONS;
     }
 
     private void setupTimerNewMaze() {
@@ -323,9 +352,18 @@ public class MazeContainer {
                 }
                 blocks[node.Y][node.X].setBorder(null);
             }
+
+            @Override
+            public void onSkip() {               
+                for (Node node : nodesToChange) {
+                    refreshBlockGraphics(node);
+                }
+                tcSpawnPlayer.skip();
+            }
         };
 
         tcNewMaze.finished = true;
+        tcNewMaze.skipOnStart = !Main.ENABLE_ANIMATIONS;
     }
 
     // pauses animations
@@ -500,21 +538,7 @@ public class MazeContainer {
 
         removeHintTexts();
 
-        if (Main.ENABLE_ANIMATIONS) {
-            tcReset.start();
-        }
-        else {
-            ArrayList<Node> changed = new ArrayList<>(maze.pathHistory);
-            maze.reset();
-
-            for (Node node : changed) {
-                refreshBlockGraphics(node);
-            }
-
-            movePlayerGraphicsTo(maze.currentNode);
-
-            tcReset.onFinish();
-        }
+        tcReset.start();
 
         return true;
     }
@@ -671,8 +695,8 @@ public class MazeContainer {
         if (this == Main.mazeRight && Config.mirrorRightMaze != isMirrored) {
 
             if (animationsFinished()) {
-                setMaze(maze);
                 setStatus(Status.MIRRORING);
+                setMaze(maze);
                 isMirrored = Config.mirrorRightMaze;
             }
         }
@@ -761,28 +785,7 @@ public class MazeContainer {
             return;
         }
 
-        if (Main.ENABLE_ANIMATIONS) {
-            tcNewMaze.start();
-        }
-        else {
-            player.setVisible(true);
-            movePlayerGraphicsTo(this.maze.startNode);
-            mirrorPlayer(null);
-
-            for (Node node : nodesToChange) {
-                refreshBlockGraphics(node);
-            }
-
-            setStatus(Status.NOT_READY);
-
-            if (Config.multiplayerOffline) {
-                Main.mazeRight.setStatus(Status.NOT_READY_P2);
-            }
-            else if (Config.multiplayerOnline) {
-                Main.mazeRight.setStatus(Status.NOT_READY_OPPONENT);
-            }
-
-        }
+        tcNewMaze.start();
             
     }
 
