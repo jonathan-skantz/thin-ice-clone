@@ -92,15 +92,10 @@ public class UI {
         JCheckBox cbHost = new JCheckBox("Host port: ");
 
         cbLocal.addItemListener(e -> {
-            
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
-            if (selected) {
-                OnlineClient.disconnect();
-            }
             Config.multiplayerOffline = selected;
             cbJoin.setEnabled(!selected);
             cbHost.setEnabled(!selected);
-
             Main.updateMultiplayer();
         });
         cbLocal.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -114,17 +109,16 @@ public class UI {
         JTextField textFieldJoin = new JTextField("12345", 5);
         cbJoin.addItemListener(e -> {
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
+            Config.multiplayerOnline = selected;
+            cbLocal.setEnabled(!selected);
+            cbHost.setEnabled(!selected);
+
             if (selected) {
                 OnlineClient.connect(Integer.valueOf(textFieldJoin.getText()));
             }
             else {
                 OnlineClient.disconnect();
             }
-            Config.multiplayerOnline = selected;
-            cbLocal.setEnabled(!selected);
-            cbHost.setEnabled(!selected);
-            
-            Main.updateMultiplayer();
         });
         cbJoin.setBorder(emptyBorder);
         subPanel.add(cbJoin);
@@ -138,17 +132,15 @@ public class UI {
         cbHost.addItemListener(e -> {
             // TODO: clean-up textfield
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
+            Config.multiplayerOnline = selected;
+            cbLocal.setEnabled(!selected);
+            cbJoin.setEnabled(!selected);
             if (selected) {
                 OnlineServer.open(Integer.valueOf(textFieldHost.getText()));
             }
             else {
                 OnlineServer.close();
             }
-            Config.multiplayerOnline = selected;
-            cbLocal.setEnabled(!selected);
-            cbJoin.setEnabled(!selected);
-
-            Main.updateMultiplayer();
         });
         cbHost.setBorder(emptyBorder);
         subPanel.add(cbHost);

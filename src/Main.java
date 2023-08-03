@@ -49,6 +49,7 @@ public class Main {
 
         OnlineServer.onClientConnect = () -> {
             updateMultiplayer();
+            mazeRight.setStatus(MazeContainer.Status.COPYING);
             mazeRight.setMaze(maze);
 
             if (mazeLeft.status != MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
@@ -61,17 +62,11 @@ public class Main {
             }
         };
 
-        OnlineServer.onClientDisconnect = () -> { 
+        OnlineServer.onClientDisconnect = OnlineServer.onOpen = OnlineServer.onClose = OnlineClient.onConnect = OnlineClient.onDisconnect = () -> { 
             // not handled by UI since server is still open
             updateMultiplayer();
         };
         
-        OnlineClient.onConnect = () -> { 
-            updateMultiplayer();
-            // maze is set in OnlineClient.listen() since OnlineServer sends it when client connects
-        };
-        OnlineClient.onDisconnect = OnlineServer.onClientDisconnect;
-
         OnlineServer.onReceived = () -> {
             Object received = OnlineServer.receivedObject;
             handleReceived(received);
@@ -90,7 +85,7 @@ public class Main {
             mazeRight.tryToMove((Maze.Direction)obj);
         }
         else if (obj.getClass() == Maze.class) {
-            setMaze((Maze)obj);
+            copyOpponentMaze((Maze)obj);
         }
         else if (obj.getClass() == KeyHandler.Action.class) {
             KeyHandler.Action casted = (KeyHandler.Action) obj;
@@ -107,7 +102,6 @@ public class Main {
 
             casted.callback.run();
         }
-        // TODO: handle new maze config
     }
 
     private static void setupTimerCountdown() {
@@ -146,6 +140,9 @@ public class Main {
             mazeLeft.setMaze(maze);
             
             if (Config.multiplayerOffline) {
+                if (mazeLeft.status != MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
+                    mazeRight.setStatus(MazeContainer.Status.COPYING);
+                }
                 mazeRight.setMaze(maze);
                 mazeLeft.setUserText("Player 1");
                 mazeRight.setUserText("Player 2");
@@ -327,6 +324,7 @@ public class Main {
         mazeRight.zoom(ch);
     }
 
+    // only used be P1
     public static void generateNewMaze() {
 
         if (!mazeLeft.status.allowsNewMaze()) {
@@ -334,13 +332,8 @@ public class Main {
             return;
         }
 
-        // TODO: only display "Generating..." for the user that started the gen
         mazeLeft.setStatus(MazeContainer.Status.GENERATING);
-
-        if ((Config.multiplayerOnline && (OnlineServer.clientConnected || OnlineClient.connected) ||
-            Config.multiplayerOffline)) {
-            mazeRight.setStatus(MazeContainer.Status.GENERATING);
-        }
+        mazeRight.setStatus(MazeContainer.Status.COPYING);
 
         MazeGen.cancel = mazeGenThreadDone != true;
         while (!mazeGenThreadDone); {}
@@ -385,16 +378,14 @@ public class Main {
         return false;
     }
 
-    // used in OnlineSocket to set a maze without having to call generateNewMaze()
-    public static void setMaze(Maze maze) {
-        mazeLeft.setStatus(MazeContainer.Status.GENERATING);
+    public static void copyOpponentMaze(Maze maze) {
+        
+        mazeLeft.setStatus(MazeContainer.Status.COPYING);
         mazeRight.setStatus(MazeContainer.Status.GENERATING);
+        
         Main.maze = maze;
         mazeLeft.setMaze(maze);
-
-        if (Config.multiplayer) {
-            mazeRight.setMaze(maze);
-        }
+        mazeRight.setMaze(maze);
     }
 
 

@@ -69,7 +69,8 @@ public class MazeContainer {
         // info
         RESETTING(COLOR_INFO, "Resetting..."),
         GENERATING(COLOR_INFO, "Generating..."),
-        MIRRORING(COLOR_INFO, "Mirroring...");
+        MIRRORING(COLOR_INFO, "Mirroring..."),
+        COPYING(COLOR_INFO, "Copying...");
 
         public final Color color;
         public final String stringStatus;
@@ -756,10 +757,9 @@ public class MazeContainer {
         }
 
         if (nodesToChange.size() == 0 || (nodesToChange.size() == 1 && nodesToChange.getFirst().equals(oldMaze.currentNode))) {
+            tcSpawnPlayer.onFinish();
             return;
         }
-
-        setStatus(Status.GENERATING);
 
         if (Main.ENABLE_ANIMATIONS) {
             tcNewMaze.start();
