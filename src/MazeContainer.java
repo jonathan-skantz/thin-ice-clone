@@ -92,6 +92,38 @@ public class MazeContainer {
             stringStatus = d;
             stringInfo = null;
         }
+
+        public boolean hidesInfo() {
+            return this == GENERATING || this == RESETTING || this == MIRRORING || this == READY || stringInfo == null;
+        }
+
+        public boolean allowsStep() {
+            return this == RESETTING || this == PLAYING || this == INCOMPLETE || this == UNSOLVABLE;
+        }
+
+        public boolean allowsHints() {
+            return this == PLAYING;
+        }
+
+        public boolean allowsReset() {
+            return this == PLAYING || this == INCOMPLETE || this == UNSOLVABLE;
+        }
+
+        public boolean allowsReady() {
+            return this == NOT_READY || this == NOT_READY_OPPONENT || this == NOT_READY_P2;
+        }
+
+        public boolean allowsSurrender() {
+            return this == PLAYING || this == INCOMPLETE || this == UNSOLVABLE || this == NOT_READY || this == NOT_READY_P2 || this == NOT_READY_OPPONENT;
+        }
+
+        public boolean allowsNewMaze() {
+            return this == WAITING_FOR_FIRST_MAZE || this == GAME_WON || this == GAME_LOST || this == SURRENDERED;
+        }
+
+        public boolean allowsMove() {
+            return this == PLAYING;
+        }
     }
 
     public MazeContainer(int windowX) {
@@ -352,7 +384,7 @@ public class MazeContainer {
 
     public boolean showHint() {
 
-        if (status != Status.PLAYING) {
+        if (!status.allowsHints()) {
             return false;
         }
 
@@ -453,7 +485,7 @@ public class MazeContainer {
     // also resets maze
     public boolean resetMazeGraphics() {
 
-        if (status != Status.PLAYING && status != Status.INCOMPLETE && status != Status.UNSOLVABLE) {
+        if (!status.allowsReset()) {
             return false;
         }
 
@@ -505,7 +537,7 @@ public class MazeContainer {
 
     public boolean tryToMove(Maze.Direction dir) {
 
-        if (status != Status.PLAYING) {
+        if (!status.allowsMove()) {
             return false;
         }
 
@@ -556,8 +588,7 @@ public class MazeContainer {
 
     public boolean step(int direction) {
 
-        if (status != Status.RESETTING && status != Status.PLAYING &&
-            status != Status.INCOMPLETE && status != Status.UNSOLVABLE) {
+        if (!status.allowsStep()) {
             return false;
         }
         
@@ -611,10 +642,10 @@ public class MazeContainer {
             textStatus.revalidate();        // since `panelStatus` and `textInfo` may have been resized
         }
 
-        if (Config.multiplayerOnline && this == Main.mazeRight) {
+        if (status.hidesInfo() || Config.multiplayerOnline && this == Main.mazeRight) {
             textInfo.setVisible(false);
         }
-        else if (status.stringInfo != null) {
+        else {
             textInfo.setText(status.stringInfo);
             textInfo.setSize(textInfo.getPreferredSize());
             textInfo.setVisible(true);
@@ -720,21 +751,9 @@ public class MazeContainer {
         }
 
         if (nodesToChange.size() == 0) {
-            // if (this == Main.mazeLeft) {
-            //     setStatus(Status.NOT_READY);
-            // }
-            // else {
-            //     if (Config.multiplayerOffline) {
-            //         setStatus(Status.NOT_READY_P2);
-            //     }
-            //     else if (Config.multiplayerOnline) {
-            //         setStatus(Status.NOT_READY_OPPONENT);
-            //     }
-            // }
             return;
         }
 
-        // Status statusBeforeGen = status;
         setStatus(Status.GENERATING);
 
         if (Main.ENABLE_ANIMATIONS) {
