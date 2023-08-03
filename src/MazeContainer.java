@@ -397,7 +397,8 @@ public class MazeContainer {
 
     public void zoom(int ch) {
         player.velocity += ch;
-            
+          
+        mazePanel.setSize(Config.blockSize * maze.width, Config.blockSize * maze.height);
         setStartPosition();
 
         if (maze.currentNode != null) {
