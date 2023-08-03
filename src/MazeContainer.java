@@ -40,6 +40,7 @@ public class MazeContainer {
         INCOMPLETE(Color.ORANGE),
         UNSOLVABLE(Color.RED),
         GAME_LOST(Color.RED, "Game lost"),
+        SURRENDERED(Color.RED),
         
         READY(Color.GREEN),
         // TODO: keybinds can change
@@ -677,8 +678,22 @@ public class MazeContainer {
         }
 
         if (nodesToChange.size() == 0) {
+            // if (this == Main.mazeLeft) {
+            //     setStatus(Status.NOT_READY);
+            // }
+            // else {
+            //     if (Config.multiplayerOffline) {
+            //         setStatus(Status.NOT_READY_P2);
+            //     }
+            //     else if (Config.multiplayerOnline) {
+            //         setStatus(Status.NOT_READY_OPPONENT);
+            //     }
+            // }
             return;
         }
+
+        // Status statusBeforeGen = status;
+        setStatus(Status.GENERATING);
 
         if (Main.ENABLE_ANIMATIONS) {
             tcNewMaze.start();

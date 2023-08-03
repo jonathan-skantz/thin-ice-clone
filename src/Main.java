@@ -51,7 +51,11 @@ public class Main {
                 mazeLeft.setMaze(maze);     // resets current maze and its graphics
             }
             mazeRight.setMaze(maze);
-            OnlineServer.send(maze);    // server sends its maze
+
+            if (mazeLeft.status != null) {
+                // if-statement to prevent sending empty maze
+                OnlineServer.send(maze);    // server sends its maze
+            }
             
             if (mazeLeft.status == MazeContainer.Status.READY) {
                 OnlineServer.send(KeyHandler.Action.P2_READY);
@@ -221,7 +225,6 @@ public class Main {
                 tryToSend(KeyHandler.Action.P2_MAZE_HINT);
             }
         });
-
         KeyHandler.Action.P1_MAZE_STEP_UNDO.setCallback(() -> {
             if (mazeLeft.step(-1)) {
                 tryToSend(KeyHandler.Action.P2_MAZE_STEP_UNDO);
@@ -236,7 +239,6 @@ public class Main {
             // p2 shouldn't send any events through OnlineSocket since
             // if p2 can click on these buttons, the gamemode must be local
 
-            // TODO: prevent listening to callbacks unless multiplayerOffline
             KeyHandler.Action.P2_MOVE_UP.setCallback(() -> { mazeRight.tryToMove(Maze.Direction.UP); });
             KeyHandler.Action.P2_MOVE_DOWN.setCallback(() -> { mazeRight.tryToMove(Maze.Direction.DOWN); });
             KeyHandler.Action.P2_MOVE_LEFT.setCallback(() -> { mazeRight.tryToMove(Maze.Direction.LEFT); });
@@ -249,13 +251,25 @@ public class Main {
                 
             KeyHandler.Action.P2_READY.setCallback(() -> {
                 
-                if (mazeRight.status == null) {
+                if (mazeRight.status != MazeContainer.Status.NOT_READY_OPPONENT && mazeRight.status != MazeContainer.Status.NOT_READY_P2) {
                     return;
                 }
                 mazeRight.setStatus(MazeContainer.Status.READY);
                 if (mazeLeft.status == MazeContainer.Status.READY) {
                     tcCountdown.start();
                 }
+            });
+
+            KeyHandler.Action.P2_SURRENDER.setCallback(() -> {
+                if (mazeRight.status == null || !mazeRight.animationsFinished()) {
+                    return;
+                }
+                if (mazeRight.status == MazeContainer.Status.SURRENDERED || mazeRight.status == MazeContainer.Status.GAME_WON || 
+                    mazeRight.status == MazeContainer.Status.GAME_LOST) {
+                    return;
+                }
+                mazeRight.setStatus(MazeContainer.Status.SURRENDERED);
+                mazeLeft.setStatus(MazeContainer.Status.GAME_WON);
             });
         }
 
@@ -264,7 +278,6 @@ public class Main {
             if (mazeLeft.status == null) {
                 return;     // first maze not set yet
             }
-
             
             if (!Config.multiplayer) {
                 mazeLeft.setStatus(MazeContainer.Status.PLAYING);
@@ -281,6 +294,20 @@ public class Main {
             if (mazeRight.status == MazeContainer.Status.READY) {
                 tcCountdown.start();
             }
+        });
+
+        KeyHandler.Action.P1_SURRENDER.setCallback(() -> {
+            if (mazeLeft.status == null || !mazeLeft.animationsFinished()) {
+                return;
+            }
+            
+            if (mazeLeft.status == MazeContainer.Status.SURRENDERED || mazeLeft.status == MazeContainer.Status.GAME_WON || 
+                mazeLeft.status == MazeContainer.Status.GAME_LOST) {
+                return;
+            }
+            mazeLeft.setStatus(MazeContainer.Status.SURRENDERED);
+            mazeRight.setStatus(MazeContainer.Status.GAME_WON);
+            tryToSend(KeyHandler.Action.P2_SURRENDER);
         });
 
         KeyHandler.Action.MAZE_NEW.setCallback(() -> {
@@ -305,14 +332,16 @@ public class Main {
     }
 
     public static void generateNewMaze() {
-        
-        if (Config.multiplayer) {
-            if (!mazeRight.animationsFinished()) {
+
+        // only allow new maze if both players have surrendered
+
+        if (mazeLeft.status != null) {
+            if (mazeLeft.status != MazeContainer.Status.GAME_WON && mazeLeft.status != MazeContainer.Status.SURRENDERED) {
                 return;
             }
-        }
-        else if (!mazeLeft.animationsFinished()) {
-            return;
+            if (Config.multiplayer && mazeRight.status != MazeContainer.Status.GAME_WON && mazeRight.status != MazeContainer.Status.SURRENDERED) {
+                return;
+            }
         }
 
         // TODO: only display "Generating..." for the user that started the gen

@@ -21,6 +21,7 @@ public class KeyHandler extends KeyAdapter {
         P1_MAZE_STEP_UNDO(KeyEvent.VK_Q),
         P1_MAZE_STEP_REDO(KeyEvent.VK_E),
         P1_READY(KeyEvent.VK_R),
+        P1_SURRENDER(KeyEvent.VK_T),
         
         P2_MOVE_UP(KeyEvent.VK_UP),
         P2_MOVE_DOWN(KeyEvent.VK_DOWN),
@@ -31,6 +32,7 @@ public class KeyHandler extends KeyAdapter {
         P2_MAZE_STEP_UNDO(KeyEvent.VK_NUMPAD4),
         P2_MAZE_STEP_REDO(KeyEvent.VK_NUMPAD6),
         P2_READY(KeyEvent.VK_NUMPAD2),
+        P2_SURRENDER(KeyEvent.VK_NUMPAD3),
 
         // not user-specific
         MAZE_NEW(KeyEvent.VK_SPACE),
@@ -50,6 +52,7 @@ public class KeyHandler extends KeyAdapter {
             add(P2_MAZE_STEP_UNDO);
             add(P2_MAZE_STEP_REDO);
             add(P2_READY);
+            add(P2_SURRENDER);
         }};
 
         private Action(int keyCode) {
