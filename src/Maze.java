@@ -216,7 +216,7 @@ public class Maze implements Serializable {
 
         startNode = creationPath.getFirst();
         endNode = creationPath.getLast();
-        currentNode = startNode;
+        currentNode = pathHistory.peek();
 
         return true;
     }
