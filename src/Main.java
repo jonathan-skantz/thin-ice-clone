@@ -1,4 +1,6 @@
 import javax.swing.JLabel;
+
+import java.awt.Component;
 import java.awt.Font;
 
 /**
@@ -47,10 +49,6 @@ public class Main {
 
         OnlineServer.onClientConnect = () -> {
             updateMultiplayer();
-
-            if (mazeLeft.animationsFinished()) {
-                mazeLeft.setMaze(maze);     // resets current maze and its graphics
-            }
             mazeRight.setMaze(maze);
 
             if (mazeLeft.status != MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
@@ -145,10 +143,9 @@ public class Main {
         if (Config.multiplayer) {
             Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
             
+            mazeLeft.setMaze(maze);
+            
             if (Config.multiplayerOffline) {
-                if (mazeLeft.animationsFinished()) {
-                    mazeLeft.setMaze(maze);
-                }
                 mazeRight.setMaze(maze);
                 mazeLeft.setUserText("Player 1");
                 mazeRight.setUserText("Player 2");
@@ -181,10 +178,6 @@ public class Main {
         else {
             Window.setSize(Window.mazeWidth, Window.mazeHeight);
             mazeLeft.setUserText("Singleplayer");
-            
-            if (mazeLeft.status == MazeContainer.Status.READY) {
-                mazeLeft.setStatus(MazeContainer.Status.PLAYING);
-            }
         }
         setupKeyCallbacks();
         textCountdown.setLocation(Window.getXCentered(textCountdown), textCountdown.getY());
@@ -256,7 +249,14 @@ public class Main {
                     return;
                 }
                 mazeRight.setStatus(MazeContainer.Status.READY);
-                if (mazeLeft.status == MazeContainer.Status.READY) {
+
+                if (!Config.multiplayerOffline || (Config.multiplayerOffline && mazeLeft.status == MazeContainer.Status.READY)) {
+                    for (Component comp : UI.buttons.getComponents()) {
+                        comp.setEnabled(false);
+                    }
+                }
+
+                if (!Config.multiplayer || mazeLeft.status == MazeContainer.Status.READY) {
                     tcCountdown.start();
                 }
             });
@@ -264,6 +264,10 @@ public class Main {
             KeyHandler.Action.P2_SURRENDER.setCallback(() -> {
                 if (!mazeRight.status.allowsSurrender()) {
                     return;
+                }
+
+                for (Component comp : UI.buttons.getComponents()) {
+                    comp.setEnabled(true);
                 }
                 mazeRight.setStatus(MazeContainer.Status.SURRENDERED);
                 mazeLeft.setStatus(MazeContainer.Status.GAME_WON);
@@ -275,15 +279,17 @@ public class Main {
             if (!mazeLeft.status.allowsReady()) {
                 return;
             }
-            else if (!Config.multiplayer) {
-                mazeLeft.setStatus(MazeContainer.Status.PLAYING);
-                return;
-            }
 
             mazeLeft.setStatus(MazeContainer.Status.READY);
             tryToSend(KeyHandler.Action.P2_READY);
 
-            if (mazeRight.status == MazeContainer.Status.READY) {
+            if (!Config.multiplayerOffline || (Config.multiplayerOffline && mazeRight.status == MazeContainer.Status.READY)) {
+                for (Component comp : UI.buttons.getComponents()) {
+                    comp.setEnabled(false);
+                }
+            }
+
+            if (!Config.multiplayer || mazeRight.status == MazeContainer.Status.READY) {
                 tcCountdown.start();
             }
         });
@@ -291,6 +297,9 @@ public class Main {
         KeyHandler.Action.P1_SURRENDER.setCallback(() -> {
             if (!mazeLeft.status.allowsSurrender()) {
                 return;
+            }
+            for (Component comp : UI.buttons.getComponents()) {
+                comp.setEnabled(true);
             }
             mazeLeft.setStatus(MazeContainer.Status.SURRENDERED);
             mazeRight.setStatus(MazeContainer.Status.GAME_WON);

@@ -3,6 +3,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Point;
 import java.awt.event.KeyEvent;
 
@@ -24,7 +25,7 @@ public class MazeContainer {
 
     public boolean isMirrored;
 
-    public Status status;     // null means first maze is not set
+    public Status status;
     
     private Block player;
     private Block[][] blocks;
@@ -78,10 +79,10 @@ public class MazeContainer {
             this(color, textStatus, null);
         }
 
-        private Status(Color color, String textStatus, String textInfo) {
+        private Status(Color color, String stringStatus, String stringInfo) {
             this.color = color;
-            this.stringStatus = textStatus;
-            this.stringInfo = textInfo;
+            this.stringStatus = stringStatus;
+            this.stringInfo = stringInfo;
         }
 
         // default display is the capitalized name of the enum field
@@ -574,6 +575,11 @@ public class MazeContainer {
                 setStatus(Status.GAME_WON);
                 MazeContainer other = this == Main.mazeLeft ? Main.mazeRight : Main.mazeLeft;
                 other.setStatus(MazeContainer.Status.GAME_LOST);
+
+                // enable UI
+                for (Component comp : UI.buttons.getComponents()) {
+                    comp.setEnabled(true);
+                }
             }
             else {
                 testGameOver();
@@ -657,8 +663,7 @@ public class MazeContainer {
 
     public void updateMirror() {
 
-        if (maze.currentNode == null) {
-            // maze not set yet
+        if (status == Status.WAITING_FOR_FIRST_MAZE) {
             return;
         }
 
@@ -750,7 +755,7 @@ public class MazeContainer {
             }
         }
 
-        if (nodesToChange.size() == 0) {
+        if (nodesToChange.size() == 0 || (nodesToChange.size() == 1 && nodesToChange.getFirst().equals(oldMaze.currentNode))) {
             return;
         }
 
