@@ -265,7 +265,7 @@ public class Main {
                 }
                 mazeRight.setStatus(MazeContainer.Status.READY);
 
-                if (!Config.multiplayerOffline || (Config.multiplayerOffline && mazeLeft.status == MazeContainer.Status.READY)) {
+                if (Config.multiplayer && mazeLeft.status == MazeContainer.Status.READY) {
                     for (Component comp : UI.buttons.getComponents()) {
                         comp.setEnabled(false);
                     }
@@ -298,7 +298,7 @@ public class Main {
             mazeLeft.setStatus(MazeContainer.Status.READY);
             tryToSend(KeyHandler.Action.P2_READY);
 
-            if (!Config.multiplayerOffline || (Config.multiplayerOffline && mazeRight.status == MazeContainer.Status.READY)) {
+            if (!Config.multiplayerOffline) {
                 for (Component comp : UI.buttons.getComponents()) {
                     comp.setEnabled(false);
                 }
