@@ -35,7 +35,7 @@ public class MazeContainer {
     private JLabel textStatus;
     private JLabel textInfo;
     
-    private LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>(Config.hintMax);
+    private LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>();
 
     public JPanel sprites = new JPanel(null);
     public JPanel mazePanel = new JPanel(null);
@@ -162,6 +162,12 @@ public class MazeContainer {
         setStatus(Status.WAITING_FOR_FIRST_MAZE);
     }
 
+    public void updateAnimationsEnabled() {
+        tcReset.skipOnStart = !Config.hostShowAnimations;
+        tcNewMaze.skipOnStart = !Config.hostShowAnimations;
+        tcSpawnPlayer.skipOnStart = !Config.hostShowAnimations;
+    }
+
     private void setupText() {
         
         textSteps = new JLabel("Steps: 0/0");
@@ -241,7 +247,7 @@ public class MazeContainer {
         };
 
         tcReset.finished = true;    // used to allow manual stepping
-        // NOTE: the reset animation cannot be skipped
+        tcReset.skipOnStart = !Config.hostShowAnimations;
     }
 
     private void setupTimerSpawnPlayer() {
@@ -276,7 +282,7 @@ public class MazeContainer {
             @Override
             public void onSkip() {
 
-                if (status == Status.WAITING_FOR_FIRST_MAZE) {
+                if (status == Status.WAITING_FOR_FIRST_MAZE || Main.mazeRight.status == Status.WAITING_FOR_FIRST_MAZE) {
                     return;
                 }
 
@@ -303,7 +309,7 @@ public class MazeContainer {
         };
 
         tcSpawnPlayer.finished = true;
-        tcSpawnPlayer.skipOnStart = !Main.ENABLE_ANIMATIONS;
+        tcSpawnPlayer.skipOnStart = !Config.hostShowAnimations;
     }
 
     private void setupTimerNewMaze() {
@@ -363,7 +369,7 @@ public class MazeContainer {
         };
 
         tcNewMaze.finished = true;
-        tcNewMaze.skipOnStart = !Main.ENABLE_ANIMATIONS;
+        tcNewMaze.skipOnStart = !Config.hostShowAnimations;
     }
 
     // pauses animations
@@ -442,7 +448,9 @@ public class MazeContainer {
 
         Node removedFirst = path.removeFirst();
 
-        for (int hint=0; hint<Config.hintMax && hint<path.size(); hint++) {
+        int hintsLength = (int)(Config.hostHintLength * maze.creationPath.size());
+
+        for (int hint=0; hint<hintsLength && hint<path.size(); hint++) {
             Node step = path.get(hint);
             
             JLabel label = new JLabel(String.valueOf(hint+1));
@@ -550,7 +558,7 @@ public class MazeContainer {
             return;
         }
         
-        if (Config.showUnsolvable && solver.findShortestPath().size() == 0) {
+        if (Config.hostShowUnsolvable && solver.findShortestPath().size() == 0) {
             
             if (maze.get(maze.currentNode) == Node.Type.END) {
                 setStatus(Status.INCOMPLETE);
@@ -692,12 +700,12 @@ public class MazeContainer {
             return;
         }
 
-        if (this == Main.mazeRight && Config.mirrorRightMaze != isMirrored) {
+        if (this == Main.mazeRight && Config.hostMirrorOpponent != isMirrored) {
 
             if (animationsFinished()) {
                 setStatus(Status.MIRRORING);
                 setMaze(maze);
-                isMirrored = Config.mirrorRightMaze;
+                isMirrored = Config.hostMirrorOpponent;
             }
         }
     }
@@ -728,12 +736,12 @@ public class MazeContainer {
         this.maze = new Maze(maze);
 
         if (this == Main.mazeRight) {
-            if (Config.mirrorRightMaze) {
+            if (Config.hostMirrorOpponent) {
                 // mirror first time
                 this.maze.mirror();
-                isMirrored = Config.mirrorRightMaze;
+                isMirrored = Config.hostMirrorOpponent;
             }
-            else if (Config.mirrorRightMaze != isMirrored) {
+            else if (Config.hostMirrorOpponent != isMirrored) {
                 // revert mirror (parameter `maze` is already mirrored, called from updateMirror())
                 this.maze.mirror();
             }
@@ -781,7 +789,9 @@ public class MazeContainer {
         }
 
         if (nodesToChange.size() == 0 || (nodesToChange.size() == 1 && nodesToChange.getFirst().equals(oldMaze.currentNode))) {
-            tcSpawnPlayer.onFinish();
+            if (status != Status.MIRRORING) {
+                tcSpawnPlayer.onFinish();
+            }
             return;
         }
 

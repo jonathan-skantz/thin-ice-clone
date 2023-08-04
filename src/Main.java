@@ -2,6 +2,7 @@ import javax.swing.JLabel;
 
 import java.awt.Component;
 import java.awt.Font;
+import java.util.HashMap;
 
 /**
  * Main class for the game.
@@ -12,8 +13,6 @@ public class Main {
 
     public static MazeContainer mazeLeft;
     public static MazeContainer mazeRight;
-
-    public static final boolean ENABLE_ANIMATIONS = true;
 
     public static Font font = new Font("arial", Font.PLAIN, 20);
     public static final Font fontInfo = new Font("roboto", Font.PLAIN, 17);
@@ -49,11 +48,14 @@ public class Main {
 
         OnlineServer.onClientConnect = () -> {
             updateMultiplayer();
-            mazeRight.setStatus(MazeContainer.Status.COPYING);
-            mazeRight.setMaze(maze);
 
+            OnlineServer.send(Config.getHostSettings());     // send server settings
+            
             if (mazeLeft.status != MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
                 // if-statement to prevent sending empty maze
+                mazeRight.setStatus(MazeContainer.Status.COPYING);
+                mazeRight.setMaze(maze);
+                
                 OnlineServer.send(maze);    // server sends its maze
             }
             
@@ -102,6 +104,10 @@ public class Main {
 
             casted.callback.run();
         }
+        else if (obj instanceof HashMap) {
+            // TODO: obj.getClass() is not the same as HashMap.class
+            UI.applyHostSettings((HashMap<String, Object>) obj);
+        }
     }
 
     private static void setupTimerCountdown() {
@@ -133,7 +139,8 @@ public class Main {
         Config.multiplayer = Config.multiplayerOffline || Config.multiplayerOnline;
 
         mazeRight.clearMaze();
-
+        boolean enableHostSettings = true;
+        
         if (Config.multiplayer) {
             Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
             
@@ -161,6 +168,7 @@ public class Main {
                     }
                 }
                 else {
+                    enableHostSettings = false;
                     if (OnlineClient.connected) {
                         mazeLeft.setUserText("You");
                         mazeRight.setUserText("Opponent (host)");
@@ -179,6 +187,8 @@ public class Main {
         setupKeyCallbacks();
         textCountdown.setLocation(Window.getXCentered(textCountdown), textCountdown.getY());
         UI.buttons.setSize(Window.width, UI.buttons.getHeight());
+        UI.buttons.revalidate();
+        UI.setHostSettingsEnabled(enableHostSettings);
     }
 
     public static void setupKeyCallbacks() {
