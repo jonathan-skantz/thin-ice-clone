@@ -129,10 +129,17 @@ public class UI {
             cbHost.setEnabled(!selected);
 
             if (selected) {
+                Main.updateMultiplayer();
                 OnlineClient.connect(Integer.valueOf(textFieldJoin.getText()));
             }
             else {
-                OnlineClient.disconnect();
+                if (OnlineClient.connected) {
+                    OnlineClient.disconnect();
+                }
+                else {
+                    OnlineClient.disconnect();
+                    Main.updateMultiplayer();
+                }
             }
         });
         cbJoin.setBorder(emptyBorder);

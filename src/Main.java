@@ -52,12 +52,10 @@ public class Main {
             OnlineServer.send(Config.getHostSettings());     // send server settings
             
             if (mazeLeft.status != MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
-                // if-statement to prevent sending empty maze
                 mazeRight.setStatus(MazeContainer.Status.COPYING);
                 mazeRight.setMaze(maze);
-                
-                OnlineServer.send(maze);    // server sends its maze
             }
+            OnlineServer.send(maze);    // server sends its maze
             
             if (mazeLeft.status == MazeContainer.Status.READY) {
                 OnlineServer.send(KeyHandler.Action.P2_READY);
@@ -144,10 +142,9 @@ public class Main {
         if (Config.multiplayer) {
             Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
             
-            mazeLeft.setMaze(maze);
-            
             if (Config.multiplayerOffline) {
                 if (mazeLeft.status != MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
+                    mazeLeft.setMaze(maze);
                     mazeRight.setStatus(MazeContainer.Status.COPYING);
                 }
                 mazeRight.setMaze(maze);
@@ -161,6 +158,7 @@ public class Main {
                     mazeLeft.setUserText("You (host)");
 
                     if (OnlineServer.clientConnected) {
+                        mazeLeft.setMaze(maze);     // reset servers graphics
                         mazeRight.setUserText("Opponent");
                     }
                     else {
@@ -391,11 +389,15 @@ public class Main {
     public static void copyOpponentMaze(Maze maze) {
         
         mazeLeft.setStatus(MazeContainer.Status.COPYING);
-        mazeRight.setStatus(MazeContainer.Status.GENERATING);
+
+        if (maze.currentNode != null) {
+            // prevents displaying "Generating..." when first is not generated
+            mazeRight.setStatus(MazeContainer.Status.GENERATING);
+            mazeRight.setMaze(maze);
+        }
         
         Main.maze = maze;
         mazeLeft.setMaze(maze);
-        mazeRight.setMaze(maze);
     }
 
 

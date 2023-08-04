@@ -341,7 +341,13 @@ public class MazeContainer {
             @Override
             public void onFinish() {
                 onReset();
-                tcSpawnPlayer.start();
+
+                if (maze.currentNode == null) {
+                    setStatus(Status.WAITING_FOR_FIRST_MAZE);
+                }
+                else {
+                    tcSpawnPlayer.start();
+                }
             }
             
             @Override
@@ -673,13 +679,16 @@ public class MazeContainer {
     public void setStatus(Status status) {
         this.status = status;
 
-        if (status.stringStatus != null) {
-            textStatus.setVisible(true);
+        if (status.stringStatus == null) {
+            textStatus.setVisible(false);
+        }
+        else {
             textStatus.setText(status.stringStatus);
             textStatus.setForeground(status.color);
             textStatus.setSize(textStatus.getPreferredSize());
-            textStatus.revalidate();        // since `panelStatus` and `textInfo` may have been resized
+            textStatus.setVisible(true);
         }
+        textStatus.revalidate();        // since `panelStatus` and `textInfo` may have been resized
 
         if (status.hidesInfo() || Config.multiplayerOnline && this == Main.mazeRight) {
             textInfo.setVisible(false);
