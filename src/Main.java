@@ -162,6 +162,7 @@ public class Main {
                         mazeRight.setUserText("Opponent");
                     }
                     else {
+                        mazeLeft.setStatus(MazeContainer.Status.WAITING_FOR_OPPONENT);
                         mazeRight.setUserText("Opponent (searching...)");
                     }
                 }
@@ -172,6 +173,7 @@ public class Main {
                         mazeRight.setUserText("Opponent (host)");
                     }
                     else {
+                        mazeLeft.setStatus(MazeContainer.Status.WAITING_FOR_OPPONENT);
                         mazeLeft.setUserText("You");
                         mazeRight.setUserText("Opponent (searching...)");
                     }
@@ -179,6 +181,14 @@ public class Main {
             }
         }
         else {
+            if (mazeLeft.status == MazeContainer.Status.WAITING_FOR_OPPONENT) {
+                if (maze.currentNode == null) {
+                    mazeLeft.setStatus(MazeContainer.Status.WAITING_FOR_FIRST_MAZE);
+                }
+                else {
+                    mazeLeft.setStatus(MazeContainer.Status.NOT_READY);
+                }
+            }
             Window.setSize(Window.mazeWidth, Window.mazeHeight);
             mazeLeft.setUserText("Singleplayer");
         }
@@ -341,7 +351,6 @@ public class Main {
         }
 
         mazeLeft.setStatus(MazeContainer.Status.GENERATING);
-        mazeRight.setStatus(MazeContainer.Status.COPYING);
 
         MazeGen.cancel = mazeGenThreadDone != true;
         while (!mazeGenThreadDone); {}
@@ -360,6 +369,7 @@ public class Main {
                 mazeLeft.setMaze(maze);
 
                 if (Config.multiplayerOffline || tryToSend(maze)) {
+                    mazeRight.setStatus(MazeContainer.Status.COPYING);
                     mazeRight.setMaze(maze);
                 }
             }

@@ -33,7 +33,7 @@ public class MazeContainer {
     public JLabel textUser;
 
     private JLabel textStatus;
-    private JLabel textInfo;
+    private JLabel textHelp;
     
     private LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>();
 
@@ -50,7 +50,8 @@ public class MazeContainer {
     private static final String STRING_NEW_MAZE = "Press " + KeyEvent.getKeyText(KeyHandler.Action.MAZE_NEW.keyCode) + " to generate new maze.";
 
     public enum Status {
-        WAITING_FOR_FIRST_MAZE(COLOR_INFO, null, STRING_NEW_MAZE),
+        WAITING_FOR_FIRST_MAZE(COLOR_INFO, "First maze not generated.", STRING_NEW_MAZE),
+        WAITING_FOR_OPPONENT(COLOR_INFO, "Waiting for opponent...", STRING_NEW_MAZE),
         GAME_WON(COLOR_GREEN, "Game won.", STRING_NEW_MAZE),
         INCOMPLETE(COLOR_ORANGE),
         UNSOLVABLE(COLOR_RED),
@@ -74,16 +75,16 @@ public class MazeContainer {
 
         public final Color color;
         public final String stringStatus;
-        public final String stringInfo;
+        public final String stringHelp;
 
         private Status(Color color, String textStatus) {
             this(color, textStatus, null);
         }
 
-        private Status(Color color, String stringStatus, String stringInfo) {
+        private Status(Color color, String stringStatus, String stringHelp) {
             this.color = color;
             this.stringStatus = stringStatus;
-            this.stringInfo = stringInfo;
+            this.stringHelp = stringHelp;
         }
 
         // default display is the capitalized name of the enum field
@@ -92,11 +93,11 @@ public class MazeContainer {
             String d = toString().toLowerCase();
             d = String.valueOf(d.charAt(0)).toUpperCase() + d.substring(1);
             stringStatus = d;
-            stringInfo = null;
+            stringHelp = null;
         }
 
         public boolean hidesInfo() {
-            return this == GENERATING || this == RESETTING || this == MIRRORING || this == READY || stringInfo == null;
+            return this == GENERATING || this == RESETTING || this == MIRRORING || this == READY || stringHelp == null;
         }
 
         public boolean allowsStep() {
@@ -120,7 +121,7 @@ public class MazeContainer {
         }
 
         public boolean allowsNewMaze() {
-            return this == WAITING_FOR_FIRST_MAZE || this == GAME_WON || this == GAME_LOST || this == SURRENDERED;
+            return this == WAITING_FOR_FIRST_MAZE || this == WAITING_FOR_OPPONENT || this == GAME_WON || this == GAME_LOST || this == SURRENDERED;
         }
 
         public boolean allowsMove() {
@@ -182,11 +183,11 @@ public class MazeContainer {
         textStatus.setAlignmentX(JComponent.CENTER_ALIGNMENT);
         panelStatus.add(textStatus);
 
-        textInfo = new JLabel();
-        textInfo.setFont(Main.fontInfo);
-        textInfo.setForeground(COLOR_INFO);
-        textInfo.setAlignmentX(JComponent.CENTER_ALIGNMENT);
-        panelStatus.add(textInfo);
+        textHelp = new JLabel();
+        textHelp.setFont(Main.fontInfo);
+        textHelp.setForeground(COLOR_INFO);
+        textHelp.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+        panelStatus.add(textHelp);
 
         textUser = new JLabel("Singleplayer");
         textUser.setFont(Main.font);
@@ -282,7 +283,9 @@ public class MazeContainer {
             @Override
             public void onSkip() {
 
-                if (status == Status.WAITING_FOR_FIRST_MAZE || Main.mazeRight.status == Status.WAITING_FOR_FIRST_MAZE) {
+                if (status == Status.WAITING_FOR_FIRST_MAZE) {
+                    System.out.println(Main.mazeLeft.status);
+                    System.out.println(Main.mazeRight.status);
                     return;
                 }
 
@@ -688,15 +691,15 @@ public class MazeContainer {
             textStatus.setSize(textStatus.getPreferredSize());
             textStatus.setVisible(true);
         }
-        textStatus.revalidate();        // since `panelStatus` and `textInfo` may have been resized
+        textStatus.revalidate();        // since `panelStatus` and `textHelp` may have been resized
 
         if (status.hidesInfo() || Config.multiplayerOnline && this == Main.mazeRight) {
-            textInfo.setVisible(false);
+            textHelp.setVisible(false);
         }
         else {
-            textInfo.setText(status.stringInfo);
-            textInfo.setSize(textInfo.getPreferredSize());
-            textInfo.setVisible(true);
+            textHelp.setText(status.stringHelp);
+            textHelp.setSize(textHelp.getPreferredSize());
+            textHelp.setVisible(true);
         }
         panelStatus.setVisible(true);
         panelStatus.setSize(panelStatus.getPreferredSize());
