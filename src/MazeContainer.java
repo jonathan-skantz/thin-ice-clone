@@ -567,15 +567,28 @@ public class MazeContainer {
             return;
         }
         
-        if (solver.findShortestPath().size() == 0) {
-            
-            if (maze.get(maze.currentNode) == Node.Type.END) {
-                setStatus(Status.INCOMPLETE);
-            }
-            else if (Config.hostShowUnsolvable) {
-                setStatus(Status.UNSOLVABLE);
+        if (maze.get(maze.currentNode) == Node.Type.END) {
+            setStatus(Status.INCOMPLETE);   // if GAME_WON, testGameOver() would never have been called --> must be INCOMPLETE
+            return;
+        }
+
+        if (Config.hostShowUnsolvable) {
+
+            if (!solver.longestPath.get(maze.pathHistory.size()-1).equals(maze.currentNode)) {
+                // update longestPath since user stepped differently
+                solver.findLongestPath();
+
+                // prepend pathHistory
+                for (int i=maze.pathHistory.size()-2; i>=0; i--) {       // NOTE: -2 to avoid duplicate current node
+                    solver.longestPath.addFirst(maze.pathHistory.get(i));
+                }
+                
+                if (solver.longestPath.size() < maze.creationPath.size()) {
+                    setStatus(Status.UNSOLVABLE);
+                }
             }
         }
+
     }
 
     public boolean tryToMove(Maze.Direction dir) {
@@ -764,6 +777,7 @@ public class MazeContainer {
         updateTextSteps();
 
         solver = new MazeSolver(this.maze);
+        solver.longestPath = new LinkedList<>(this.maze.creationPath);  // instead of solver.findLongestPath() (maze must be in its original state)
 
         if (this.maze.width != oldMaze.width || this.maze.height != oldMaze.height) {
             

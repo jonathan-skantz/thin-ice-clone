@@ -37,21 +37,13 @@ public class MazeSolver {
     }
 
     public MazeSolver(Maze maze) {
-        this.maze = maze;
+        this.maze = maze;       // same reference
         mazeCopy = new Maze(maze);
         reset();
     }
 
     private void reset() {
-
-        for (int y=0; y<mazeCopy.height; y++) {
-            for (int x=0; x<mazeCopy.width; x++) {
-                // NOTE: copies maze.types, not mazeCopy.typesOriginal
-                mazeCopy.types[y][x] = maze.types[y][x];
-            }
-        }
-
-        mazeCopy.currentNode = maze.currentNode;
+        mazeCopy = new Maze(maze);
         accumulatorPath.clear();
     }
 
