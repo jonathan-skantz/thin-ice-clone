@@ -567,12 +567,12 @@ public class MazeContainer {
             return;
         }
         
-        if (Config.hostShowUnsolvable && solver.findShortestPath().size() == 0) {
+        if (solver.findShortestPath().size() == 0) {
             
             if (maze.get(maze.currentNode) == Node.Type.END) {
                 setStatus(Status.INCOMPLETE);
             }
-            else {
+            else if (Config.hostShowUnsolvable) {
                 setStatus(Status.UNSOLVABLE);
             }
         }
