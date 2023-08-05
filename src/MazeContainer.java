@@ -47,23 +47,18 @@ public class MazeContainer {
     private static final Color COLOR_RED = new Color(200, 50, 50);
     private static final Color COLOR_INFO = new Color(50, 50, 50);
 
-    private static final String STRING_NEW_MAZE = "Press " + KeyEvent.getKeyText(KeyHandler.Action.MAZE_NEW.keyCode) + " to generate new maze.";
-
     public enum Status {
-        WAITING_FOR_FIRST_MAZE(COLOR_INFO, "First maze not generated.", STRING_NEW_MAZE),
-        WAITING_FOR_OPPONENT(COLOR_INFO, "Waiting for opponent...", STRING_NEW_MAZE),
-        GAME_WON(COLOR_GREEN, "Game won.", STRING_NEW_MAZE),
+        WAITING_FOR_FIRST_MAZE(COLOR_INFO, "First maze not generated."),
+        WAITING_FOR_OPPONENT(COLOR_INFO, "Waiting for opponent..."),
+        GAME_WON(COLOR_GREEN, "Game won."),
         INCOMPLETE(COLOR_ORANGE),
         UNSOLVABLE(COLOR_RED),
-        GAME_LOST(COLOR_RED, "Game lost.", STRING_NEW_MAZE),
-        SURRENDERED(COLOR_RED, "Surrendered.", STRING_NEW_MAZE),
+        GAME_LOST(COLOR_RED, "Game lost."),
+        SURRENDERED(COLOR_RED, "Surrendered."),
         
         READY(COLOR_GREEN),
-        // TODO: keybinds can change
-        NOT_READY(COLOR_INFO, "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_READY.keyCode) + " to begin.",
-                                "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_SURRENDER.keyCode) + " to surrender."),
-        NOT_READY_P2(COLOR_INFO, "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_READY.keyCode) + " to begin.",
-                                "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_SURRENDER.keyCode) + " to surrender."),
+        NOT_READY(COLOR_INFO),
+        NOT_READY_P2(COLOR_INFO),
         NOT_READY_OPPONENT(COLOR_INFO, "Waiting for opponent..."),
         PLAYING(COLOR_GREEN),
         
@@ -74,26 +69,50 @@ public class MazeContainer {
         COPYING(COLOR_INFO, "Copying...");
 
         public final Color color;
-        public final String stringStatus;
-        public final String stringHelp;
+        public String stringStatus;
+        public String stringHelp;
 
-        private Status(Color color, String textStatus) {
-            this(color, textStatus, null);
-        }
+        private static String stringNewMaze;
 
-        private Status(Color color, String stringStatus, String stringHelp) {
-            this.color = color;
-            this.stringStatus = stringStatus;
-            this.stringHelp = stringHelp;
+        static {
+            // after all values have been constructed
+            onNewControls();
         }
 
         // default display is the capitalized name of the enum field
         private Status(Color color) {
             this.color = color;
             String d = toString().toLowerCase();
-            d = String.valueOf(d.charAt(0)).toUpperCase() + d.substring(1);
-            stringStatus = d;
-            stringHelp = null;
+            stringStatus = String.valueOf(d.charAt(0)).toUpperCase() + d.substring(1);
+        }
+
+        private Status(Color color, String stringStatus) {
+            this.color = color;
+            this.stringStatus = stringStatus;
+        }
+
+        public static void onNewControls() {
+            stringNewMaze = "Press " + KeyEvent.getKeyText(KeyHandler.Action.MAZE_NEW.keyCode) + " to generate new maze.";
+
+            WAITING_FOR_FIRST_MAZE.stringHelp = stringNewMaze;
+            WAITING_FOR_OPPONENT.stringHelp = stringNewMaze;
+            GAME_WON.stringHelp = stringNewMaze;
+            GAME_LOST.stringHelp = stringNewMaze;
+            SURRENDERED.stringHelp = stringNewMaze;
+
+            NOT_READY.stringStatus = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_READY.keyCode) + " to begin.";
+            NOT_READY.stringHelp = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_SURRENDER.keyCode) + " to surrender.";
+            
+            NOT_READY_P2.stringStatus = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_READY.keyCode) + " to begin.";
+            NOT_READY_P2.stringHelp = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_SURRENDER.keyCode) + " to surrender.";
+
+            NOT_READY_OPPONENT.stringStatus = "Waiting for opponent...";
+
+            if (Main.mazeLeft != null) {
+                // potentially redraw labels
+                Main.mazeLeft.setStatus(Main.mazeLeft.status);
+                Main.mazeRight.setStatus(Main.mazeRight.status);
+            }
         }
 
         public boolean hidesInfo() {

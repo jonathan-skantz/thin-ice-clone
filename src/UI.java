@@ -300,6 +300,7 @@ public class UI {
                         action.keyCode = e.getKeyCode();
                         btn.setText(KeyEvent.getKeyText(action.keyCode));
                         btn.removeKeyListener(this);
+                        MazeContainer.Status.onNewControls();
                     }
                 });
             });
