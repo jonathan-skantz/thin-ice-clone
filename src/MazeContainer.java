@@ -38,9 +38,10 @@ public class MazeContainer {
     private LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>();
 
     public JPanel sprites = new JPanel(null);
-    public JPanel mazePanel = new JPanel(null);
+    public JPanel panelMaze = new JPanel(null);
 
-    public JPanel panelStatus = new  JPanel();
+    public JPanel panelStatus = new JPanel();
+    public JPanel panelDisconnected = new JPanel();     // gray overlay on panelMaze
 
     private static final Color COLOR_GREEN = new Color(50, 150, 50);
     private static final Color COLOR_ORANGE = new Color(200, 150, 50);
@@ -152,7 +153,7 @@ public class MazeContainer {
 
         // set up panels
         maze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
-        mazePanel.setSize(maze.width * Config.blockSize, maze.height * Config.blockSize);
+        panelMaze.setSize(maze.width * Config.blockSize, maze.height * Config.blockSize);
         setStartPosition();
 
         sprites.setOpaque(false);   // allows buttons to be drawn underneath
@@ -164,7 +165,7 @@ public class MazeContainer {
         player = new Block("src/textures/player.png", Config.blockSize - 2);
         player.velocity = Config.blockSize;
         player.setVisible(false);
-        mazePanel.add(player);
+        panelMaze.add(player);
 
         setupText();
 
@@ -172,7 +173,7 @@ public class MazeContainer {
 
         sprites.setBounds(windowX, 0, Window.mazeWidth, Window.mazeHeight);
         
-        sprites.add(mazePanel);
+        sprites.add(panelMaze);
         Window.sprites.add(sprites);
 
         setupTimerReset();
@@ -180,6 +181,13 @@ public class MazeContainer {
         setupTimerNewMaze();
 
         setStatus(Status.WAITING_FOR_FIRST_MAZE);
+
+        panelDisconnected.setBackground(new Color(150, 150, 150, 150));
+        panelDisconnected.setSize(panelMaze.getSize());
+
+        panelDisconnected.setVisible(false);
+        panelMaze.add(panelDisconnected);
+        panelMaze.setComponentZOrder(panelDisconnected, 0);
     }
 
     public void updateAnimationsEnabled() {
@@ -194,7 +202,7 @@ public class MazeContainer {
         textSteps.setFont(Main.font);
         textSteps.setSize(textSteps.getPreferredSize());
         textSteps.setForeground(new Color(0, 0, 0, 100));
-        textSteps.setLocation(Window.getXCenteredMaze(textSteps), mazePanel.getY() - textSteps.getHeight() - 10);
+        textSteps.setLocation(Window.getXCenteredMaze(textSteps), panelMaze.getY() - textSteps.getHeight() - 10);
         sprites.add(textSteps);
 
         textStatus = new JLabel();
@@ -302,9 +310,7 @@ public class MazeContainer {
             @Override
             public void onSkip() {
 
-                if (status == Status.WAITING_FOR_FIRST_MAZE) {
-                    System.out.println(Main.mazeLeft.status);
-                    System.out.println(Main.mazeRight.status);
+                if (maze.currentNode == null) {
                     return;
                 }
 
@@ -462,11 +468,11 @@ public class MazeContainer {
             return false;
         }
 
-        mazePanel.setVisible(false);
+        panelMaze.setVisible(false);
         
         // reset old hint blocks
         for (JLabel hintLabel : hints.keySet()) {
-            mazePanel.remove(hintLabel);
+            panelMaze.remove(hintLabel);
         }
 
         hints.clear();
@@ -514,25 +520,25 @@ public class MazeContainer {
             }
             label.setLocation(getBlockPosition(step));
             
-            mazePanel.add(label);
+            panelMaze.add(label);
 
             hints.put(label, step);
-            mazePanel.setComponentZOrder(label, 1);
+            panelMaze.setComponentZOrder(label, 1);
         }
 
-        mazePanel.setVisible(true);
+        panelMaze.setVisible(true);
         return true;
         
     }
 
     private void updateTextUserPosition() {
-        textUser.setLocation(Window.getXCenteredMaze(textUser), mazePanel.getY() + mazePanel.getHeight() + 10);
+        textUser.setLocation(Window.getXCenteredMaze(textUser), panelMaze.getY() + panelMaze.getHeight() + 10);
     }
 
     public void zoom(int ch) {
         player.velocity += ch;
           
-        mazePanel.setSize(Config.blockSize * maze.width, Config.blockSize * maze.height);
+        panelMaze.setSize(Config.blockSize * maze.width, Config.blockSize * maze.height);
         setStartPosition();
 
         if (maze.currentNode != null) {
@@ -554,7 +560,7 @@ public class MazeContainer {
         }
 
         updateTextUserPosition();
-        textSteps.setLocation(textSteps.getX(), mazePanel.getY() - textSteps.getHeight() - 10);
+        textSteps.setLocation(textSteps.getX(), panelMaze.getY() - textSteps.getHeight() - 10);
         
     }
 
@@ -631,15 +637,15 @@ public class MazeContainer {
                 Object[] labels = hints.keySet().toArray();
                 
                 if (maze.currentNode.equals(hints.get(labels[0]))) {
-                    mazePanel.remove((JLabel)labels[0]);
+                    panelMaze.remove((JLabel)labels[0]);
                     hints.remove(labels[0]);
                 }
                 else {
                     for (JLabel hintLabel : hints.keySet()) {
-                        mazePanel.remove(hintLabel);
+                        panelMaze.remove(hintLabel);
                     }
                     hints.clear();
-                    mazePanel.repaint();   // some labels are still visible
+                    panelMaze.repaint();   // some labels are still visible
                 }
             }
 
@@ -800,14 +806,14 @@ public class MazeContainer {
 
         if (this.maze.width != oldMaze.width || this.maze.height != oldMaze.height) {
             
-            mazePanel.setVisible(false);
+            panelMaze.setVisible(false);
 
             for (Block[] row : blocks) {
                 for (Block spr : row) {
-                    mazePanel.remove(spr);
+                    panelMaze.remove(spr);
                 }
             }
-            mazePanel.setSize(maze.width * Config.blockSize, maze.height * Config.blockSize);
+            panelMaze.setSize(maze.width * Config.blockSize, maze.height * Config.blockSize);
             setStartPosition();
             
             blocks = new Block[this.maze.height][this.maze.width];
@@ -815,7 +821,7 @@ public class MazeContainer {
 
             player.setVisible(false);
             createWallBlocks();
-            mazePanel.setVisible(true);
+            panelMaze.setVisible(true);
         }
 
         updateTextUserPosition();
@@ -846,11 +852,11 @@ public class MazeContainer {
 
     private void removeHintTexts() {
         for (JLabel hint : hints.keySet()) {
-            mazePanel.remove(hint);
+            panelMaze.remove(hint);
         }
         hints.clear();
 
-        mazePanel.repaint();   // some hints are still visible
+        panelMaze.repaint();   // some hints are still visible
     }
 
     public void movePlayerGraphicsTo(Node node) {
@@ -884,7 +890,7 @@ public class MazeContainer {
                 Block block = new Block("src/textures/wall.png", Config.blockSize);
                 blocks[y][x] = block;
                 block.setLocation(getBlockPosition(new Node(x, y)));
-                mazePanel.add(block);
+                panelMaze.add(block);
             }
         }
     }
@@ -892,7 +898,7 @@ public class MazeContainer {
     private void setStartPosition() {
         int startX = (Window.mazeWidth - Config.blockSize * maze.width) / 2;
         int startY = (Window.height - Config.blockSize * maze.height) / 2;
-        mazePanel.setLocation(startX, startY);
+        panelMaze.setLocation(startX, startY);
     }
 
     public Point getBlockPosition(Node node) {

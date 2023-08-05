@@ -137,13 +137,13 @@ public class Main {
         
         Config.multiplayer = Config.multiplayerOffline || Config.multiplayerOnline;
 
-        mazeRight.clearMaze();
         boolean enableHostSettings = true;
         
         if (Config.multiplayer) {
             Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
             
             if (Config.multiplayerOffline) {
+                mazeRight.panelDisconnected.setVisible(false);
                 if (mazeLeft.status != MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
                     mazeLeft.setMaze(maze);
                     mazeRight.setStatus(MazeContainer.Status.COPYING);
@@ -159,22 +159,30 @@ public class Main {
                     mazeLeft.setUserText("You (host)");
 
                     if (OnlineServer.clientConnected) {
+                        mazeRight.panelDisconnected.setVisible(false);
                         mazeLeft.setMaze(maze);     // reset servers graphics
                         mazeRight.setUserText("Opponent");
                     }
                     else {
-                        mazeLeft.setStatus(MazeContainer.Status.WAITING_FOR_OPPONENT);
+                        mazeRight.panelDisconnected.setVisible(true);
+                        if (mazeLeft.status != MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
+                            mazeLeft.setStatus(MazeContainer.Status.WAITING_FOR_OPPONENT);
+                        }
                         mazeRight.setUserText("Opponent (searching...)");
                     }
                 }
                 else {
                     enableHostSettings = false;
                     if (OnlineClient.connected) {
+                        mazeRight.panelDisconnected.setVisible(false);
                         mazeLeft.setUserText("You");
                         mazeRight.setUserText("Opponent (host)");
                     }
                     else {
-                        mazeLeft.setStatus(MazeContainer.Status.WAITING_FOR_OPPONENT);
+                        mazeRight.panelDisconnected.setVisible(true);
+                        if (mazeLeft.status != MazeContainer.Status.WAITING_FOR_FIRST_MAZE) {
+                            mazeLeft.setStatus(MazeContainer.Status.WAITING_FOR_OPPONENT);
+                        }
                         mazeLeft.setUserText("You");
                         mazeRight.setUserText("Opponent (searching...)");
                     }
@@ -399,7 +407,9 @@ public class Main {
 
     public static void copyOpponentMaze(Maze maze) {
         
-        mazeLeft.setStatus(MazeContainer.Status.COPYING);
+        if (!Main.maze.equals(maze)) {
+            mazeLeft.setStatus(MazeContainer.Status.COPYING);
+        }
 
         if (maze.currentNode != null) {
             // prevents displaying "Generating..." when first is not generated
