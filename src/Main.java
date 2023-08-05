@@ -103,8 +103,9 @@ public class Main {
             casted.callback.run();
         }
         else if (obj instanceof HashMap) {
-            // TODO: obj.getClass() is not the same as HashMap.class
-            UI.applyHostSettings((HashMap<String, Object>) obj);
+            @SuppressWarnings("unchecked")
+            HashMap<String, Object> cast = (HashMap<String, Object>) obj;
+            UI.applyHostSettings(cast);
         }
     }
 
