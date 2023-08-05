@@ -109,9 +109,16 @@ public class UI {
         cbLocal.addItemListener(e -> {
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
             Config.multiplayerOffline = selected;
+            Config.multiplayer = Config.multiplayerOnline || Config.multiplayerOffline;
             cbJoin.setEnabled(!selected);
             cbHost.setEnabled(!selected);
-            Main.updateMultiplayer();
+
+            if (selected) {
+                Main.setToLocalGamemode();
+            }
+            else {
+                OnlineClient.onDisconnect.run();
+            }
         });
         cbLocal.setAlignmentX(Component.LEFT_ALIGNMENT);
         panelConnection.add(cbLocal);
@@ -125,21 +132,16 @@ public class UI {
         cbJoin.addItemListener(e -> {
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
             Config.multiplayerOnline = selected;
+            Config.multiplayer = Config.multiplayerOnline || Config.multiplayerOffline;
             cbLocal.setEnabled(!selected);
             cbHost.setEnabled(!selected);
 
             if (selected) {
-                Main.updateMultiplayer();
+                // Main.updateMultiplayer();
                 OnlineClient.connect(Integer.valueOf(textFieldJoin.getText()));
             }
             else {
-                if (OnlineClient.connected) {
-                    OnlineClient.disconnect();
-                }
-                else {
-                    OnlineClient.disconnect();
-                    Main.updateMultiplayer();
-                }
+                OnlineClient.disconnect();
             }
         });
         cbJoin.setBorder(emptyBorder);
@@ -155,6 +157,7 @@ public class UI {
             // TODO: clean-up textfield
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
             Config.multiplayerOnline = selected;
+            Config.multiplayer = Config.multiplayerOnline || Config.multiplayerOffline;
             cbLocal.setEnabled(!selected);
             cbJoin.setEnabled(!selected);
             if (selected) {

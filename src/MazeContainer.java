@@ -14,7 +14,7 @@ import javax.swing.JPanel;
 
 public class MazeContainer {
     
-    private Maze maze;
+    public Maze maze;
     private Maze oldMaze;
     private MazeSolver solver;
 

@@ -21,6 +21,8 @@ public class OnlineClient {
     public static Runnable onDisconnect = () -> { System.out.println("CLIENT: (default callback) disconnected"); };
     public static Runnable onReceived = () -> {};
     public static Runnable onKick = () -> { System.out.println("CLIENT: (default callback) kicked"); };
+    public static Runnable onStartSearch = () -> {};
+    public static Runnable onStopSearch = () -> {};     // manually stopped, not connection established
 
     public static Object receivedObject;
 
@@ -29,6 +31,7 @@ public class OnlineClient {
         new Thread(() -> {
             
             tryReconnecting = true;
+            onStartSearch.run();
 
             while (true) {
                 try {
@@ -88,6 +91,9 @@ public class OnlineClient {
                 System.out.println("CLIENT error: couldn't disconnect");
                 e.printStackTrace();
             }
+        }
+        else {
+            onStopSearch.run();
         }
 
     }
