@@ -87,6 +87,39 @@ public class Maze implements Serializable {
 
     }
 
+    // true if same dimensions, same types and same currentNode
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null || obj.getClass() != getClass()) {
+            return false;
+        }
+
+        Maze cast = (Maze)obj;
+
+        if (cast.width != width || cast.height != height) {
+            return false;
+        }
+
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                if (types[y][x] != cast.types[y][x]) {
+                    return false;
+                }
+            }
+        }
+
+        if (cast.currentNode != currentNode) {      // false if both are null
+            if (!cast.currentNode.equals(currentNode)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public void printTypes() {
         
         HashSet<Integer> wideCols = new HashSet<>();
