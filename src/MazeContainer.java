@@ -24,6 +24,7 @@ public class MazeContainer {
     private LinkedList<Node> nodesToChange = new LinkedList<>();
 
     public boolean isMirrored;
+    public Status statusAfterMirror;
 
     public Status status;
     
@@ -324,12 +325,25 @@ public class MazeContainer {
                     }
                 }
                 else {
-                    if (Main.mazeRight.status != Status.READY) {
-                        if (Config.multiplayerOnline) {
-                            Main.mazeRight.setStatus(Status.NOT_READY_OPPONENT);
+
+                    if (status == Status.MIRRORING) {
+                        if (statusAfterMirror == Status.READY) {
+                            KeyHandler.Action.P2_READY.callback.run();
                         }
-                        else if (Config.multiplayerOffline) {
-                            Main.mazeRight.setStatus(Status.NOT_READY_P2);
+                        else {
+                            Main.mazeRight.setStatus(statusAfterMirror);
+                        }
+                    }
+
+                    else {
+
+                        if (Main.mazeRight.status != Status.READY) {
+                            if (Config.multiplayerOnline) {
+                                Main.mazeRight.setStatus(Status.NOT_READY_OPPONENT);
+                            }
+                            else if (Config.multiplayerOffline) {
+                                Main.mazeRight.setStatus(Status.NOT_READY_P2);
+                            }
                         }
                     }
                 }
@@ -753,6 +767,9 @@ public class MazeContainer {
         if (this == Main.mazeRight && Config.hostMirrorOpponent != isMirrored) {
 
             if (animationsFinished()) {
+                if (status != Status.MIRRORING) {
+                    statusAfterMirror = status;
+                }
                 setStatus(Status.MIRRORING);
                 setMaze(maze);
                 isMirrored = Config.hostMirrorOpponent;
@@ -790,10 +807,16 @@ public class MazeContainer {
                 // mirror first time
                 this.maze.mirror();
                 isMirrored = Config.hostMirrorOpponent;
+                if (status != Status.MIRRORING) {
+                    statusAfterMirror = status;
+                }
             }
             else if (Config.hostMirrorOpponent != isMirrored) {
                 // revert mirror (parameter `maze` is already mirrored, called from updateMirror())
                 this.maze.mirror();
+                if (status != Status.MIRRORING) {
+                    statusAfterMirror = status;
+                }
             }
         }
 

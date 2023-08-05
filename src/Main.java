@@ -270,6 +270,9 @@ public class Main {
             KeyHandler.Action.P2_READY.setCallback(() -> {
 
                 if (!mazeRight.status.allowsReady()) {
+                    if (mazeRight.status == MazeContainer.Status.MIRRORING) {
+                        mazeRight.statusAfterMirror = MazeContainer.Status.READY;
+                    }
                     return;
                 }
                 mazeRight.setStatus(MazeContainer.Status.READY);
