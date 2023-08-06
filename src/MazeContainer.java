@@ -69,7 +69,7 @@ public class MazeContainer {
         READY(COLOR_GREEN),
         NOT_READY_P1(COLOR_INFO),
         NOT_READY_P2(COLOR_INFO),
-        NOT_READY_OPPONENT(COLOR_INFO, "Not ready..."),
+        NOT_READY_OPPONENT(COLOR_INFO, "Not ready"),
         PLAYING(COLOR_GREEN),
         
         // info
@@ -119,8 +119,6 @@ public class MazeContainer {
             NOT_READY_P1.stringHelp = "Press " + KeyEvent.getKeyText(KeyHandler.Action.MAZE_NEW.keyCode) + " to regenerate.";
             
             NOT_READY_P2.stringStatus = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_READY.keyCode) + " to begin.";
-            
-            OPPONENT_NOT_CONNECTED.stringHelp = stringNewMaze;
 
             if (Main.mazeLeft != null) {
                 // potentially redraw labels
@@ -154,7 +152,7 @@ public class MazeContainer {
         }
 
         public boolean allowsNewMaze() {
-            return this == NOT_READY_P1 || this == MAZE_EMPTY || this == OPPONENT_NOT_CONNECTED || this == GAME_WON || this == GAME_LOST || this == SURRENDERED;
+            return this == NOT_READY_P1 || this == MAZE_EMPTY || this == GAME_WON || this == GAME_LOST || this == SURRENDERED;
         }
 
         public boolean allowsMove() {
@@ -373,11 +371,18 @@ public class MazeContainer {
                 onReset();
 
                 if (maze.currentNode == null) {
-                    if (Config.multiplayer && !isMainPlayer) {
-                        setStatus(Status.HOST_NOT_GENERATED);
-                    }
-                    else {
-                        setStatus(Status.MAZE_EMPTY);
+                    if (Config.multiplayer) {
+                        if (isMainPlayer && OnlineServer.opened) {
+                            setStatus(Status.MAZE_EMPTY);
+                        }
+                        else {
+                            if (OnlineClient.connected) {
+                                setStatus(Status.HOST_NOT_GENERATED);
+                            }
+                            else {
+                                setStatus(Status.HOST_NOT_OPENED);
+                            }
+                        }
                     }
                 }
                 else {
@@ -797,6 +802,13 @@ public class MazeContainer {
 
     // also resets texts
     public void setMaze(Maze maze) {
+
+        if (!tcNewMaze.finished) {
+            tcNewMaze.skip();
+        }
+        else if (!tcSpawnPlayer.finished) {
+            tcSpawnPlayer.skip();
+        }
 
         oldMaze = this.maze;
         this.maze = new Maze(maze);

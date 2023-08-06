@@ -58,29 +58,28 @@ public class Main {
             mazeRight.panelStatus.setVisible(false);
             OnlineServer.onClientDisconnect.run();
 
-            if (Config.multiplayerOnline && !OnlineServer.clientConnected) {
-                mazeLeft.setStatus(MazeContainer.Status.OPPONENT_NOT_CONNECTED);
-            }
-            else {
-                mazeLeft.setStatus(MazeContainer.Status.NOT_READY_P1);
-            }
+            maze = new Maze(maze.width, maze.height, Node.Type.WALL);
+
+            mazeLeft.setMaze(maze);
+            mazeLeft.setStatus(MazeContainer.Status.OPPONENT_NOT_CONNECTED);
         };
 
         OnlineServer.onClose = () -> {
             setToSingleplayer();
             mazeLeft.statusAfterAnimation = MazeContainer.Status.NOT_READY_P1;
+
+            mazeLeft.clearMaze();
+            mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
         };
 
         OnlineServer.onClientConnect = () -> {
             mazeRight.panelDisconnected.setVisible(false);
-            mazeLeft.setMaze(maze);     // reset server graphics
             mazeRight.setUserText("Opponent");
 
             OnlineServer.send(Config.getHostSettings());     // send server settings
             
             if (mazeLeft.status != MazeContainer.Status.MAZE_EMPTY) {
                 mazeLeft.setStatus(MazeContainer.Status.NOT_READY_P1);
-                mazeRight.setStatus(MazeContainer.Status.COPYING);
                 mazeRight.statusAfterAnimation = MazeContainer.Status.NOT_READY_OPPONENT;
                 mazeRight.setMaze(maze);
             }
@@ -112,6 +111,9 @@ public class Main {
             mazeRight.panelDisconnected.setVisible(false);
             mazeRight.setUserText("Opponent (searching...)");
             mazeLeft.setStatus(MazeContainer.Status.HOST_NOT_OPENED);
+            mazeLeft.statusAfterAnimation = MazeContainer.Status.HOST_NOT_GENERATED;
+            maze = new Maze(maze.width, maze.height, Node.Type.WALL);
+            mazeLeft.setMaze(maze);
         };
         
         OnlineClient.onStopSearch = () -> {
@@ -353,7 +355,7 @@ public class Main {
         });
 
         KeyHandler.Action.MAZE_NEW.setCallback(() -> {
-            if (Config.multiplayerOnline && !OnlineServer.opened) {
+            if (Config.multiplayerOnline && !OnlineServer.clientConnected) {
                 // prevent generating as client
                 return;
             }
