@@ -42,7 +42,7 @@ public class UI {
     // save as fields in order to modify when setting size
     private static JLabel pathLengthLabel;
 
-    public static JCheckBox[] hostCheckboxes = new JCheckBox[3];
+    public static JCheckBox[] hostCheckboxes = new JCheckBox[5];
     public static JSpinner hostHintLength;
 
     private static JSlider[] amountSliders = new JSlider[3];
@@ -181,35 +181,36 @@ public class UI {
         panelSettings.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Host settings"), borderPadding));
         panelCompetitive.add(panelSettings);
 
-        // host togglable settings
-        String[] names = new String[]{"hostMirrorOpponent", "hostShowUnsolvable", "hostShowAnimations"};
-        String[] titles = new String[]{"Mirror opponent", "Show \"unsolvable\"", "Show animations"};
-
-        for (int i=0; i<names.length; i++) {
-            hostCheckboxes[i] = new JCheckBox(titles[i]);
+        Config.Host[] settings = Config.Host.values();
+        for (int i=0; i<settings.length-1; i++) {       // NOTE: <-1 since first has different callback and last is HINT_LENGTH (not togglable)
+            hostCheckboxes[i] = new JCheckBox(settings[i].toString());
             hostCheckboxes[i].setAlignmentX(Component.LEFT_ALIGNMENT);
-            hostCheckboxes[i].setName(names[i]);
+            hostCheckboxes[i].setSelected(settings[i].enabled);
             panelSettings.add(hostCheckboxes[i]);
-        }
 
-        hostCheckboxes[0].setSelected(Config.hostMirrorOpponent);
-        hostCheckboxes[0].addItemListener(e -> {
-            Config.hostMirrorOpponent = e.getStateChange() == ItemEvent.SELECTED;
-            Main.mazeRight.updateMirror();
-            OnlineServer.send(Config.getHostSettings());
-        });
-        
-        hostCheckboxes[1].setSelected(Config.hostShowUnsolvable);
-        hostCheckboxes[1].addItemListener(e -> {
-            Config.hostShowUnsolvable = e.getStateChange() == ItemEvent.SELECTED;
-            OnlineServer.send(Config.getHostSettings());
-        });
-        
-        hostCheckboxes[2].setSelected(Config.hostShowAnimations);
-        hostCheckboxes[2].addItemListener(e -> {
-            Config.hostShowAnimations = e.getStateChange() == ItemEvent.SELECTED;
-            OnlineServer.send(Config.getHostSettings());
-        });
+            final int ii = i;
+
+            if (i == 0) {
+                hostCheckboxes[i].addItemListener(e -> {
+                    // adds a 2nd
+                    Main.mazeRight.updateMirror();
+                });
+            }
+
+            else if (i == 1) {
+                hostCheckboxes[i].addItemListener(e -> {
+                    Main.mazeLeft.updateAnimationsEnabled();
+                    Main.mazeRight.updateAnimationsEnabled();
+                });
+
+            }
+
+            // common for all (this is also called first)
+            hostCheckboxes[i].addItemListener(e -> {
+                settings[ii].enabled = e.getStateChange() == ItemEvent.SELECTED;
+                OnlineServer.send(Config.Host.getSettings());
+            });
+        }
         
         // hint length spinner
         subPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -219,17 +220,17 @@ public class UI {
         label.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 5));
         subPanel.add(label);
 
-        hostHintLength = new JSpinner(new SpinnerNumberModel(Config.hostHintLength, 0, 1, 0.05));
+        hostHintLength = new JSpinner(new SpinnerNumberModel(Config.Host.HINT_LENGTH.number, 0, 1, 0.05));
         hostHintLength.setPreferredSize(new Dimension(50, hostHintLength.getPreferredSize().height));
         subPanel.add(hostHintLength);
         hostHintLength.addChangeListener(e -> {
             try {
-                Config.hostHintLength = (float)hostHintLength.getValue();
+                Config.Host.HINT_LENGTH.number = (float)hostHintLength.getValue();
             }
             catch (ClassCastException e1) {
-                Config.hostHintLength = (float)(double)hostHintLength.getValue();
+                Config.Host.HINT_LENGTH.number = (float)(double)hostHintLength.getValue();
             }
-            OnlineServer.send(Config.getHostSettings());
+            OnlineServer.send(Config.Host.getSettings());
         });
 
         JFormattedTextField textField = ((JSpinner.DefaultEditor) hostHintLength.getEditor()).getTextField();
@@ -240,20 +241,20 @@ public class UI {
         panelSettings.add(subPanel);
     }
 
-    public static void applyHostSettings(HashMap<String, Object> settings) {
-
-        Config.hostMirrorOpponent = (boolean)settings.get("hostMirrorOpponent");
-        Config.hostShowUnsolvable = (boolean)settings.get("hostShowUnsolvable");
-        Config.hostShowAnimations = (boolean)settings.get("hostShowAnimations");
-        Config.hostHintLength = (float)settings.get("hostHintLength");
-
-        for (JCheckBox cb : hostCheckboxes) {
+    public static void applyHostSettings(HashMap<Config.Host, Object> settings) {
+        
+        Config.Host[] localSettings = Config.Host.values();
+        
+        for (int i=0; i<localSettings.length-1; i++) {
+            JCheckBox cb = hostCheckboxes[i];
+            localSettings[i].enabled = (boolean)settings.get(localSettings[i]);
             cb.setEnabled(false);
-            cb.setSelected((boolean)settings.get(cb.getName()));
+            cb.setSelected(localSettings[i].enabled);
         }
+        Config.Host.HINT_LENGTH.number = (float)settings.get(Config.Host.HINT_LENGTH);
         hostHintLength.setEnabled(false);
-        hostHintLength.setValue(Config.hostHintLength);
-
+        hostHintLength.setValue(Config.Host.HINT_LENGTH.number);
+        
         Main.mazeLeft.updateAnimationsEnabled();
         Main.mazeRight.updateAnimationsEnabled();
     }

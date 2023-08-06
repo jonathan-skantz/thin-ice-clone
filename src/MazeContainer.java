@@ -204,9 +204,9 @@ public class MazeContainer {
     }
 
     public void updateAnimationsEnabled() {
-        tcReset.skipOnStart = !Config.hostShowAnimations;
-        tcNewMaze.skipOnStart = !Config.hostShowAnimations;
-        tcSpawnPlayer.skipOnStart = !Config.hostShowAnimations;
+        tcReset.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
+        tcNewMaze.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
+        tcSpawnPlayer.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
     }
 
     private void setupText() {
@@ -288,7 +288,7 @@ public class MazeContainer {
         };
 
         tcReset.finished = true;    // used to allow manual stepping
-        tcReset.skipOnStart = !Config.hostShowAnimations;
+        tcReset.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
     }
 
     private void setupTimerSpawnPlayer() {
@@ -337,7 +337,7 @@ public class MazeContainer {
         };
 
         tcSpawnPlayer.finished = true;
-        tcSpawnPlayer.skipOnStart = !Config.hostShowAnimations;
+        tcSpawnPlayer.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
     }
 
     private void setupTimerNewMaze() {
@@ -406,7 +406,7 @@ public class MazeContainer {
             }
 
             @Override
-            public void onSkip() {               
+            public void onSkip() {
                 for (Node node : nodesToChange) {
                     refreshBlockGraphics(node);
                 }
@@ -415,7 +415,7 @@ public class MazeContainer {
         };
 
         tcNewMaze.finished = true;
-        tcNewMaze.skipOnStart = !Config.hostShowAnimations;
+        tcNewMaze.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
     }
 
     private boolean playerMustMove(Maze.Direction dir) {
@@ -473,7 +473,7 @@ public class MazeContainer {
 
         Node removedFirst = path.removeFirst();
 
-        int hintsLength = (int)(Config.hostHintLength * maze.creationPath.size());
+        int hintsLength = (int)(Config.Host.HINT_LENGTH.number * maze.creationPath.size());
 
         for (int hint=0; hint<hintsLength && hint<path.size(); hint++) {
             Node step = path.get(hint);
@@ -561,7 +561,9 @@ public class MazeContainer {
         if (!status.allowsReset()) {
             return false;
         }
-
+        else if (!Config.Host.ALLOW_RESETTING.enabled) {
+            return false;
+        }
         else if (maze.pathHistory.size() == 1) {
             // history is empty, no reason to reset
             return false;
@@ -588,7 +590,7 @@ public class MazeContainer {
             return;
         }
 
-        if (Config.hostShowUnsolvable) {
+        if (Config.Host.SHOW_UNSOLVABLE.enabled) {
 
             if (!solver.longestPath.get(maze.pathHistory.size()-1).equals(maze.currentNode)) {
                 // update longestPath since user stepped differently
@@ -668,7 +670,10 @@ public class MazeContainer {
         if (!status.allowsStep()) {
             return false;
         }
-        
+        else if (!Config.Host.ALLOW_BACKSTEPPING.enabled) {
+            return false;
+        }
+
         Node lastNode = maze.currentNode;
 
         Maze.Direction dir = maze.step(direction);
@@ -756,7 +761,7 @@ public class MazeContainer {
             return;
         }
 
-        if (!isMainPlayer && Config.hostMirrorOpponent != isMirrored) {
+        if (!isMainPlayer && Config.Host.MIRROR_OPPONENT.enabled != isMirrored) {
 
             if (animationsFinished()) {
                 if (status != Status.MIRRORING) {
@@ -764,7 +769,7 @@ public class MazeContainer {
                 }
                 setStatus(Status.MIRRORING);
                 setMaze(maze);
-                isMirrored = Config.hostMirrorOpponent;
+                isMirrored = Config.Host.MIRROR_OPPONENT.enabled;
             }
         }
     }
@@ -808,15 +813,15 @@ public class MazeContainer {
         this.maze = new Maze(maze);
 
         if (!isMainPlayer) {
-            if (Config.hostMirrorOpponent) {
+            if (Config.Host.MIRROR_OPPONENT.enabled) {
                 // mirror first time
                 this.maze.mirror();
-                isMirrored = Config.hostMirrorOpponent;
+                isMirrored = Config.Host.MIRROR_OPPONENT.enabled;
                 if (status != Status.MIRRORING) {
                     statusAfterAnimation = status;
                 }
             }
-            else if (Config.hostMirrorOpponent != isMirrored) {
+            else if (Config.Host.MIRROR_OPPONENT.enabled != isMirrored) {
                 // revert mirror (parameter `maze` is already mirrored, called from updateMirror())
                 this.maze.mirror();
                 if (status != Status.MIRRORING) {

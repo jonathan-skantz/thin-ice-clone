@@ -72,7 +72,7 @@ public class Main {
         };
 
         OnlineServer.onClientConnect = () -> {
-            OnlineServer.send(Config.getHostSettings());     // send server settings
+            OnlineServer.send(Config.Host.getSettings());     // send server settings
 
             mazeRight.clearMaze();
             mazeRight.setStatus(null);
@@ -95,8 +95,7 @@ public class Main {
         };
 
         OnlineServer.onReceived = () -> {
-            Object received = OnlineServer.receivedObject;
-            handleReceived(received);
+            handleReceived(OnlineServer.receivedObject);
         };
 
     }
@@ -149,8 +148,7 @@ public class Main {
         };
 
         OnlineClient.onReceived = () -> {
-            Object received = OnlineClient.receivedObject;
-            handleReceived(received);
+            handleReceived(OnlineClient.receivedObject);
         };
 
     }
@@ -207,7 +205,7 @@ public class Main {
         }
         else if (obj instanceof HashMap) {
             @SuppressWarnings("unchecked")
-            HashMap<String, Object> cast = (HashMap<String, Object>) obj;
+            HashMap<Config.Host, Object> cast = (HashMap<Config.Host, Object>) obj;
             UI.applyHostSettings(cast);
         }
     }

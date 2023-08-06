@@ -21,8 +21,8 @@ public class Config {
     public static final int MAZE_DEFAULT_HEIGHT = 5;
     public static final int MAZE_HEIGHT_MAX = 20;
 
-    public static final int DEFAULT_AMOUNT_GROUND = 10;
-    public static final int DEFAULT_AMOUNT_DOUBLES = 2;
+    public static final int DEFAULT_AMOUNT_GROUND = 6;
+    public static final int DEFAULT_AMOUNT_DOUBLES = 0;
 
     // block graphics
     public static int blockSize = 30;
@@ -37,20 +37,44 @@ public class Config {
     // flags for updates
     public static boolean newHintMax = false;
 
-    // host settings
-    public static boolean hostMirrorOpponent = false;
-    public static boolean hostShowUnsolvable = true;
-    public static boolean hostShowAnimations = true;
-    public static float hostHintLength = 0.05f;     // in percent
+    public enum Host {
+        MIRROR_OPPONENT(false),
+        SHOW_ANIMATIONS(true),
+        SHOW_UNSOLVABLE(true),
+        ALLOW_RESETTING(true),
+        ALLOW_BACKSTEPPING(true),
+        HINT_LENGTH(0.05f);
 
-    // only used to sending settings through socket
-    public static HashMap<String, Object> getHostSettings() {
-        return new HashMap<>() {{
-            put("hostMirrorOpponent", hostMirrorOpponent);
-            put("hostShowUnsolvable", hostShowUnsolvable);
-            put("hostShowAnimations", hostShowAnimations);
-            put("hostHintLength", hostHintLength);
-        }};
+        private final boolean IS_TOGGLABLE;
+        public boolean enabled;
+        public float number;
+
+        private Host(boolean enabled) {
+            this.enabled = enabled;
+            IS_TOGGLABLE = true;
+        }
+
+        private Host(float number) {
+            this.number = number;
+            IS_TOGGLABLE = false;
+        }
+
+        // only used to sending settings through socket
+        public static HashMap<Host, Object> getSettings() {
+            HashMap<Host, Object> map = new HashMap<>();
+
+            for (Host setting : values()) {
+                if (setting.IS_TOGGLABLE) {
+                    map.put(setting, setting.enabled);
+                }
+                else {
+                    map.put(setting, setting.number);
+                }
+            }
+
+            return map;
+        }
+
     }
 
     public static void applyDefault() {
