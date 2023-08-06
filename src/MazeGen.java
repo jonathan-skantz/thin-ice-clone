@@ -181,7 +181,7 @@ public class MazeGen {
 
     }
 
-    private static void printInfo() {
+    public static void printInfo() {
 
         StringBuilder sb = new StringBuilder();
         sb.append("Current MazeGen config:\n");
@@ -408,7 +408,6 @@ public class MazeGen {
     public static Maze generate() {
 
         cancel = false;
-        printInfo();
 
         for (Amount a : Amount.values()) {
             a.nodes.clear();

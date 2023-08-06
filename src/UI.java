@@ -12,6 +12,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -19,16 +20,19 @@ import javax.swing.ButtonGroup;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSlider;
+import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
+import javax.swing.text.DefaultFormatter;
 
 public class UI {
  
@@ -38,8 +42,8 @@ public class UI {
     // save as fields in order to modify when setting size
     private static JLabel pathLengthLabel;
 
-    private static JSlider hintMaxSlider;
-    private static JLabel hintMaxLabel;
+    public static JCheckBox[] hostCheckboxes = new JCheckBox[5];
+    public static JSpinner hostHintLength;
 
     private static JSlider[] amountSliders = new JSlider[3];
     private static JLabel[] amountLabels = new JLabel[3];
@@ -69,7 +73,7 @@ public class UI {
     }
 
     public static void setupConfigs() {
-        setupMultiplayerButton();
+        setupCompetitiveButton();
         setupKeyConfig();
         setupMazeConfig();
 
@@ -79,14 +83,23 @@ public class UI {
         Window.sprites.add(buttons);
     }
 
-    private static void setupMultiplayerButton() {
+    private static void setupCompetitiveButton() {
        
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        JPanel panelCompetitive = new JPanel();
+        panelCompetitive.setLayout(new BoxLayout(panelCompetitive, BoxLayout.Y_AXIS));
+        panelCompetitive.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        buttons.add(getConfigPopupButton("Competitive", panelCompetitive));
+        
+        // --- connection ---
+        final Border borderPadding = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+        JPanel panelConnection = new JPanel();
+        panelConnection.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JButton btn = getConfigPopupButton("Multiplayer", panel);
-        btn.setLocation(10, 10);        // topleft of window
-        Window.sprites.add(btn);
+        Border b = BorderFactory.createEmptyBorder(0, 0, 20, 0);
+        Border comb = BorderFactory.createCompoundBorder(b, BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Connection"), borderPadding));
+        panelConnection.setBorder(comb);
+        panelConnection.setLayout(new BoxLayout(panelConnection, BoxLayout.Y_AXIS));
+        panelCompetitive.add(panelConnection);
 
         // local gamemode
         JCheckBox cbLocal = new JCheckBox("Local");
@@ -94,19 +107,21 @@ public class UI {
         JCheckBox cbHost = new JCheckBox("Host port: ");
 
         cbLocal.addItemListener(e -> {
-            
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
-            if (selected) {
-                OnlineSocket.disconnect();
-            }
             Config.multiplayerOffline = selected;
+            Config.multiplayer = Config.multiplayerOnline || Config.multiplayerOffline;
             cbJoin.setEnabled(!selected);
             cbHost.setEnabled(!selected);
 
-            Main.updateMultiplayer();
+            if (selected) {
+                Main.setToLocalGamemode();
+            }
+            else {
+                Main.setToSingleplayer();
+            }
         });
         cbLocal.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(cbLocal);
+        panelConnection.add(cbLocal);
 
         // online: join
         FlowLayout subPanelLayout = new FlowLayout(FlowLayout.LEFT, cbLocal.getInsets().left, cbLocal.getInsets().top);
@@ -116,23 +131,24 @@ public class UI {
         JTextField textFieldJoin = new JTextField("12345", 5);
         cbJoin.addItemListener(e -> {
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
-            if (selected) {
-                OnlineSocket.join(Integer.valueOf(textFieldJoin.getText()));
-            }
-            else {
-                OnlineSocket.disconnect();
-            }
             Config.multiplayerOnline = selected;
+            Config.multiplayer = Config.multiplayerOnline || Config.multiplayerOffline;
             cbLocal.setEnabled(!selected);
             cbHost.setEnabled(!selected);
-            
-            Main.updateMultiplayer();
+
+            if (selected) {
+                // Main.updateMultiplayer();
+                OnlineClient.connect(Integer.valueOf(textFieldJoin.getText()));
+            }
+            else {
+                OnlineClient.disconnect();
+            }
         });
         cbJoin.setBorder(emptyBorder);
         subPanel.add(cbJoin);
         subPanel.add(textFieldJoin);
         subPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(subPanel);
+        panelConnection.add(subPanel);
         
         // online: host
         subPanel = new JPanel(subPanelLayout);
@@ -140,25 +156,121 @@ public class UI {
         cbHost.addItemListener(e -> {
             // TODO: clean-up textfield
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
-            if (selected) {
-                OnlineSocket.host(Integer.valueOf(textFieldHost.getText()));
-            }
-            else {
-                OnlineSocket.disconnect();
-            }
             Config.multiplayerOnline = selected;
+            Config.multiplayer = Config.multiplayerOnline || Config.multiplayerOffline;
             cbLocal.setEnabled(!selected);
             cbJoin.setEnabled(!selected);
-
-            Main.updateMultiplayer();
+            if (selected) {
+                OnlineServer.open(Integer.valueOf(textFieldHost.getText()));
+            }
+            else {
+                OnlineServer.close();
+            }
         });
         cbHost.setBorder(emptyBorder);
         subPanel.add(cbHost);
         subPanel.add(textFieldHost);
         subPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(subPanel);
+        panelConnection.add(subPanel);
+
+
+        // --- Settings ----
+        JPanel panelSettings = new JPanel();
+        panelSettings.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panelSettings.setLayout(new BoxLayout(panelSettings, BoxLayout.Y_AXIS));
+        panelSettings.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder("Host settings"), borderPadding));
+        panelCompetitive.add(panelSettings);
+
+        Config.Host[] settings = Config.Host.values();
+        for (int i=0; i<settings.length-1; i++) {       // NOTE: <-1 since first has different callback and last is HINT_LENGTH (not togglable)
+            hostCheckboxes[i] = new JCheckBox(settings[i].toString());
+            hostCheckboxes[i].setAlignmentX(Component.LEFT_ALIGNMENT);
+            hostCheckboxes[i].setSelected(settings[i].enabled);
+            panelSettings.add(hostCheckboxes[i]);
+
+            final int ii = i;
+
+            if (i == 0) {
+                hostCheckboxes[i].addItemListener(e -> {
+                    // adds a 2nd
+                    Main.mazeRight.updateMirror();
+                });
+            }
+
+            else if (i == 1) {
+                hostCheckboxes[i].addItemListener(e -> {
+                    Main.mazeLeft.updateAnimationsEnabled();
+                    Main.mazeRight.updateAnimationsEnabled();
+                });
+
+            }
+
+            // common for all (this is also called first)
+            hostCheckboxes[i].addItemListener(e -> {
+                settings[ii].enabled = e.getStateChange() == ItemEvent.SELECTED;
+                OnlineServer.send(Config.Host.getSettings());
+            });
+        }
+        
+        // hint length spinner
+        subPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        subPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel label = new JLabel("Hint length: ");
+        label.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 5));
+        subPanel.add(label);
+
+        hostHintLength = new JSpinner(new SpinnerNumberModel(Config.Host.HINT_LENGTH.number, 0, 1, 0.05));
+        hostHintLength.setPreferredSize(new Dimension(50, hostHintLength.getPreferredSize().height));
+        subPanel.add(hostHintLength);
+        hostHintLength.addChangeListener(e -> {
+            try {
+                Config.Host.HINT_LENGTH.number = (float)hostHintLength.getValue();
+            }
+            catch (ClassCastException e1) {
+                Config.Host.HINT_LENGTH.number = (float)(double)hostHintLength.getValue();
+            }
+            OnlineServer.send(Config.Host.getSettings());
+        });
+
+        JFormattedTextField textField = ((JSpinner.DefaultEditor) hostHintLength.getEditor()).getTextField();
+        DefaultFormatter formatter = (DefaultFormatter) textField.getFormatter();
+        formatter.setOverwriteMode(false);
+        formatter.setAllowsInvalid(false);
+
+        panelSettings.add(subPanel);
     }
 
+    public static void applyHostSettings(HashMap<Config.Host, Object> settings) {
+        
+        Config.Host[] localSettings = Config.Host.values();
+        
+        for (int i=0; i<localSettings.length-1; i++) {
+            JCheckBox cb = hostCheckboxes[i];
+            localSettings[i].enabled = (boolean)settings.get(localSettings[i]);
+            cb.setEnabled(false);
+            cb.setSelected(localSettings[i].enabled);
+        }
+        Config.Host.HINT_LENGTH.number = (float)settings.get(Config.Host.HINT_LENGTH);
+        hostHintLength.setEnabled(false);
+        hostHintLength.setValue(Config.Host.HINT_LENGTH.number);
+        
+        Main.mazeLeft.updateAnimationsEnabled();
+        Main.mazeRight.updateAnimationsEnabled();
+    }
+
+    public static void setHostSettingsEnabled(boolean enabled) {
+        for (JCheckBox cb : hostCheckboxes) {
+            cb.setEnabled(enabled);
+        }
+        hostHintLength.setEnabled(enabled);
+    }
+
+    public static void setConfigsEnabled(boolean enabled) {
+        for (Component btn : buttons.getComponents()) {
+            btn.setEnabled(enabled);
+        }
+    }
 
     // ---------- KEY CONFIG ----------
 
@@ -198,6 +310,7 @@ public class UI {
                         action.keyCode = e.getKeyCode();
                         btn.setText(KeyEvent.getKeyText(action.keyCode));
                         btn.removeKeyListener(this);
+                        MazeContainer.Status.onNewControls();
                     }
                 });
             });
@@ -254,15 +367,12 @@ public class UI {
         
         // add sizes subpanel
         JPanel panelSizes = setupMazeConfigSizes();
-        panelSizes.setBorder(BorderFactory.createTitledBorder(border, "Sizes"));
+        panelSizes.setBorder(BorderFactory.createTitledBorder(border, "Size"));
         rightCol.add(panelSizes);
         
         // add misc settings
         JPanel panelMisc = setupMazeMisc();
         panelMisc.setBorder(BorderFactory.createTitledBorder(border, "Miscellaneous"));
-        int w = panelSizes.getPreferredSize().width;
-        int h = panelMisc.getPreferredSize().height;
-        panelMisc.setPreferredSize(new Dimension(w, h));
         rightCol.add(panelMisc);
         
         // finally, add left and right columns
@@ -433,22 +543,18 @@ public class UI {
         // --- row 1: sliders ---
         JSlider widthSlider = getNewSlider(Config.MAZE_WIDTH_MIN, Config.MAZE_WIDTH_MAX, MazeGen.width);
         JSlider heightSlider = getNewSlider(Config.MAZE_HEIGHT_MIN, Config.MAZE_HEIGHT_MAX, MazeGen.height);
-        hintMaxSlider = getNewSlider(0, MazeGen.pathLength-1, Config.hintMax);
 
         c.gridy = 0;
         subPanel.add(widthSlider, c);
         subPanel.add(heightSlider, c);
-        subPanel.add(hintMaxSlider, c);
 
         // --- row 2: labels ---
         JLabel widthLabel = new JLabel("Width: " + widthSlider.getValue());
         JLabel heightLabel = new JLabel("Height: " + heightSlider.getValue());
-        hintMaxLabel = new JLabel("Hint length: " + hintMaxSlider.getValue());
         
         c.gridy = 1;
         subPanel.add(widthLabel, c);
         subPanel.add(heightLabel, c);
-        subPanel.add(hintMaxLabel, c);
 
         // add callbacks
         widthSlider.addChangeListener(e -> {
@@ -465,11 +571,6 @@ public class UI {
             updateNodeTypesSliders();
         });
 
-        hintMaxSlider.addChangeListener(e -> {
-            int val = hintMaxSlider.getValue();
-            hintMaxLabel.setText("Hint length: " + val);
-            Config.hintMax = val;
-        });
 
         return subPanel;
     }
@@ -507,48 +608,17 @@ public class UI {
         JPanel checkboxes = new JPanel();
         checkboxes.setLayout(new BoxLayout(checkboxes, BoxLayout.Y_AXIS));
         
-        // --- checkbox 1: show "unsolvable" ---
-        JCheckBox cb = new JCheckBox("Show \"unsolvable\"");
-        cb.setSelected(Config.showUnsolvable);
-        JPanel panel = getPanelWithToolTipAndCheckBox(cb, "Also requires stepback or reset to continue");
-        cb.addItemListener(e -> {
-            Config.showUnsolvable = e.getStateChange() == ItemEvent.SELECTED;
-            
-            if (Main.firstMazeCreated) {
-                Main.mazeLeft.testGameOver();
-                
-                if (Main.mazeRight != null) {
-                    Main.mazeRight.testGameOver();
-                }
-            }
-        });
-        checkboxes.add(panel);
-
-        // --- checkbox 2: mirror right maze ---
-        cb = new JCheckBox("Mirror right maze");
-        cb.setSelected(Config.mirrorRightMaze);
-        panel = getPanelWithToolTipAndCheckBox(cb, null);
-        cb.addItemListener(e -> {
-            
-            Config.mirrorRightMaze = e.getStateChange() == ItemEvent.SELECTED;
-            System.out.println("mirror click");
-            if (Main.mazeRight != null) {
-                Main.mazeRight.updateMirror();
-            }
-        });
-        checkboxes.add(panel);
-
-        // --- checkbox 3: doubles are placed first ---
-        cb = new JCheckBox("Doubles are placed first (faster)");
+        // --- checkbox 1: doubles are placed first ---
+        JCheckBox cb = new JCheckBox("Doubles are placed first (faster)");
         cb.setSelected(MazeGen.doublesArePlacedFirst);
-        panel = getPanelWithToolTipAndCheckBox(cb, "Place doubles one after another right after start node");
+        JPanel panel = getPanelWithToolTipAndCheckBox(cb, "Place doubles one after another right after start node");
         cb.addItemListener(e -> {
             MazeGen.doublesArePlacedFirst = e.getStateChange() == ItemEvent.SELECTED;
         });
         checkboxes.add(Box.createVerticalStrut(5));
         checkboxes.add(panel);
 
-        // --- checkbox 4: change types during backtrack
+        // --- checkbox 2: change types during backtrack
         cb = new JCheckBox("Change types during backtrack");
         cb.setSelected(MazeGen.tryChangeNodeType);
         panel = getPanelWithToolTipAndCheckBox(cb,
@@ -583,13 +653,6 @@ public class UI {
                 amountSliders[i].setEnabled(true);
             }
         }
-
-        // TODO: doesn't work with doubles that result in paths longer than wxh
-        if (MazeGen.amountNodesAll < Config.hintMax) {
-            Config.setHintMax(MazeGen.amountNodesAll);
-            hintMaxSlider.setMaximum(MazeGen.pathLength-1);
-            hintMaxLabel.setText("Hint length: " + Config.hintMax);
-        }
         
         pathLengthLabel.setText("Resulting path length: " + MazeGen.pathLength);
         
@@ -609,7 +672,7 @@ public class UI {
         return slider;
     }
 
-    private static JPanel getPanelWithToolTipAndCheckBox(JComponent cb, String tip) {
+    private static JPanel getPanelWithToolTipAndCheckBox(Component cb, String tip) {
 
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
 

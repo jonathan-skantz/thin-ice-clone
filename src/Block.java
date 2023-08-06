@@ -28,19 +28,10 @@ public class Block extends JComponent {
     private static Random rand = new Random();
 
     public Block(Node.Type type, int size) {
-        createBlock(typeToPath(type), size);
+        this(typeToPath(type), size);
     }
 
     public Block(String path, int size) {
-        createBlock(path, size);
-    }
-
-    private String typeToPath(Node.Type type) {
-        return "src/textures/" + type.name().toLowerCase() + ".png";
-    }
-
-    private void createBlock(String path, int size) {
-
         this.path = path;
 
         bottomImage = Image.resize(path, size, size);
@@ -50,6 +41,10 @@ public class Block extends JComponent {
         setBounds(0, 0, size, size);
 
         beginAnimation();
+    }
+
+    private static String typeToPath(Node.Type type) {
+        return "src/textures/" + type.name().toLowerCase() + ".png";
     }
 
     // moving water animation
@@ -91,6 +86,14 @@ public class Block extends JComponent {
         combineFrost();
 
         beginAnimation();
+    }
+
+    public void clearFrost(Node node) {
+        for (int i=0; i<frostImages.length; i++) {
+            frostImages[i] = null;
+        }
+
+        combineFrost();
     }
 
     public void setFrost(Node thisNode, Node frostNeighbor, boolean visible) {
