@@ -265,6 +265,12 @@ public class UI {
         hostHintLength.setEnabled(enabled);
     }
 
+    public static void setConfigsEnabled(boolean enabled) {
+        for (Component btn : buttons.getComponents()) {
+            btn.setEnabled(enabled);
+        }
+    }
+
     // ---------- KEY CONFIG ----------
 
     private static void setupKeyConfig() {

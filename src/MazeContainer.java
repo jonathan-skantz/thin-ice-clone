@@ -418,27 +418,6 @@ public class MazeContainer {
         tcNewMaze.skipOnStart = !Config.hostShowAnimations;
     }
 
-    // pauses animations
-    public void freeze() {
-
-        for (int y=0; y<maze.height; y++) {
-            for (int x=0; x<maze.width; x++) {
-                Block block = blocks[y][x];
-                if (block.tcWater != null) {
-                    block.tcWater.reset();
-                }
-            }
-        }
-
-        tcReset.reset();
-        tcNewMaze.reset();
-        tcSpawnPlayer.reset();
-
-        tcReset.finished = true;
-        tcNewMaze.finished = true;
-        tcSpawnPlayer.finished = true;
-    }
-
     private boolean playerMustMove(Maze.Direction dir) {
 
         if (maze.walkable(maze.currentNode.getNeighbor(dir))) {
@@ -729,14 +708,23 @@ public class MazeContainer {
         textSteps.setLocation(Window.getXCenteredMaze(textSteps), textSteps.getY());
     }
 
+    // sets `statusAfterAnimation` to null
     public void setStatus(Status status) {
 
-        if (Status.ANIMATIONS.contains(status) && !tcSpawnPlayer.finished) {
+        if (status == null) {
+            this.status = null;
+            panelStatus.setVisible(false);
+            statusAfterAnimation = null;
+            return;
+        }
+
+        if (Status.ANIMATIONS.contains(status) && (!tcNewMaze.finished || !tcSpawnPlayer.finished)) {
             statusAfterAnimation = status;
             return;
         }
 
         this.status = status;
+        statusAfterAnimation = null;
 
         if (status.stringStatus == null) {
             textStatus.setVisible(false);
@@ -784,7 +772,13 @@ public class MazeContainer {
     // used to clear mazeRight when opponent disconnects
     public void clearMaze() {
         
-        freeze();
+        tcNewMaze.reset();
+        tcSpawnPlayer.reset();
+        tcReset.reset();
+
+        tcNewMaze.finished = true;
+        tcSpawnPlayer.finished = true;
+        tcReset.finished = true;
         
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {

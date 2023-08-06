@@ -53,44 +53,43 @@ public class Main {
     private static void setupOnlineServerCallbacks() {
         
         OnlineServer.onOpen = () -> {
-            MazeGen.cancel = true;
+            onSwitchGamemode();
+
             Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
-            mazeLeft.setUserText("You (host)");
-            mazeRight.panelStatus.setVisible(false);
+            
+            mazeRight.clearMaze();
+            mazeRight.setStatus(null);
             mazeRight.panelDisconnected.setVisible(true);
             mazeRight.setUserText("Opponent (searching...)");
-
-            mazeLeft.setStatus(MazeContainer.Status.OPPONENT_NOT_CONNECTED);
+            
             mazeLeft.clearMaze();
-            mazeRight.clearMaze();
+            mazeLeft.setUserText("You (host)");
+            mazeLeft.setStatus(MazeContainer.Status.OPPONENT_NOT_CONNECTED);
         };
 
         OnlineServer.onClose = () -> {
             setToSingleplayer();
-
-            mazeLeft.clearMaze();
-            mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
         };
 
         OnlineServer.onClientConnect = () -> {
-            mazeRight.panelDisconnected.setVisible(false);
-            mazeRight.setUserText("Opponent");
-            mazeRight.panelStatus.setVisible(false);
-
             OnlineServer.send(Config.getHostSettings());     // send server settings
 
+            mazeRight.clearMaze();
+            mazeRight.setStatus(null);
+            mazeRight.panelDisconnected.setVisible(false);
+            mazeRight.setUserText("Opponent");
+            
             mazeLeft.clearMaze();
             mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
-            mazeRight.clearMaze();
         };
 
         OnlineServer.onClientDisconnect = () -> {
-            
             if (OnlineServer.opened) {
+                mazeRight.setStatus(null);
                 mazeRight.panelDisconnected.setVisible(true);
                 mazeRight.setUserText("Opponent (searching...)");
+
                 mazeLeft.setStatus(MazeContainer.Status.OPPONENT_NOT_CONNECTED);
-                mazeRight.panelStatus.setVisible(false);
             }
             
         };
@@ -105,47 +104,47 @@ public class Main {
     private static void setupOnlineClientCallbacks() {
 
         OnlineClient.onStartSearch = () -> {
-            MazeGen.cancel = true;
+            onSwitchGamemode();
+            
+            UI.setHostSettingsEnabled(false);
             Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
-            mazeLeft.setUserText("You");
-            mazeRight.panelStatus.setVisible(false);
-            mazeRight.panelDisconnected.setVisible(false);
+            
+            mazeRight.panelDisconnected.setVisible(true);
             mazeRight.setUserText("Opponent (searching...)");
+            mazeRight.setStatus(null);
+            
+            mazeLeft.setUserText("You");
             mazeLeft.setStatus(MazeContainer.Status.HOST_NOT_OPENED);
-            mazeLeft.statusAfterAnimation = MazeContainer.Status.HOST_NOT_GENERATED;
-            maze = new Maze(maze.width, maze.height, Node.Type.WALL);
-            mazeLeft.setMaze(maze);
         };
         
         OnlineClient.onStopSearch = () -> {
-            OnlineClient.onDisconnect.run();
-            mazeRight.panelStatus.setVisible(true);
+            onSwitchGamemode();
+            UI.setHostSettingsEnabled(true);
+            Window.setSize(Window.mazeWidth, Window.mazeHeight);
+
+            mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
         };
 
         OnlineClient.onConnect = () -> {
-            UI.setHostSettingsEnabled(false);
+            
+            mazeRight.clearMaze();
             mazeRight.panelDisconnected.setVisible(false);
-            mazeLeft.setUserText("You");
             mazeRight.setUserText("Opponent (host)");
-
-            mazeLeft.panelStatus.setVisible(false);
             mazeRight.setStatus(MazeContainer.Status.HOST_NOT_GENERATED);
+            
+            mazeLeft.clearMaze();
+            mazeLeft.setUserText("You");
+            mazeLeft.setStatus(null);
         };
 
         OnlineClient.onDisconnect = () -> {
-
             if (OnlineClient.tryReconnecting) {
-                return;
-            }
-
-            setToSingleplayer();
-
-            if (maze.currentNode == null) {
-                mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
+                mazeRight.panelDisconnected.setVisible(true);
+                mazeRight.setStatus(null);
+                mazeLeft.setStatus(MazeContainer.Status.HOST_NOT_OPENED);
             }
             else {
-                // TODO: clear?
-                mazeLeft.setStatus(MazeContainer.Status.NOT_READY_P1);
+                setToSingleplayer();
             }
         };
 
@@ -157,39 +156,30 @@ public class Main {
     }
 
     public static void setToLocalGamemode() {
+        onSwitchGamemode();
         Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
-        mazeLeft.setUserText("Player 1");
-        mazeRight.setUserText("Player 2");
+        
         mazeRight.panelDisconnected.setVisible(false);
+        mazeRight.setStatus(MazeContainer.Status.HOST_NOT_GENERATED);
+        mazeRight.setUserText("Player 2");
 
-        if (maze.currentNode != null) {
-            mazeLeft.setMaze(maze);
-            mazeLeft.statusAfterAnimation = MazeContainer.Status.NOT_READY_P1;
-        }
-        
-        if (maze.equals(mazeRight.maze)) {
-            if (maze.currentNode == null) {
-                mazeRight.setStatus(MazeContainer.Status.HOST_NOT_GENERATED);
-            }
-            else {
-                mazeRight.setStatus(MazeContainer.Status.NOT_READY_P2);
-            }
-        }
-        
-        else {
-            mazeRight.setMaze(maze);
-            mazeRight.statusAfterAnimation = MazeContainer.Status.NOT_READY_P2;
-            mazeRight.setStatus(MazeContainer.Status.COPYING);
-        }
+        mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
+        mazeLeft.setUserText("Player 1");
     }
 
     public static void setToSingleplayer() {
+        onSwitchGamemode();
+        Window.setSize(Window.mazeWidth, Window.mazeHeight);
+
+        mazeLeft.setUserText("Singleplayer");
+        mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
+    }
+
+    private static void onSwitchGamemode() {
         MazeGen.cancel = true;
         mazeLeft.clearMaze();
-        mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
-        Window.setSize(Window.mazeWidth, Window.mazeHeight);
-        mazeLeft.setUserText("Singleplayer");
-        mazeRight.freeze();
+        mazeRight.clearMaze();
+        UI.setConfigsEnabled(true);
     }
 
     private static void handleReceived(Object obj) {
@@ -228,6 +218,7 @@ public class Main {
             @Override
             public void onStart() {
                 textCountdown.setVisible(true);
+                UI.setConfigsEnabled(false);
             }
             
             @Override
@@ -312,7 +303,7 @@ public class Main {
             mazeRight.setStatus(MazeContainer.Status.READY);
 
             if (Config.multiplayer && mazeLeft.status == MazeContainer.Status.READY) {
-                UI.setHostSettingsEnabled(false);
+                UI.setConfigsEnabled(false);
             }
 
             if (!Config.multiplayer || mazeLeft.status == MazeContainer.Status.READY) {
@@ -325,7 +316,7 @@ public class Main {
                 return;
             }
 
-            UI.setHostSettingsEnabled(true);
+            UI.setConfigsEnabled(true);
             mazeRight.setStatus(MazeContainer.Status.SURRENDERED);
             mazeLeft.setStatus(MazeContainer.Status.GAME_WON);
         });
@@ -339,10 +330,6 @@ public class Main {
             mazeLeft.setStatus(MazeContainer.Status.READY);
             tryToSend(KeyHandler.Action.P2_READY);
 
-            if (!Config.multiplayerOffline) {
-                UI.setHostSettingsEnabled(false);
-            }
-
             if (!Config.multiplayer || mazeRight.status == MazeContainer.Status.READY) {
                 tcCountdown.start();
             }
@@ -352,7 +339,8 @@ public class Main {
             if (!mazeLeft.status.allowsSurrender()) {
                 return;
             }
-            UI.setHostSettingsEnabled(true);
+            
+            UI.setConfigsEnabled(true);
             mazeLeft.setStatus(MazeContainer.Status.SURRENDERED);
             mazeRight.setStatus(MazeContainer.Status.GAME_WON);
             tryToSend(KeyHandler.Action.P2_SURRENDER);
@@ -450,18 +438,13 @@ public class Main {
 
     public static void copyOpponentMaze(Maze maze) {
         
-        if (!Main.maze.equals(maze)) {
-            mazeLeft.setStatus(MazeContainer.Status.COPYING);
-            mazeLeft.statusAfterAnimation = MazeContainer.Status.NOT_READY_P1;
-            mazeLeft.setMaze(maze);
-        }
+        mazeLeft.setStatus(MazeContainer.Status.COPYING);
+        mazeLeft.statusAfterAnimation = MazeContainer.Status.NOT_READY_P1;
+        mazeLeft.setMaze(maze);
 
-        if (maze.currentNode != null) {
-            // prevents displaying "Generating..." when first is not generated
-            mazeRight.setStatus(MazeContainer.Status.GENERATING);
-            mazeRight.statusAfterAnimation = MazeContainer.Status.NOT_READY_OPPONENT;
-            mazeRight.setMaze(maze);
-        }
+        mazeRight.setStatus(MazeContainer.Status.GENERATING);
+        mazeRight.statusAfterAnimation = MazeContainer.Status.NOT_READY_OPPONENT;
+        mazeRight.setMaze(maze);
         
         Main.maze = maze;
     }
