@@ -117,7 +117,7 @@ public class UI {
                 Main.setToLocalGamemode();
             }
             else {
-                OnlineClient.onDisconnect.run();
+                Main.setToSingleplayer();
             }
         });
         cbLocal.setAlignmentX(Component.LEFT_ALIGNMENT);

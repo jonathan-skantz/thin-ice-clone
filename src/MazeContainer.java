@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
@@ -24,7 +25,7 @@ public class MazeContainer {
     private LinkedList<Node> nodesToChange = new LinkedList<>();
 
     public boolean isMirrored;
-    public Status statusAfterMirror;
+    public Status statusAfterAnimation;
 
     public Status status;
     
@@ -44,14 +45,21 @@ public class MazeContainer {
     public JPanel panelStatus = new JPanel();
     public JPanel panelDisconnected = new JPanel();     // gray overlay on panelMaze
 
+    private final boolean isMainPlayer;
+
     private static final Color COLOR_GREEN = new Color(50, 150, 50);
     private static final Color COLOR_ORANGE = new Color(200, 150, 50);
     private static final Color COLOR_RED = new Color(200, 50, 50);
     private static final Color COLOR_INFO = new Color(50, 50, 50);
 
     public enum Status {
-        WAITING_FOR_FIRST_MAZE(COLOR_INFO, "First maze not generated."),
-        WAITING_FOR_OPPONENT(COLOR_INFO, "Waiting for opponent..."),
+        MAZE_EMPTY(COLOR_INFO, "First maze not generated."),
+        // WAITING_FOR_OPPONENT_START(COLOR_INFO, "Waiting for opponent to begin..."),
+        HOST_NOT_GENERATED(COLOR_INFO, "Waiting for host to generate..."),
+        
+        OPPONENT_NOT_CONNECTED(COLOR_INFO, "Waiting for opponent to connect..."),
+        HOST_NOT_OPENED(COLOR_INFO, "Waiting for host to open..."),
+
         GAME_WON(COLOR_GREEN, "Game won."),
         INCOMPLETE(COLOR_ORANGE),
         UNSOLVABLE(COLOR_RED),
@@ -59,9 +67,9 @@ public class MazeContainer {
         SURRENDERED(COLOR_RED, "Surrendered."),
         
         READY(COLOR_GREEN),
-        NOT_READY(COLOR_INFO),
+        NOT_READY_P1(COLOR_INFO),
         NOT_READY_P2(COLOR_INFO),
-        NOT_READY_OPPONENT(COLOR_INFO, "Waiting for opponent..."),
+        NOT_READY_OPPONENT(COLOR_INFO, "Not ready..."),
         PLAYING(COLOR_GREEN),
         
         // info
@@ -70,11 +78,17 @@ public class MazeContainer {
         MIRRORING(COLOR_INFO, "Mirroring..."),
         COPYING(COLOR_INFO, "Copying...");
 
+        public static final HashSet<Status> ANIMATIONS = new HashSet<>() {{
+            add(RESETTING);
+            add(GENERATING);
+            add(MIRRORING);
+            add(COPYING);
+        }};
         public final Color color;
         public String stringStatus;
         public String stringHelp;
 
-        private static String stringNewMaze;
+        public static String stringNewMaze;
 
         static {
             // after all values have been constructed
@@ -96,19 +110,17 @@ public class MazeContainer {
         public static void onNewControls() {
             stringNewMaze = "Press " + KeyEvent.getKeyText(KeyHandler.Action.MAZE_NEW.keyCode) + " to generate new maze.";
 
-            WAITING_FOR_FIRST_MAZE.stringHelp = stringNewMaze;
-            WAITING_FOR_OPPONENT.stringHelp = stringNewMaze;
+            MAZE_EMPTY.stringHelp = stringNewMaze;
             GAME_WON.stringHelp = stringNewMaze;
             GAME_LOST.stringHelp = stringNewMaze;
             SURRENDERED.stringHelp = stringNewMaze;
 
-            NOT_READY.stringStatus = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_READY.keyCode) + " to begin.";
-            NOT_READY.stringHelp = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_SURRENDER.keyCode) + " to surrender.";
+            NOT_READY_P1.stringStatus = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_READY.keyCode) + " to begin.";
+            NOT_READY_P1.stringHelp = "Press " + KeyEvent.getKeyText(KeyHandler.Action.MAZE_NEW.keyCode) + " to regenerate.";
             
             NOT_READY_P2.stringStatus = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_READY.keyCode) + " to begin.";
-            NOT_READY_P2.stringHelp = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_SURRENDER.keyCode) + " to surrender.";
-
-            NOT_READY_OPPONENT.stringStatus = "Waiting for opponent...";
+            
+            OPPONENT_NOT_CONNECTED.stringHelp = stringNewMaze;
 
             if (Main.mazeLeft != null) {
                 // potentially redraw labels
@@ -134,15 +146,15 @@ public class MazeContainer {
         }
 
         public boolean allowsReady() {
-            return this == NOT_READY || this == NOT_READY_OPPONENT || this == NOT_READY_P2;
+            return this == NOT_READY_P1 || this == NOT_READY_P2;
         }
 
         public boolean allowsSurrender() {
-            return this == PLAYING || this == INCOMPLETE || this == UNSOLVABLE || this == NOT_READY || this == NOT_READY_P2 || this == NOT_READY_OPPONENT;
+            return this == PLAYING || this == INCOMPLETE || this == UNSOLVABLE;
         }
 
         public boolean allowsNewMaze() {
-            return this == WAITING_FOR_FIRST_MAZE || this == WAITING_FOR_OPPONENT || this == GAME_WON || this == GAME_LOST || this == SURRENDERED;
+            return this == NOT_READY_P1 || this == MAZE_EMPTY || this == OPPONENT_NOT_CONNECTED || this == GAME_WON || this == GAME_LOST || this == SURRENDERED;
         }
 
         public boolean allowsMove() {
@@ -150,7 +162,9 @@ public class MazeContainer {
         }
     }
 
-    public MazeContainer(int windowX) {
+    public MazeContainer(int windowX, boolean isMainPlayer) {
+
+        this.isMainPlayer = isMainPlayer;
 
         // set up panels
         maze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
@@ -181,7 +195,7 @@ public class MazeContainer {
         setupTimerSpawnPlayer();
         setupTimerNewMaze();
 
-        setStatus(Status.WAITING_FOR_FIRST_MAZE);
+        setStatus(Status.MAZE_EMPTY);
 
         panelDisconnected.setBackground(new Color(150, 150, 150, 150));
         panelDisconnected.setSize(panelMaze.getSize());
@@ -281,8 +295,6 @@ public class MazeContainer {
 
     private void setupTimerSpawnPlayer() {
 
-        MazeContainer thisContainer = this;
-
         tcSpawnPlayer = new TimedCounter(0.5f, 15) {
             @Override
             public void onStart() {
@@ -319,33 +331,9 @@ public class MazeContainer {
                 movePlayerGraphicsTo(maze.startNode);
                 player.setVisible(true);
 
-                if (thisContainer == Main.mazeLeft) {
-                    if (Main.mazeLeft.status != Status.READY) {
-                        setStatus(Status.NOT_READY);
-                    }
-                }
-                else {
-
-                    if (status == Status.MIRRORING) {
-                        if (statusAfterMirror == Status.READY) {
-                            KeyHandler.Action.P2_READY.callback.run();
-                        }
-                        else {
-                            Main.mazeRight.setStatus(statusAfterMirror);
-                        }
-                    }
-
-                    else {
-
-                        if (Main.mazeRight.status != Status.READY) {
-                            if (Config.multiplayerOnline) {
-                                Main.mazeRight.setStatus(Status.NOT_READY_OPPONENT);
-                            }
-                            else if (Config.multiplayerOffline) {
-                                Main.mazeRight.setStatus(Status.NOT_READY_P2);
-                            }
-                        }
-                    }
+                if (statusAfterAnimation != null) {
+                    status = null;
+                    setStatus(statusAfterAnimation);
                 }
             }
         };
@@ -385,7 +373,12 @@ public class MazeContainer {
                 onReset();
 
                 if (maze.currentNode == null) {
-                    setStatus(Status.WAITING_FOR_FIRST_MAZE);
+                    if (Config.multiplayer && !isMainPlayer) {
+                        setStatus(Status.HOST_NOT_GENERATED);
+                    }
+                    else {
+                        setStatus(Status.MAZE_EMPTY);
+                    }
                 }
                 else {
                     tcSpawnPlayer.start();
@@ -421,7 +414,7 @@ public class MazeContainer {
     }
 
     // pauses animations
-    private void freeze() {
+    public void freeze() {
 
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
@@ -663,11 +656,11 @@ public class MazeContainer {
                 }
             }
 
-            int stepsMax = Main.mazeLeft.maze.creationPath.size();     // both have same max steps
+            int stepsMax = maze.creationPath.size();     // both have same max steps
 
             if (maze.pathHistory.size() == stepsMax) {
                 setStatus(Status.GAME_WON);
-                MazeContainer other = this == Main.mazeLeft ? Main.mazeRight : Main.mazeLeft;
+                MazeContainer other = isMainPlayer ? Main.mazeRight : Main.mazeLeft;
                 other.setStatus(MazeContainer.Status.GAME_LOST);
 
                 // enable UI
@@ -732,6 +725,12 @@ public class MazeContainer {
     }
 
     public void setStatus(Status status) {
+
+        if (Status.ANIMATIONS.contains(status) && !tcSpawnPlayer.finished) {
+            statusAfterAnimation = status;
+            return;
+        }
+
         this.status = status;
 
         if (status.stringStatus == null) {
@@ -745,7 +744,7 @@ public class MazeContainer {
         }
         textStatus.revalidate();        // since `panelStatus` and `textHelp` may have been resized
 
-        if (status.hidesInfo() || Config.multiplayerOnline && this == Main.mazeRight) {
+        if (status.hidesInfo() || !isMainPlayer || OnlineClient.connected) {
             textHelp.setVisible(false);
         }
         else {
@@ -753,22 +752,22 @@ public class MazeContainer {
             textHelp.setSize(textHelp.getPreferredSize());
             textHelp.setVisible(true);
         }
-        panelStatus.setVisible(true);
         panelStatus.setSize(panelStatus.getPreferredSize());
         panelStatus.setLocation(Window.getXCenteredMaze(panelStatus), 10);
+        panelStatus.setVisible(true);
     }
 
     public void updateMirror() {
 
-        if (status == Status.WAITING_FOR_FIRST_MAZE) {
+        if (maze.currentNode == null) {
             return;
         }
 
-        if (this == Main.mazeRight && Config.hostMirrorOpponent != isMirrored) {
+        if (!isMainPlayer && Config.hostMirrorOpponent != isMirrored) {
 
             if (animationsFinished()) {
                 if (status != Status.MIRRORING) {
-                    statusAfterMirror = status;
+                    statusAfterAnimation = status;
                 }
                 setStatus(Status.MIRRORING);
                 setMaze(maze);
@@ -802,20 +801,20 @@ public class MazeContainer {
         oldMaze = this.maze;
         this.maze = new Maze(maze);
 
-        if (this == Main.mazeRight) {
+        if (!isMainPlayer) {
             if (Config.hostMirrorOpponent) {
                 // mirror first time
                 this.maze.mirror();
                 isMirrored = Config.hostMirrorOpponent;
                 if (status != Status.MIRRORING) {
-                    statusAfterMirror = status;
+                    statusAfterAnimation = status;
                 }
             }
             else if (Config.hostMirrorOpponent != isMirrored) {
                 // revert mirror (parameter `maze` is already mirrored, called from updateMirror())
                 this.maze.mirror();
                 if (status != Status.MIRRORING) {
-                    statusAfterMirror = status;
+                    statusAfterAnimation = status;
                 }
             }
         }
