@@ -378,7 +378,6 @@ public class Main {
         }
 
         mazeLeft.setStatus(MazeContainer.Status.GENERATING);
-        mazeLeft.statusAfterAnimation = MazeContainer.Status.NOT_READY_P1;
 
         MazeGen.cancel = true;
         while (!mazeGenThreadDone); {}
@@ -394,6 +393,7 @@ public class Main {
                 System.out.println(maze.creationPath);
                 maze.printCreationPath();
 
+                mazeLeft.statusAfterAnimation = MazeContainer.Status.NOT_READY_P1;
                 mazeLeft.setMaze(maze);
 
                 if (Config.multiplayerOffline || tryToSend(maze)) {
@@ -407,10 +407,6 @@ public class Main {
                     }
                     mazeRight.setMaze(maze);
                 }
-            }
-
-            else {
-                System.out.println("mazegen cancelled");
             }
             mazeGenThreadDone = true;
 

@@ -25,9 +25,9 @@ public class MazeContainer {
     private LinkedList<Node> nodesToChange = new LinkedList<>();
 
     public boolean isMirrored;
-    public Status statusAfterAnimation;
 
     public Status status;
+    public Status statusAfterAnimation;
     
     private Block player;
     private Block[][] blocks;
@@ -329,10 +329,7 @@ public class MazeContainer {
                 movePlayerGraphicsTo(maze.startNode);
                 player.setVisible(true);
 
-                if (statusAfterAnimation != null) {
-                    status = null;
-                    setStatus(statusAfterAnimation);
-                }
+                setStatus(statusAfterAnimation);
             }
         };
 
@@ -713,9 +710,7 @@ public class MazeContainer {
         textSteps.setLocation(Window.getXCenteredMaze(textSteps), textSteps.getY());
     }
 
-    // sets `statusAfterAnimation` to null
     public void setStatus(Status status) {
-
         if (status == null) {
             this.status = null;
             panelStatus.setVisible(false);
@@ -723,13 +718,16 @@ public class MazeContainer {
             return;
         }
 
-        if (Status.ANIMATIONS.contains(status) && (!tcNewMaze.finished || !tcSpawnPlayer.finished)) {
-            statusAfterAnimation = status;
-            return;
+        if (status == statusAfterAnimation) {
+            if (animationsFinished()) {
+                statusAfterAnimation = null;
+            }
+            else {
+                return;
+            }
         }
 
         this.status = status;
-        statusAfterAnimation = null;
 
         if (status.stringStatus == null) {
             textStatus.setVisible(false);
@@ -764,7 +762,7 @@ public class MazeContainer {
         if (!isMainPlayer && Config.Host.MIRROR_OPPONENT.enabled != isMirrored) {
 
             if (animationsFinished()) {
-                if (status != Status.MIRRORING) {
+                if (!Status.ANIMATIONS.contains(status)) {
                     statusAfterAnimation = status;
                 }
                 setStatus(Status.MIRRORING);
@@ -803,10 +801,10 @@ public class MazeContainer {
     public void setMaze(Maze maze) {
 
         if (!tcNewMaze.finished) {
-            tcNewMaze.skip();
+            tcNewMaze.reset();
         }
         else if (!tcSpawnPlayer.finished) {
-            tcSpawnPlayer.skip();
+            tcSpawnPlayer.reset();
         }
 
         oldMaze = this.maze;
@@ -817,14 +815,14 @@ public class MazeContainer {
                 // mirror first time
                 this.maze.mirror();
                 isMirrored = Config.Host.MIRROR_OPPONENT.enabled;
-                if (status != Status.MIRRORING) {
+                if (!Status.ANIMATIONS.contains(status)) {
                     statusAfterAnimation = status;
                 }
             }
             else if (Config.Host.MIRROR_OPPONENT.enabled != isMirrored) {
                 // revert mirror (parameter `maze` is already mirrored, called from updateMirror())
                 this.maze.mirror();
-                if (status != Status.MIRRORING) {
+                if (!Status.ANIMATIONS.contains(status)) {
                     statusAfterAnimation = status;
                 }
             }
