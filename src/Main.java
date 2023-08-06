@@ -53,20 +53,20 @@ public class Main {
     private static void setupOnlineServerCallbacks() {
         
         OnlineServer.onOpen = () -> {
+            MazeGen.cancel = true;
             Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
             mazeLeft.setUserText("You (host)");
             mazeRight.panelStatus.setVisible(false);
-            OnlineServer.onClientDisconnect.run();
+            mazeRight.panelDisconnected.setVisible(true);
+            mazeRight.setUserText("Opponent (searching...)");
 
-            maze = new Maze(maze.width, maze.height, Node.Type.WALL);
-
-            mazeLeft.setMaze(maze);
             mazeLeft.setStatus(MazeContainer.Status.OPPONENT_NOT_CONNECTED);
+            mazeLeft.clearMaze();
+            mazeRight.clearMaze();
         };
 
         OnlineServer.onClose = () -> {
             setToSingleplayer();
-            mazeLeft.statusAfterAnimation = MazeContainer.Status.NOT_READY_P1;
 
             mazeLeft.clearMaze();
             mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
@@ -75,24 +75,24 @@ public class Main {
         OnlineServer.onClientConnect = () -> {
             mazeRight.panelDisconnected.setVisible(false);
             mazeRight.setUserText("Opponent");
+            mazeRight.panelStatus.setVisible(false);
 
             OnlineServer.send(Config.getHostSettings());     // send server settings
-            
-            if (mazeLeft.status != MazeContainer.Status.MAZE_EMPTY) {
-                mazeLeft.setStatus(MazeContainer.Status.NOT_READY_P1);
-                mazeRight.statusAfterAnimation = MazeContainer.Status.NOT_READY_OPPONENT;
-                mazeRight.setMaze(maze);
-            }
-            OnlineServer.send(maze);    // server sends its maze, even if empty (which clears receiver's)
-            
-            if (mazeLeft.status == MazeContainer.Status.READY) {
-                OnlineServer.send(KeyHandler.Action.P2_READY);
-            }
+
+            mazeLeft.clearMaze();
+            mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
+            mazeRight.clearMaze();
         };
 
         OnlineServer.onClientDisconnect = () -> {
-            mazeRight.panelDisconnected.setVisible(true);
-            mazeRight.setUserText("Opponent (searching...)");
+            
+            if (OnlineServer.opened) {
+                mazeRight.panelDisconnected.setVisible(true);
+                mazeRight.setUserText("Opponent (searching...)");
+                mazeLeft.setStatus(MazeContainer.Status.OPPONENT_NOT_CONNECTED);
+                mazeRight.panelStatus.setVisible(false);
+            }
+            
         };
 
         OnlineServer.onReceived = () -> {
@@ -105,6 +105,7 @@ public class Main {
     private static void setupOnlineClientCallbacks() {
 
         OnlineClient.onStartSearch = () -> {
+            MazeGen.cancel = true;
             Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
             mazeLeft.setUserText("You");
             mazeRight.panelStatus.setVisible(false);
@@ -183,6 +184,9 @@ public class Main {
     }
 
     public static void setToSingleplayer() {
+        MazeGen.cancel = true;
+        mazeLeft.clearMaze();
+        mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
         Window.setSize(Window.mazeWidth, Window.mazeHeight);
         mazeLeft.setUserText("Singleplayer");
         mazeRight.freeze();
@@ -388,15 +392,9 @@ public class Main {
         }
 
         mazeLeft.setStatus(MazeContainer.Status.GENERATING);
+        mazeLeft.statusAfterAnimation = MazeContainer.Status.NOT_READY_P1;
 
-        if (Config.multiplayerOnline && !OnlineServer.clientConnected) {
-            mazeLeft.statusAfterAnimation = MazeContainer.Status.OPPONENT_NOT_CONNECTED;
-        }
-        else {
-            mazeLeft.statusAfterAnimation = MazeContainer.Status.NOT_READY_P1;
-        }
-
-        MazeGen.cancel = mazeGenThreadDone != true;
+        MazeGen.cancel = true;
         while (!mazeGenThreadDone); {}
 
         new Thread(() -> {
@@ -425,6 +423,9 @@ public class Main {
                 }
             }
 
+            else {
+                System.out.println("mazegen cancelled");
+            }
             mazeGenThreadDone = true;
 
         }).start();

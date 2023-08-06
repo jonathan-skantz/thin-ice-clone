@@ -53,7 +53,7 @@ public class MazeContainer {
     private static final Color COLOR_INFO = new Color(50, 50, 50);
 
     public enum Status {
-        MAZE_EMPTY(COLOR_INFO, "First maze not generated."),
+        MAZE_EMPTY(COLOR_INFO, null),
         // WAITING_FOR_OPPONENT_START(COLOR_INFO, "Waiting for opponent to begin..."),
         HOST_NOT_GENERATED(COLOR_INFO, "Waiting for host to generate..."),
         
@@ -749,7 +749,7 @@ public class MazeContainer {
         }
         textStatus.revalidate();        // since `panelStatus` and `textHelp` may have been resized
 
-        if (status.hidesInfo() || !isMainPlayer || OnlineClient.connected) {
+        if (status.hidesInfo() || !isMainPlayer || (Config.multiplayerOnline && !OnlineServer.opened)) {
             textHelp.setVisible(false);
         }
         else {
