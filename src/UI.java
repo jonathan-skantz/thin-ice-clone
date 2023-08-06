@@ -45,6 +45,8 @@ public class UI {
     public static JCheckBox[] hostCheckboxes = new JCheckBox[5];
     public static JSpinner hostHintLength;
 
+    public static JButton buttonMazeConfig;
+
     private static JSlider[] amountSliders = new JSlider[3];
     private static JLabel[] amountLabels = new JLabel[3];
     private static final String[] labelPrefixes = new String[] {"Ground: ", "Doubles: ", "Walls: "};
@@ -383,7 +385,8 @@ public class UI {
         panel.add(rightCol, c);
 
         // add config button to bottom right
-        buttons.add(getConfigPopupButton("Maze config", panel));
+        buttonMazeConfig = getConfigPopupButton("Maze config", panel);
+        buttons.add(buttonMazeConfig);
 
     }
 
