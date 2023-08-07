@@ -120,7 +120,7 @@ public class Main {
         OnlineClient.onStopSearch = () -> {
             onSwitchGamemode();
             UI.setHostSettingsEnabled(true);
-            UI.buttonMazeConfig.setEnabled(false);
+            UI.buttonMazeConfig.setEnabled(true);
             Window.setSize(Window.mazeWidth, Window.mazeHeight);
 
             mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);
@@ -145,7 +145,7 @@ public class Main {
                 mazeLeft.setStatus(MazeContainer.Status.HOST_NOT_OPENED);
             }
             else {
-                UI.buttonMazeConfig.setEnabled(false);
+                UI.buttonMazeConfig.setEnabled(true);
                 setToSingleplayer();
             }
         };
