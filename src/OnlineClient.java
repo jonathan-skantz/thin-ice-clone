@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 
 public class OnlineClient {
@@ -26,16 +27,25 @@ public class OnlineClient {
 
     public static Object receivedObject;
 
-    public static void connect(int port) {
+    private static Thread threadConnect;
+
+    public static void connect(InetSocketAddress address) {
         
-        new Thread(() -> {
-            
+        if (threadConnect != null && threadConnect.isAlive()) {
+            threadConnect.interrupt();
+            System.out.println("CLIENT: overriding current connection attempt");
+        }
+
+        threadConnect = new Thread(() -> {
+
             tryReconnecting = true;
             onStartSearch.run();
 
             while (true) {
                 try {
-                    socket = new Socket("localhost", port);
+                    System.out.println("CLIENT: trying to connect to " + address);
+                    socket = new Socket(address.getAddress(), address.getPort());
+                    // System.out.println("trying to create socket");
                     connected = true;
 
                     new Thread(onConnect).start();
@@ -50,7 +60,7 @@ public class OnlineClient {
                 catch (ConnectException e) {
                     
                     try {
-                        System.out.println("CLIENT: attempting to connect to " + port);
+                        System.out.println("CLIENT: still trying to connect to " + address);
                         Thread.sleep(RECONNECT_DELAY);
                         
                         if (!tryReconnecting) {
@@ -59,11 +69,12 @@ public class OnlineClient {
                         }
                     }
                     catch (InterruptedException e1) {
-                        e1.printStackTrace();
+                        // interrupted because connect attempt was cancelled by user, then initiated again
                         break;
                     }
                 }
                 catch (IOException e) {
+                    // TODO: server closed?
                     System.out.println("CLIENT error: couldn't create socket");
                     e.printStackTrace();
                     break;
@@ -73,7 +84,9 @@ public class OnlineClient {
             // TODO: show that host right maze is offline
             System.out.println("CLIENT: end");
 
-        }).start();
+        });
+
+        threadConnect.start();
 
     }
 

@@ -2,6 +2,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.GridBagConstraints;
@@ -11,6 +12,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -31,11 +33,15 @@ import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
+import javax.swing.UIDefaults;
+import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.text.DefaultFormatter;
 
 public class UI {
- 
+
+    private static final Font fontConfig = new Font("verdana", Font.PLAIN, 12);
+
     private static final int SLIDER_WIDTH = 100;
     private static final int SLIDER_HEIGHT = 250;
 
@@ -75,6 +81,15 @@ public class UI {
     }
 
     public static void setupConfigs() {
+
+        // set default fonts for components
+        UIDefaults defaults = UIManager.getDefaults();
+        for (Object key : defaults.keySet()) {
+            if (defaults.get(key) instanceof Font) {
+                defaults.put(key, fontConfig);
+            }
+        }
+
         setupCompetitiveButton();
         setupKeyConfig();
         setupMazeConfig();
@@ -105,8 +120,8 @@ public class UI {
 
         // local gamemode
         JCheckBox cbLocal = new JCheckBox("Local");
-        JCheckBox cbJoin = new JCheckBox("Join port: ");
-        JCheckBox cbHost = new JCheckBox("Host port: ");
+        JCheckBox cbJoin = new JCheckBox("Join (IP:port): ");
+        JCheckBox cbHost = new JCheckBox("Host: " + OnlineServer.LOCAL_IP + ":");
 
         cbLocal.addItemListener(e -> {
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
@@ -130,7 +145,7 @@ public class UI {
         Border emptyBorder = BorderFactory.createEmptyBorder(0, 0, 0, 0);
         JPanel subPanel = new JPanel(subPanelLayout);
         
-        JTextField textFieldJoin = new JTextField("12345", 5);
+        JTextField textFieldJoin = new JTextField(OnlineServer.LOCAL_IP + ":12345", 15);
         cbJoin.addItemListener(e -> {
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
             Config.multiplayerOnline = selected;
@@ -138,9 +153,18 @@ public class UI {
             cbLocal.setEnabled(!selected);
             cbHost.setEnabled(!selected);
 
+            textFieldJoin.setEnabled(!selected);
+
             if (selected) {
-                // Main.updateMultiplayer();
-                OnlineClient.connect(Integer.valueOf(textFieldJoin.getText()));
+
+                InetSocketAddress address = stringToInetSocketAddress(textFieldJoin.getText());
+
+                if (address == null) {
+                    cbJoin.setSelected(false);  // immediately revert UI changes
+                }
+                else {
+                    OnlineClient.connect(address);
+                }
             }
             else {
                 OnlineClient.disconnect();
@@ -154,16 +178,18 @@ public class UI {
         
         // online: host
         subPanel = new JPanel(subPanelLayout);
-        JTextField textFieldHost = new JTextField("12345", 5);
+        JSpinner textFieldHost = getNumberSpinner(12345, 1, 65535, 1, 75);
         cbHost.addItemListener(e -> {
-            // TODO: clean-up textfield
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
             Config.multiplayerOnline = selected;
             Config.multiplayer = Config.multiplayerOnline || Config.multiplayerOffline;
             cbLocal.setEnabled(!selected);
             cbJoin.setEnabled(!selected);
+            textFieldHost.setEnabled(!selected);
+
             if (selected) {
-                OnlineServer.open(Integer.valueOf(textFieldHost.getText()));
+                int port = (int)(double)textFieldHost.getValue();
+                OnlineServer.open(port);
             }
             else {
                 OnlineServer.close();
@@ -222,9 +248,7 @@ public class UI {
         label.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 5));
         subPanel.add(label);
 
-        hostHintLength = new JSpinner(new SpinnerNumberModel(Config.Host.HINT_LENGTH.number, 0, 1, 0.05));
-        hostHintLength.setPreferredSize(new Dimension(50, hostHintLength.getPreferredSize().height));
-        subPanel.add(hostHintLength);
+        hostHintLength = getNumberSpinner(Config.Host.HINT_LENGTH.number, 0, 1, 0.05f, 60);
         hostHintLength.addChangeListener(e -> {
             try {
                 Config.Host.HINT_LENGTH.number = (float)hostHintLength.getValue();
@@ -234,13 +258,44 @@ public class UI {
             }
             OnlineServer.send(Config.Host.getSettings());
         });
-
-        JFormattedTextField textField = ((JSpinner.DefaultEditor) hostHintLength.getEditor()).getTextField();
-        DefaultFormatter formatter = (DefaultFormatter) textField.getFormatter();
-        formatter.setOverwriteMode(false);
-        formatter.setAllowsInvalid(false);
-
+        
+        subPanel.add(hostHintLength);
         panelSettings.add(subPanel);
+    }
+    
+    private static JSpinner getNumberSpinner(float current, float min, float max, float step, int width) {
+        JSpinner spinner = new JSpinner(new SpinnerNumberModel(current, min, max, step));
+        spinner.setPreferredSize(new Dimension(width, spinner.getPreferredSize().height));
+        
+        JFormattedTextField textField = ((JSpinner.DefaultEditor) spinner.getEditor()).getTextField();
+        DefaultFormatter formatter = (DefaultFormatter) textField.getFormatter();
+        formatter.setAllowsInvalid(false);
+        return spinner;
+    }
+
+    private static InetSocketAddress stringToInetSocketAddress(String ipAndPort) {
+
+        int i = ipAndPort.indexOf(':');
+
+        if (i == -1) {
+            return null;
+        }
+
+        try {
+            int port = Integer.valueOf(ipAndPort.substring(i+1));
+            
+            String ip = ipAndPort.substring(0, i);
+            InetSocketAddress address = new InetSocketAddress(ip, port);
+    
+            if (address.isUnresolved()) {
+                return null;
+            }
+            return address;
+        }
+        catch (NumberFormatException e) {
+            return null;
+        }
+
     }
 
     public static void applyHostSettings(HashMap<Config.Host, Object> settings) {

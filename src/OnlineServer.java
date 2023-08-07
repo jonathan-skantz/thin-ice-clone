@@ -1,8 +1,10 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class OnlineServer {
     
@@ -26,8 +28,22 @@ public class OnlineServer {
 
     public static Object receivedObject;
 
+    public static final String LOCAL_IP;
+
+    static {
+        String localIP;
+        try {
+            localIP = InetAddress.getLocalHost().getHostAddress();
+        }
+        catch (UnknownHostException e) {
+            localIP = null;
+            e.printStackTrace();
+        }
+        LOCAL_IP = localIP;
+    }
+
     public static void open(int port) {
-        
+
         new Thread(() -> {
             
             try {
@@ -38,6 +54,7 @@ public class OnlineServer {
                 onOpen.run();
 
                 while (true) {
+                    System.out.println("SERVER: waiting for user to connect");
                     clientSocket = serverSocket.accept();
                     clientConnected = true;
                     
