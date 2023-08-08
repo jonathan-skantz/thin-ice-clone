@@ -4,6 +4,7 @@ import java.io.ObjectOutputStream;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class OnlineClient {
 
@@ -45,7 +46,6 @@ public class OnlineClient {
                 try {
                     System.out.println("CLIENT: trying to connect to " + address);
                     socket = new Socket(address.getAddress(), address.getPort());
-                    // System.out.println("trying to create socket");
                     connected = true;
 
                     new Thread(onConnect).start();
@@ -59,30 +59,31 @@ public class OnlineClient {
                 }
                 catch (ConnectException e) {
                     
+                    if (!tryReconnecting) {
+                        System.out.println("CLIENT: cancelled connection attempt");
+                        break;
+                    }
+
                     try {
                         System.out.println("CLIENT: still trying to connect to " + address);
                         Thread.sleep(RECONNECT_DELAY);
-                        
-                        if (!tryReconnecting) {
-                            System.out.println("CLIENT: cancelled connection attempt");
-                            break;
-                        }
                     }
                     catch (InterruptedException e1) {
                         // interrupted because connect attempt was cancelled by user, then initiated again
                         break;
                     }
                 }
+                catch (UnknownHostException e) {
+                    System.out.println("CLIENT error: host \"" + address.getAddress() + "\" cannot be found");
+                    break;
+                }
                 catch (IOException e) {
-                    // TODO: server closed?
                     System.out.println("CLIENT error: couldn't create socket");
-                    e.printStackTrace();
                     break;
                 }
             }
             
-            // TODO: show that host right maze is offline
-            System.out.println("CLIENT: end");
+            System.out.println("CLIENT: thread finished");
 
         });
 
@@ -118,12 +119,9 @@ public class OnlineClient {
             return;
         }
 
-        try {
-            while (serverOut == null) {
-                System.out.println("CLIENT: waiting for serverOut to be created...");
-                // TODO: remove print
-            }  // wait for thread to start
+        while (serverOut == null) {}  // wait for thread to start
 
+        try {
             System.out.println("CLIENT: sending " + obj);
             serverOut.writeObject(obj);
         }
@@ -134,10 +132,16 @@ public class OnlineClient {
 
     }
 
-    private static void listen() throws IOException {
+    private static void listen() {
 
-        serverOut = new ObjectOutputStream(socket.getOutputStream());
-        clientIn = new ObjectInputStream(socket.getInputStream());
+        try {
+            serverOut = new ObjectOutputStream(socket.getOutputStream());
+            clientIn = new ObjectInputStream(socket.getInputStream());
+        }
+        catch (IOException e) {
+            System.out.println("CLIENT error: couldn't get input and output stream from socket");
+            return;
+        }
 
         while (true) {
 

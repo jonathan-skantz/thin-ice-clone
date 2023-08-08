@@ -121,7 +121,7 @@ public class UI {
         // local gamemode
         JCheckBox cbLocal = new JCheckBox("Local");
         JCheckBox cbJoin = new JCheckBox("Join (IP:port): ");
-        JCheckBox cbHost = new JCheckBox("Host: " + OnlineServer.LOCAL_IP + ":");
+        JCheckBox cbHost = new JCheckBox("Host: " + OnlineServer.LOCAL_IP + ":?????");
 
         cbLocal.addItemListener(e -> {
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
@@ -178,26 +178,29 @@ public class UI {
         
         // online: host
         subPanel = new JPanel(subPanelLayout);
-        JSpinner textFieldHost = getNumberSpinner(12345, 1, 65535, 1, 75);
         cbHost.addItemListener(e -> {
             boolean selected = e.getStateChange() == ItemEvent.SELECTED;
             Config.multiplayerOnline = selected;
             Config.multiplayer = Config.multiplayerOnline || Config.multiplayerOffline;
             cbLocal.setEnabled(!selected);
             cbJoin.setEnabled(!selected);
-            textFieldHost.setEnabled(!selected);
 
             if (selected) {
-                int port = (int)(double)textFieldHost.getValue();
-                OnlineServer.open(port);
+                // try to open
+                if (OnlineServer.open()) {
+                    cbHost.setText("Host: " + OnlineServer.LOCAL_IP + ":" + OnlineServer.port);
+                }
+                else {
+                    cbHost.setSelected(false);
+                }
             }
             else {
+                cbHost.setText("Host: " + OnlineServer.LOCAL_IP + ":?????");
                 OnlineServer.close();
             }
         });
         cbHost.setBorder(emptyBorder);
         subPanel.add(cbHost);
-        subPanel.add(textFieldHost);
         subPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         panelConnection.add(subPanel);
 
