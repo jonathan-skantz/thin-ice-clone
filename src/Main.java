@@ -64,7 +64,7 @@ public class Main {
             
             mazeLeft.clearMaze();
             mazeLeft.setUserText("You (host)");
-            mazeLeft.setStatus(MazeContainer.Status.OPPONENT_NOT_CONNECTED);
+            mazeLeft.setStatus(MazeContainer.Status.WAITING_FOR_OPPONENT_TO_CONNECT);
         };
 
         OnlineServer.onClose = () -> {
@@ -89,7 +89,7 @@ public class Main {
                 mazeRight.panelDisconnected.setVisible(true);
                 mazeRight.setUserText("Opponent (searching...)");
 
-                mazeLeft.setStatus(MazeContainer.Status.OPPONENT_NOT_CONNECTED);
+                mazeLeft.setStatus(MazeContainer.Status.WAITING_FOR_OPPONENT_TO_CONNECT);
             }
             
         };
@@ -114,7 +114,7 @@ public class Main {
             mazeRight.setStatus(null);
             
             mazeLeft.setUserText("You");
-            mazeLeft.setStatus(MazeContainer.Status.HOST_NOT_OPENED);
+            mazeLeft.setStatus(MazeContainer.Status.WAITING_FOR_HOST_TO_OPEN);
         };
         
         OnlineClient.onStopSearch = () -> {
@@ -131,7 +131,7 @@ public class Main {
             mazeRight.clearMaze();
             mazeRight.panelDisconnected.setVisible(false);
             mazeRight.setUserText("Opponent (host)");
-            mazeRight.setStatus(MazeContainer.Status.HOST_NOT_GENERATED);
+            mazeRight.setStatus(MazeContainer.Status.WAITING_FOR_HOST_TO_GENERATE);
             
             mazeLeft.clearMaze();
             mazeLeft.setUserText("You");
@@ -142,7 +142,7 @@ public class Main {
             if (OnlineClient.tryReconnecting) {
                 mazeRight.panelDisconnected.setVisible(true);
                 mazeRight.setStatus(null);
-                mazeLeft.setStatus(MazeContainer.Status.HOST_NOT_OPENED);
+                mazeLeft.setStatus(MazeContainer.Status.WAITING_FOR_HOST_TO_OPEN);
             }
             else {
                 UI.buttonMazeConfig.setEnabled(true);
@@ -161,7 +161,7 @@ public class Main {
         Window.setSize(Window.mazeWidth * 2, Window.mazeHeight);
         
         mazeRight.panelDisconnected.setVisible(false);
-        mazeRight.setStatus(MazeContainer.Status.HOST_NOT_GENERATED);
+        mazeRight.setStatus(MazeContainer.Status.WAITING_FOR_HOST_TO_GENERATE);
         mazeRight.setUserText("Player 2");
 
         mazeLeft.setStatus(MazeContainer.Status.MAZE_EMPTY);

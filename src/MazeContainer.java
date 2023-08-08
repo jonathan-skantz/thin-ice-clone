@@ -54,17 +54,16 @@ public class MazeContainer {
 
     public enum Status {
         MAZE_EMPTY(COLOR_INFO, null),
-        // WAITING_FOR_OPPONENT_START(COLOR_INFO, "Waiting for opponent to begin..."),
-        HOST_NOT_GENERATED(COLOR_INFO, "Waiting for host to generate..."),
+        WAITING_FOR_HOST_TO_GENERATE(COLOR_INFO),
         
-        OPPONENT_NOT_CONNECTED(COLOR_INFO, "Waiting for opponent to connect..."),
-        HOST_NOT_OPENED(COLOR_INFO, "Waiting for host to open..."),
+        WAITING_FOR_OPPONENT_TO_CONNECT(COLOR_INFO),
+        WAITING_FOR_HOST_TO_OPEN(COLOR_INFO),
 
-        GAME_WON(COLOR_GREEN, "Game won."),
+        GAME_WON(COLOR_GREEN),
         INCOMPLETE(COLOR_ORANGE),
         UNSOLVABLE(COLOR_RED),
-        GAME_LOST(COLOR_RED, "Game lost."),
-        SURRENDERED(COLOR_RED, "Surrendered."),
+        GAME_LOST(COLOR_RED),
+        SURRENDERED(COLOR_RED),
         
         READY(COLOR_GREEN),
         NOT_READY_P1(COLOR_INFO),
@@ -98,13 +97,34 @@ public class MazeContainer {
         // default display is the capitalized name of the enum field
         private Status(Color color) {
             this.color = color;
-            String d = toString().toLowerCase();
-            stringStatus = String.valueOf(d.charAt(0)).toUpperCase() + d.substring(1);
+            String[] words = toString().toLowerCase().split("_");
+
+            if (words.length == 1) {
+                stringStatus = capitalized(words[0]);
+            }
+            else if (words.length == 2) {
+                stringStatus = capitalized(words[0]) + " " + words[1];
+            }
+            else {
+                StringBuilder sb = new StringBuilder();
+                sb.append(capitalized(words[0]));
+                for (int i=1; i<words.length; i++) {
+                    sb.append(' ');
+                    sb.append(words[i]);
+                }
+                sb.append("...");
+                stringStatus = sb.toString();
+            }
         }
 
         private Status(Color color, String stringStatus) {
             this.color = color;
             this.stringStatus = stringStatus;
+        }
+
+        // str is assumed to be lowercase
+        private static String capitalized(String str) {
+            return String.valueOf(str.charAt(0)).toUpperCase() + str.substring(1);
         }
 
         public static void onNewControls() {
@@ -125,10 +145,6 @@ public class MazeContainer {
                 Main.mazeLeft.setStatus(Main.mazeLeft.status);
                 Main.mazeRight.setStatus(Main.mazeRight.status);
             }
-        }
-
-        public boolean hidesInfo() {
-            return this == GENERATING || this == RESETTING || this == MIRRORING || this == READY || stringHelp == null;
         }
 
         public boolean allowsStep() {
@@ -375,10 +391,10 @@ public class MazeContainer {
                         }
                         else {
                             if (OnlineClient.connected) {
-                                setStatus(Status.HOST_NOT_GENERATED);
+                                setStatus(Status.WAITING_FOR_HOST_TO_GENERATE);
                             }
                             else {
-                                setStatus(Status.HOST_NOT_OPENED);
+                                setStatus(Status.WAITING_FOR_HOST_TO_OPEN);
                             }
                         }
                     }
@@ -741,7 +757,7 @@ public class MazeContainer {
         }
         textStatus.revalidate();        // since `panelStatus` and `textHelp` may have been resized
 
-        if (status.hidesInfo() || !isMainPlayer || (Config.multiplayerOnline && !OnlineServer.opened)) {
+        if (status.stringHelp == null || (Config.multiplayerOnline && !OnlineServer.opened)) {
             textHelp.setVisible(false);
         }
         else {
