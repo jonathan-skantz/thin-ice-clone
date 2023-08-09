@@ -80,7 +80,7 @@ public class MazeContainer {
         panelStatus.setBackground(new Color(240, 240, 240));
         sprites.add(panelStatus);       // NOTE: panelStatus size is (0,0) since the labels contain no letters (set in setStatus())
 
-        blockPlayer = new Block("src/textures/player.png", Config.blockSize - 2);
+        blockPlayer = new Block("textures/player.png", Config.blockSize - 2);
         blockPlayer.velocity = Config.blockSize;
         blockPlayer.setVisible(false);
         panelMaze.add(blockPlayer);
@@ -846,7 +846,7 @@ public class MazeContainer {
 
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
-                Block block = new Block("src/textures/wall.png", Config.blockSize);
+                Block block = new Block("textures/wall.png", Config.blockSize);
                 blocks[y][x] = block;
                 block.setLocation(getBlockPosition(new Node(x, y)));
                 panelMaze.add(block);
