@@ -465,6 +465,7 @@ public class MazeContainer {
             return false;
         }
 
+        statusAfterAnimation = Status.PLAYING;
         setStatus(Status.RESETTING);
 
         removeHintTexts();
@@ -488,7 +489,7 @@ public class MazeContainer {
 
         if (Config.Host.SHOW_UNSOLVABLE.enabled) {
 
-            if (!solver.longestPath.get(maze.pathHistory.size()-1).equals(maze.currentNode)) {
+            if (solver.longestPath.size() < maze.pathHistory.size() || !solver.longestPath.get(maze.pathHistory.size()-1).equals(maze.currentNode)) {
                 // update longestPath since user stepped differently
                 solver.findLongestPath();
 
@@ -499,6 +500,7 @@ public class MazeContainer {
                 
                 if (solver.longestPath.size() < maze.creationPath.size()) {
                     setStatus(Status.UNSOLVABLE);
+                    solver.longestPath.clear();
                 }
             }
         }

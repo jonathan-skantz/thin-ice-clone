@@ -39,7 +39,6 @@ public class MazeSolver {
     public MazeSolver(Maze maze) {
         this.maze = maze;       // same reference
         mazeCopy = new Maze(maze);
-        reset();
     }
 
     private void reset() {
