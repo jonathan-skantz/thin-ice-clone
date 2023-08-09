@@ -566,7 +566,7 @@ public class MazeContainer {
         if (!status.allowsStep()) {
             return false;
         }
-        else if (!Config.Host.ALLOW_UNDO_AND_REDO.enabled) {
+        else if (status != Status.RESETTING && !Config.Host.ALLOW_UNDO_AND_REDO.enabled) {
             return false;
         }
 
@@ -635,13 +635,14 @@ public class MazeContainer {
         }
         textStatus.revalidate();        // since `panelStatus` and `textHelp` may have been resized
 
-        System.out.println("status for " + playerRole + ": " + status);
-
         if (playerRole.isP1()) {
             if (status.stringsP1.size() > 0) {
                 for (String str : status.stringsP1) {
                     if (playerRole == PlayerRole.P1_CLIENT && str.equals(Status.stringNewMaze)) {
                         // stringNewMaze is only allowed by P1 host, not P1 client
+                        continue;
+                    }
+                    else if (!Config.Host.ALLOW_UNDO_AND_REDO.enabled && (str.equals(Status.stringUndoP1) || str.equals(Status.stringRedoP1))) {
                         continue;
                     }
                     result += str + "<br>";
@@ -651,6 +652,9 @@ public class MazeContainer {
         else if (playerRole.isP2()) {
             if (status.stringsP2.size() > 0 ) {
                 for (String str : status.stringsP2) {
+                    if (!Config.Host.ALLOW_UNDO_AND_REDO.enabled && (str.equals(Status.stringUndoP2) || str.equals(Status.stringRedoP2))) {
+                        continue;
+                    }
                     result += str + "<br>";
                 }
             }

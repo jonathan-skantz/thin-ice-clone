@@ -43,6 +43,11 @@ public enum Status {
     public ArrayList<String> stringsP2 = new ArrayList<>();
 
     public static String stringNewMaze;     // only used by host (who is P1 if offline or local)
+    public static String stringUndoP1;
+    public static String stringRedoP1;
+    
+    public static String stringUndoP2;
+    public static String stringRedoP2;
 
     private static final Color[] COLORS = new Color[]{
         new Color(50, 50, 50),      // dark gray (info)
@@ -107,22 +112,19 @@ public enum Status {
 
         stringNewMaze = "Press " + KeyEvent.getKeyText(KeyHandler.Action.MAZE_NEW.keyCode) + " to generate new maze.";
 
-        // TODO
-        // if (Config.Host.ALLOW_UNDO_AND_REDO.enabled) {
-
-        String undoP1 = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_MAZE_STEP_UNDO.keyCode) + " to undo.";
-        String redoP1 = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_MAZE_STEP_REDO.keyCode) + " to redo.";
+        stringUndoP1 = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_MAZE_STEP_UNDO.keyCode) + " to undo.";
+        stringRedoP1 = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_MAZE_STEP_REDO.keyCode) + " to redo.";
         
-        String undoP2 = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_MAZE_STEP_UNDO.keyCode) + " to undo.";
-        String redoP2 = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_MAZE_STEP_REDO.keyCode) + " to redo.";
+        stringUndoP2 = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_MAZE_STEP_UNDO.keyCode) + " to undo.";
+        stringRedoP2 = "Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_MAZE_STEP_REDO.keyCode) + " to redo.";
             
         PLAYING.stringsP1.add("Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_SURRENDER.keyCode) + " to surrender.");
-        PLAYING.stringsP1.add(undoP1);
-        PLAYING.stringsP1.add(redoP1);
+        PLAYING.stringsP1.add(stringUndoP1);
+        PLAYING.stringsP1.add(stringRedoP1);
 
         PLAYING.stringsP2.add("Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_SURRENDER.keyCode) + " to surrender.");
-        PLAYING.stringsP2.add(undoP2);
-        PLAYING.stringsP2.add(redoP2);
+        PLAYING.stringsP2.add(stringUndoP2);
+        PLAYING.stringsP2.add(stringRedoP2);
 
         NOT_READY.stringsP1.add("Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_READY.keyCode) + " to begin.");
         NOT_READY.stringsP1.add(stringNewMaze);
@@ -137,12 +139,12 @@ public enum Status {
 
         for (Status status : new Status[]{INCOMPLETE, UNSOLVABLE}) {
             status.stringsP1.add("Press " + KeyEvent.getKeyText(KeyHandler.Action.P1_MAZE_RESET.keyCode) + " to reset.");
-            status.stringsP1.add(undoP1);
-            status.stringsP1.add(redoP1);
+            status.stringsP1.add(stringUndoP1);
+            status.stringsP1.add(stringRedoP1);
 
             status.stringsP2.add("Press " + KeyEvent.getKeyText(KeyHandler.Action.P2_MAZE_RESET.keyCode) + " to reset.");
-            status.stringsP2.add(undoP2);
-            status.stringsP2.add(redoP2);
+            status.stringsP2.add(stringUndoP2);
+            status.stringsP2.add(stringRedoP2);
         }
 
         if (Main.mazeLeft != null) {
