@@ -42,7 +42,7 @@ public class Config {
         SHOW_ANIMATIONS(true),
         SHOW_UNSOLVABLE(true),
         ALLOW_RESETTING(true),
-        ALLOW_BACKSTEPPING(true),
+        ALLOW_UNDO_AND_REDO(true),
         HINT_LENGTH(0.05f);
 
         private final boolean IS_TOGGLABLE;
