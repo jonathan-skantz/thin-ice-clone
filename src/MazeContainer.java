@@ -16,6 +16,7 @@ public class MazeContainer {
     public Maze maze;
     private Maze oldMaze;
     private MazeSolver solver;
+    private LinkedList<Node> longestPathPrepended = new LinkedList<>();
 
     private TimedCounter tcReset;
     private TimedCounter tcSpawnPlayer;
@@ -365,7 +366,7 @@ public class MazeContainer {
         hints.clear();
 
         // gets solution based on current node
-        LinkedList<Node> path = Config.hintTypeLongest ? solver.findLongestPath() : solver.findShortestPath();
+        LinkedList<Node> path = Config.hintTypeLongest ? solver.longestPath : solver.findShortestPath();
 
         Node removedFirst = path.removeFirst();
 
@@ -489,18 +490,19 @@ public class MazeContainer {
 
         if (Config.Host.SHOW_UNSOLVABLE.enabled) {
 
-            if (solver.longestPath.size() < maze.pathHistory.size() || !solver.longestPath.get(maze.pathHistory.size()-1).equals(maze.currentNode)) {
+            if (longestPathPrepended.size() < maze.pathHistory.size() || !longestPathPrepended.get(maze.pathHistory.size()-1).equals(maze.currentNode)) {
                 // update longestPath since user stepped differently
                 solver.findLongestPath();
 
-                // prepend pathHistory
-                for (int i=maze.pathHistory.size()-2; i>=0; i--) {       // NOTE: -2 to avoid duplicate current node
-                    solver.longestPath.addFirst(maze.pathHistory.get(i));
+                // prepend pathHistory (not including currentNode)
+                longestPathPrepended = new LinkedList<>(solver.longestPath);
+                for (int i=maze.pathHistory.size()-2; i>=0; i--) {
+                    longestPathPrepended.addFirst(maze.pathHistory.get(i));
                 }
                 
-                if (solver.longestPath.size() < maze.creationPath.size()) {
+                if (longestPathPrepended.size() < maze.creationPath.size()) {
                     setStatus(Status.UNSOLVABLE);
-                    solver.longestPath.clear();
+                    longestPathPrepended.clear();
                 }
             }
         }
