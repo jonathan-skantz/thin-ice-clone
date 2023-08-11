@@ -16,7 +16,8 @@ public class MazeContainer {
     public Maze maze;
     private Maze oldMaze;
     private MazeSolver solver;
-    private LinkedList<Node> longestPathPrepended = new LinkedList<>();
+
+    private LinkedList<Node> longestPathOld = new LinkedList<>();
 
     private TimedCounter tcReset;
     private TimedCounter tcSpawnPlayer;
@@ -30,12 +31,13 @@ public class MazeContainer {
 
     private Block blockPlayer;
     private Block[][] blocks;
-    private JLabel textSteps;
+    private JLabel textPoints;
     public JLabel textUser;
 
     private JLabel textStatus;
     
-    private LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>();
+    private LinkedHashMap<Node, JLabel> hints = new LinkedHashMap<>();
+    private int hintsUsed;
 
     public JPanel sprites = new JPanel(null);
     public JPanel panelMaze = new JPanel(null);
@@ -117,12 +119,12 @@ public class MazeContainer {
 
     private void setupText() {
         
-        textSteps = new JLabel("Steps: 0/0");
-        textSteps.setFont(Main.font);
-        textSteps.setSize(textSteps.getPreferredSize());
-        textSteps.setForeground(new Color(0, 0, 0, 100));
-        textSteps.setLocation(Window.getXCenteredMaze(textSteps), panelMaze.getY() - textSteps.getHeight() - 10);
-        sprites.add(textSteps);
+        textPoints = new JLabel("Points: 0/0");
+        textPoints.setFont(Main.font);
+        textPoints.setSize(textPoints.getPreferredSize());
+        textPoints.setForeground(new Color(0, 0, 0, 100));
+        textPoints.setLocation(Window.getXCenteredMaze(textPoints), panelMaze.getY() - textPoints.getHeight() - 10);
+        sprites.add(textPoints);
 
         textStatus = new JLabel();
         textStatus.setFont(Main.fontInfo);
@@ -169,6 +171,9 @@ public class MazeContainer {
             public void onFinish() {
                 setStatus(statusAfterAnimation);  // last status must have been PLAYING, since only that allows resetting
                 updateMirror();
+
+                solver.longestPath = new LinkedList<>(maze.creationPath);  // instead of solver.findLongestPath()
+                updateTextPoints();
             }
 
             @Override
@@ -356,45 +361,60 @@ public class MazeContainer {
             return false;
         }
 
-        panelMaze.setVisible(false);
+        int hintsLength = (int)(Config.Host.HINT_LENGTH.number * maze.creationPath.size());
         
-        // reset old hint blocks
-        for (JLabel hintLabel : hints.keySet()) {
-            panelMaze.remove(hintLabel);
+        if (solver.longestPath.size() - maze.pathHistory.size() < hintsLength) {
+            hintsLength = solver.longestPath.size() - maze.pathHistory.size();
         }
 
-        hints.clear();
+        if (hintsLength - hints.size() == 0) {
+            return false;
+        }
 
-        // gets solution based on current node
+        hintsUsed += hintsLength - hints.size();
+        updateTextPoints();
+
+        panelMaze.setVisible(false);
+
+        removeHintLabels();
+
+        // TODO: doesnt work with shortestpath
         LinkedList<Node> path = Config.hintTypeLongest ? solver.longestPath : solver.findShortestPath();
 
-        Node removedFirst = path.removeFirst();
+        int iStart = maze.pathHistory.size();
 
-        int hintsLength = (int)(Config.Host.HINT_LENGTH.number * maze.creationPath.size());
-
-        for (int hint=0; hint<hintsLength && hint<path.size(); hint++) {
+        for (int hint=iStart; hint<iStart+hintsLength && hint<path.size(); hint++) {
             Node step = path.get(hint);
             
-            JLabel label = new JLabel(String.valueOf(hint+1));
+            JLabel label = new JLabel(String.valueOf(hint-iStart+1));
             label.setHorizontalAlignment(JLabel.CENTER);
             label.setForeground(new Color(100, 100, 100));
             label.setFont(Main.hintFont);
-            
             label.setSize(Config.blockSize, Config.blockSize);
+
+            label.setLocation(getBlockPosition(step));
+            panelMaze.add(label);
+            hints.put(step, label);
+            panelMaze.setComponentZOrder(label, 1);
+
             int pathFirstAppearance = path.indexOf(step);
+
+            if (pathFirstAppearance < iStart) {
+                continue;
+            }
             if (pathFirstAppearance != hint) {
                 // second step on double
                 Node nodeBeforeFirstStep;
                 JLabel labelFirstStep;
 
-                Object[] labels = hints.keySet().toArray();
-                if (pathFirstAppearance == 0) {
-                    nodeBeforeFirstStep = removedFirst;
-                    labelFirstStep = (JLabel) labels[pathFirstAppearance];
+                Object[] labels = hints.values().toArray();
+                if (pathFirstAppearance == iStart - 1) {
+                    nodeBeforeFirstStep = path.get(iStart);
+                    labelFirstStep = (JLabel) labels[pathFirstAppearance-1];
                 }
                 else {
                     nodeBeforeFirstStep = path.get(pathFirstAppearance-1);
-                    labelFirstStep = (JLabel) labels[pathFirstAppearance];
+                    labelFirstStep = (JLabel) labels[pathFirstAppearance-iStart];
                 }
                 if (nodeBeforeFirstStep.X < step.X) {
                     labelFirstStep.setHorizontalAlignment(JLabel.LEFT);
@@ -406,12 +426,6 @@ public class MazeContainer {
                 }
 
             }
-            label.setLocation(getBlockPosition(step));
-            
-            panelMaze.add(label);
-
-            hints.put(label, step);
-            panelMaze.setComponentZOrder(label, 1);
         }
 
         panelMaze.setVisible(true);
@@ -441,14 +455,15 @@ public class MazeContainer {
             }
         }
         
-        for (JLabel label : hints.keySet()) {
+        for (Node step : hints.keySet()) {
+            JLabel label = hints.get(step);
             label.setSize(Config.blockSize, Config.blockSize);
             label.setFont(Main.hintFont);
-            label.setLocation(getBlockPosition(hints.get(label)));
+            label.setLocation(getBlockPosition(step));
         }
 
         updateTextUserPosition();
-        textSteps.setLocation(textSteps.getX(), panelMaze.getY() - textSteps.getHeight() - 10);
+        textPoints.setLocation(textPoints.getX(), panelMaze.getY() - textPoints.getHeight() - 10);
         
     }
 
@@ -469,7 +484,7 @@ public class MazeContainer {
         statusAfterAnimation = Status.PLAYING;
         setStatus(Status.RESETTING);
 
-        removeHintTexts();
+        removeHintLabels();
 
         tcReset.start();
 
@@ -490,23 +505,46 @@ public class MazeContainer {
 
         if (Config.Host.SHOW_UNSOLVABLE.enabled) {
 
-            if (longestPathPrepended.size() < maze.pathHistory.size() || !longestPathPrepended.get(maze.pathHistory.size()-1).equals(maze.currentNode)) {
+            if (!solver.longestPath.get(maze.pathHistory.size()-1).equals(maze.currentNode)) {
                 // update longestPath since user stepped differently
+
+                longestPathOld = new LinkedList<Node>(solver.longestPath);
                 solver.findLongestPath();
 
                 // prepend pathHistory (not including currentNode)
-                longestPathPrepended = new LinkedList<>(solver.longestPath);
                 for (int i=maze.pathHistory.size()-2; i>=0; i--) {
-                    longestPathPrepended.addFirst(maze.pathHistory.get(i));
+                    solver.longestPath.addFirst(maze.pathHistory.get(i));
                 }
                 
-                if (longestPathPrepended.size() < maze.creationPath.size()) {
+                if (solver.longestPath.size() < maze.creationPath.size()) {
                     setStatus(Status.UNSOLVABLE);
-                    longestPathPrepended.clear();
+                    solver.longestPath.clear();
                 }
             }
         }
 
+    }
+
+    private void updateMoveGraphics(Maze.Direction dir, Node lastNode) {
+        updateTextPoints();
+
+        blockPlayer.move(dir);
+        mirrorPlayer(dir);
+        refreshBlockGraphics(lastNode);
+
+        if (hints.size() > 0) {
+
+            Object[] nodes = hints.keySet().toArray();
+            
+            if (maze.currentNode.equals(nodes[0])) {
+                JLabel label = hints.get(nodes[0]);
+                panelMaze.remove((JLabel)label);
+                hints.remove(nodes[0]);
+            }
+            else {
+                removeHintLabels();
+            }
+        }
     }
 
     public boolean tryToMove(Maze.Direction dir) {
@@ -519,30 +557,9 @@ public class MazeContainer {
 
         if (maze.userMove(dir)) {
 
-            updateTextSteps();
+            updateMoveGraphics(dir, lastNode);
 
-            blockPlayer.move(dir);
-            mirrorPlayer(dir);
-            refreshBlockGraphics(lastNode);
-
-            if (hints.size() > 0) {
-
-                Object[] labels = hints.keySet().toArray();
-                
-                if (maze.currentNode.equals(hints.get(labels[0]))) {
-                    panelMaze.remove((JLabel)labels[0]);
-                    hints.remove(labels[0]);
-                }
-                else {
-                    for (JLabel hintLabel : hints.keySet()) {
-                        panelMaze.remove(hintLabel);
-                    }
-                    hints.clear();
-                    panelMaze.repaint();   // some labels are still visible
-                }
-            }
-
-            int stepsMax = maze.creationPath.size();     // both have same max steps
+            int stepsMax = maze.creationPath.size();
 
             if (maze.pathHistory.size() == stepsMax) {
                 setStatus(Status.GAME_WON);
@@ -580,17 +597,13 @@ public class MazeContainer {
 
         if (dir != null) {
             
-            updateTextSteps();
-
-            removeHintTexts();
-            blockPlayer.move(dir);
-            mirrorPlayer(dir);
-            refreshBlockGraphics(lastNode);
+            updateMoveGraphics(dir, lastNode);
 
             if (direction == -1) {
 
                 if (status == Status.INCOMPLETE || status == Status.UNSOLVABLE) {
                     setStatus(Status.PLAYING);
+                    solver.longestPath = new LinkedList<Node>(longestPathOld);
                 }
                 refreshBlockGraphics(maze.currentNode);
             }
@@ -605,12 +618,12 @@ public class MazeContainer {
         
     }
 
-    private void updateTextSteps() {
-        int steps = maze.pathHistory.size();
+    private void updateTextPoints() {
+        int points = maze.pathHistory.size() - hintsUsed;
         int max = maze.creationPath.size();
-        textSteps.setText("Steps: " + steps + "/" + max);
-        textSteps.setSize(textSteps.getPreferredSize());
-        textSteps.setLocation(Window.getXCenteredMaze(textSteps), textSteps.getY());
+        textPoints.setText("Points: " + points + "/" + max);
+        textPoints.setSize(textPoints.getPreferredSize());
+        textPoints.setLocation(Window.getXCenteredMaze(textPoints), textPoints.getY());
     }
 
     public void setStatus(Status status) {
@@ -722,7 +735,7 @@ public class MazeContainer {
         oldMaze = new Maze(maze);
 
         blockPlayer.setVisible(false);
-        removeHintTexts();
+        removeHintLabels();
     }
 
     // also resets texts
@@ -756,12 +769,12 @@ public class MazeContainer {
             }
         }
 
-        removeHintTexts();
-        
-        updateTextSteps();
+        removeHintLabels();
+        hintsUsed = 0;
+        updateTextPoints();
 
         solver = new MazeSolver(this.maze);
-        solver.longestPath = new LinkedList<>(this.maze.creationPath);  // instead of solver.findLongestPath() (maze must be in its original state)
+        solver.longestPath = new LinkedList<>(this.maze.creationPath);  // instead of solver.findLongestPath()
 
         if (this.maze.width != oldMaze.width || this.maze.height != oldMaze.height) {
             
@@ -809,8 +822,8 @@ public class MazeContainer {
             
     }
 
-    private void removeHintTexts() {
-        for (JLabel hint : hints.keySet()) {
+    private void removeHintLabels() {
+        for (JLabel hint : hints.values()) {
             panelMaze.remove(hint);
         }
         hints.clear();
