@@ -34,6 +34,9 @@ public class MazeContainer {
     private JLabel textPoints;
     public JLabel textUser;
 
+    private JLabel labelGamesWon;
+    public int gamesWon;
+
     private JLabel textStatus;
     
     private LinkedHashMap<Node, JLabel> hints = new LinkedHashMap<>();
@@ -137,6 +140,23 @@ public class MazeContainer {
         textUser.setForeground(new Color(0, 0, 0, 100));
         updateTextUserPosition();
         sprites.add(textUser);
+
+        labelGamesWon = new JLabel();
+        updateLabelGamesWon();
+        sprites.add(labelGamesWon);
+
+    }
+
+    public void updateLabelGamesWon() {       
+        labelGamesWon.setText("Games won: " + gamesWon);
+        labelGamesWon.setSize(labelGamesWon.getPreferredSize());
+
+        if (playerRole.isP1()) {
+            labelGamesWon.setLocation(10, 10);
+        }
+        else {
+            labelGamesWon.setLocation(sprites.getWidth()-labelGamesWon.getWidth()-10, 10);
+        }
     }
 
     public void setUserText(String text) {
@@ -562,9 +582,26 @@ public class MazeContainer {
             int stepsMax = maze.creationPath.size();
 
             if (maze.pathHistory.size() == stepsMax) {
-                setStatus(Status.GAME_WON);
+                
                 MazeContainer other = playerRole.isP1() ? Main.mazeRight : Main.mazeLeft;
-                other.setStatus(Status.GAME_LOST);
+
+                if (hintsUsed <= other.hintsUsed || !Config.multiplayer) {
+                    setStatus(Status.GAME_WON);
+                    gamesWon++;
+                    updateLabelGamesWon();
+                    other.setStatus(Status.GAME_LOST);
+                }
+                else {
+                    if (other.status == Status.POTENTIALLY_WON) {
+                        setStatus(Status.GAME_LOST);
+                        other.setStatus(Status.GAME_WON);
+                        other.gamesWon++;
+                        other.updateLabelGamesWon();
+                    }
+                    else {
+                        setStatus(Status.POTENTIALLY_WON);
+                    }
+                }
 
                 // enable UI
                 for (Component comp : UI.buttons.getComponents()) {
@@ -879,5 +916,12 @@ public class MazeContainer {
         return new Point(posX, posY);
     }
 
+
+    public void resetAll() {
+        clearMaze();
+        setStatus(null);
+        gamesWon = 0;
+        updateLabelGamesWon();
+    }
 
 }

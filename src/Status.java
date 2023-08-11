@@ -14,6 +14,7 @@ public enum Status {
     GAME_WON(1),
     GAME_LOST(3),
     SURRENDERED(3),
+    POTENTIALLY_WON(0),     // when user has used more hints than opponent
 
     INCOMPLETE(2),
     UNSOLVABLE(3),
