@@ -6,6 +6,8 @@ import java.awt.image.BufferedImage;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import javax.imageio.ImageIO;
 
@@ -18,7 +20,8 @@ public class Image {
 
     // NOTE: saves the original and returns a copy
     public static BufferedImage load(String path) {
-        path = path.toLowerCase();  // TODO: String cleanup
+
+        path = getAbsPath(path);
 
         if (!cached.containsKey(path)) {
             try {
@@ -28,11 +31,25 @@ public class Image {
                 cached.put(path, converted);
             }
             catch (IOException e) {
-                System.out.println("IOException when loading \"" + path + "\": " + e.getMessage());
+                e.printStackTrace();
+                return null;
             }
         }
 
         return copy(cached.get(path));  // to prevent modifying the original
+    }
+
+    private static String getAbsPath(String path) {
+
+        Path cwd = Paths.get(System.getProperty("user.dir"));
+
+        // .getFileName() returns the last folder
+        if (!cwd.getFileName().toString().equals("src")) {
+            // prepend "src" if current working directory is not "src"
+            path = "src/" + path;
+        }
+
+        return new File(path).getAbsolutePath().toLowerCase();
     }
 
     private static int getTypeFromPath(String path) {

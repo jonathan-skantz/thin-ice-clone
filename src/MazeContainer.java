@@ -3,123 +3,167 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Point;
 
+import javax.swing.BoxLayout;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
-import javax.swing.JLayeredPane;
+import javax.swing.JPanel;
 
 public class MazeContainer {
     
-    private Maze maze;
+    public Maze maze;
     private Maze oldMaze;
     private MazeSolver solver;
-    private boolean gameOver;
-    
+
+    private LinkedList<Node> longestPathOld = new LinkedList<>();
+
     private TimedCounter tcReset;
     private TimedCounter tcSpawnPlayer;
     private TimedCounter tcNewMaze;
     private LinkedList<Node> nodesToChange = new LinkedList<>();
 
-    private boolean isMirrored;
+    public boolean isMirrored;
 
-    private int startX;
-    private int startY;
+    public Status status;
+    public Status statusAfterAnimation;
 
-    private Block player;
+    private Block blockPlayer;
     private Block[][] blocks;
+    private JLabel textPoints;
+    public JLabel textUser;
+
+    private JLabel labelGamesWon;
+    public int gamesWon;
+
     private JLabel textStatus;
-    private JLabel textSteps;
     
-    private LinkedHashMap<JLabel, Node> hints = new LinkedHashMap<>(Config.hintMax);
+    private LinkedHashMap<Node, JLabel> hints = new LinkedHashMap<>();
+    private int hintsUsed;
 
-    public JLayeredPane sprites = new JLayeredPane();
-    // sprites.setOpaque(false);    // TODO: possible with JPanel?
+    public JPanel sprites = new JPanel(null);
+    public JPanel panelMaze = new JPanel(null);
 
-    private enum Status {
-        COMPLETE(Color.GREEN),
-        INCOMPLETE(Color.ORANGE),
-        UNSOLVABLE(Color.RED);
+    public JPanel panelStatus = new JPanel();
+    public JPanel panelDisconnected = new JPanel();     // gray overlay on panelMaze
 
-        public final Color color;
-        private final String display;
+    public PlayerRole playerRole;
 
-        private Status(Color color) {
-            this.color = color;
-            String d = super.toString().toLowerCase();
-            d = String.valueOf(d.charAt(0)).toUpperCase() + d.substring(1);
-            display = d;
+    public enum PlayerRole {
+        P1_SINGLEPLAYER,
+        P1_HOST,
+        P1_CLIENT,
+        P1_LOCAL,
+
+        P2_HOST,
+        P2_LOCAL,
+
+        OPPONENT;
+
+        public boolean isP1() {
+            return this == P1_SINGLEPLAYER || this == P1_HOST || this == P1_CLIENT || this == P1_LOCAL;
         }
 
-        @Override
-        public String toString() {
-            return display;
+        public boolean isP2() {
+            return this == P2_HOST || this == P2_LOCAL;
         }
     }
 
-    public MazeContainer() {
+    public MazeContainer(int windowX, PlayerRole playerRole) {
 
+        this.playerRole = playerRole;
+
+        // set up panels
         maze = new Maze(MazeGen.width, MazeGen.height, Node.Type.WALL);
+        panelMaze.setSize(maze.width * Config.blockSize, maze.height * Config.blockSize);
         setStartPosition();
 
-        // setup UI
-        player = new Block("src/textures/player.png", Config.blockSize - 2);
-        player.velocity = Config.blockSize;
-        player.setVisible(false);
-        sprites.add(player);
+        sprites.setOpaque(false);   // allows buttons to be drawn underneath
+
+        panelStatus.setLayout(new BoxLayout(panelStatus, BoxLayout.Y_AXIS));
+        panelStatus.setBackground(new Color(240, 240, 240));
+        sprites.add(panelStatus);       // NOTE: panelStatus size is (0,0) since the labels contain no letters (set in setStatus())
+
+        blockPlayer = new Block("textures/player.png", Config.blockSize - 2);
+        blockPlayer.velocity = Config.blockSize;
+        blockPlayer.setVisible(false);
+        panelMaze.add(blockPlayer);
 
         setupText();
 
         createWallBlocks();
 
-        sprites.setSize(Window.mazeWidth, Window.mazeHeight);
-
+        sprites.setBackground(null);
+        sprites.setBounds(windowX, 0, Window.mazeWidth, Window.mazeHeight);
+        
+        sprites.add(panelMaze);
         Window.sprites.add(sprites);
 
         setupTimerReset();
         setupTimerSpawnPlayer();
         setupTimerNewMaze();
 
+        setStatus(Status.MAZE_EMPTY);
+
+        panelDisconnected.setBackground(new Color(150, 150, 150, 150));
+        panelDisconnected.setSize(panelMaze.getSize());
+
+        panelDisconnected.setVisible(false);
+        panelMaze.add(panelDisconnected);
+        panelMaze.setComponentZOrder(panelDisconnected, 0);
+    }
+
+    public void updateAnimationsEnabled() {
+        tcReset.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
+        tcNewMaze.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
+        tcSpawnPlayer.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
     }
 
     private void setupText() {
         
-        textSteps = Main.createLabel("Steps: 0/0");
-        textSteps.setVisible(true);
-        textSteps.setForeground(Color.BLACK);
-        textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
+        textPoints = new JLabel("Points: 0/0");
+        textPoints.setFont(Main.font);
+        textPoints.setSize(textPoints.getPreferredSize());
+        textPoints.setForeground(new Color(0, 0, 0, 100));
+        textPoints.setLocation(Window.getXCenteredMaze(textPoints), panelMaze.getY() - textPoints.getHeight() - 10);
+        sprites.add(textPoints);
 
-        sprites.add(textSteps);
-        textStatus = Main.createLabel(Status.UNSOLVABLE.toString());
-        textStatus.setForeground(Color.RED);
-        textStatus.setLocation(Window.getXCenteredMaze(textStatus), textSteps.getY() + textSteps.getHeight() + 10);
-        sprites.add(textStatus);
+        textStatus = new JLabel();
+        textStatus.setFont(Main.fontInfo);
+        textStatus.setAlignmentX(JComponent.CENTER_ALIGNMENT);
+        panelStatus.add(textStatus);
+
+        textUser = new JLabel("Singleplayer");
+        textUser.setFont(Main.font);
+        textUser.setSize(textUser.getPreferredSize());
+        textUser.setForeground(new Color(0, 0, 0, 100));
+        updateTextUserPosition();
+        sprites.add(textUser);
+
+        labelGamesWon = new JLabel();
+        updateLabelGamesWon();
+        sprites.add(labelGamesWon);
+
     }
 
-    private boolean allowInput() {
+    public void updateLabelGamesWon() {       
+        labelGamesWon.setText("Games won: " + gamesWon);
+        labelGamesWon.setSize(labelGamesWon.getPreferredSize());
 
-        if (!Main.firstMazeCreated) {
-            return false;
+        if (playerRole.isP1()) {
+            labelGamesWon.setLocation(10, 10);
         }
-        else if (Config.multiplayer) {
-
-            if (!Main.tcCountdown.finished) {
-                return false;
-            }
-            if (!Main.mazeLeft.animationsFinished() || !Main.mazeRight.animationsFinished()) {
-                // prevent moving until both players can move
-                return false;
-            }
+        else {
+            labelGamesWon.setLocation(sprites.getWidth()-labelGamesWon.getWidth()-10, 10);
         }
-
-        return animationsFinished() &&
-                Main.mazeGenThreadDone &&
-                !gameOver;
     }
 
-    private boolean allowReset() {
-        return Main.firstMazeCreated &&
-                animationsFinished() &&
-                Main.mazeGenThreadDone;
+    public void setUserText(String text) {
+        textUser.setText(text);
+        textUser.setSize(textUser.getPreferredSize());
+        updateTextUserPosition();        
+        textUser.setVisible(true);
     }
 
     public boolean animationsFinished() {
@@ -139,25 +183,48 @@ public class MazeContainer {
 
             @Override
             public void onTick() {
-                step(-1, false);
+                step(-1);
                 movePlayerGraphicsTo(maze.currentNode);
             }
 
             @Override
-            public void onFinish() { updateMirror(); }
+            public void onFinish() {
+                setStatus(statusAfterAnimation);  // last status must have been PLAYING, since only that allows resetting
+                updateMirror();
+
+                solver.longestPath = new LinkedList<>(maze.creationPath);  // instead of solver.findLongestPath()
+                updateTextPoints();
+            }
+
+            @Override
+            public void onSkip() {
+
+                ArrayList<Node> changed = new ArrayList<>(maze.pathHistory);
+                maze.reset();
+
+                for (Node node : changed) {
+                    refreshBlockGraphics(node);
+                }
+
+                movePlayerGraphicsTo(maze.currentNode);
+
+                onFinish();
+            }
         };
 
         tcReset.finished = true;    // used to allow manual stepping
+        tcReset.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
     }
 
     private void setupTimerSpawnPlayer() {
+
         tcSpawnPlayer = new TimedCounter(0.5f, 15) {
             @Override
             public void onStart() {
-                player.setSize(1, 1);       // prevent spawning full sized from previous spawn
-                player.setVisible(true);
-                movePlayerGraphicsTo(maze.currentNode);
+                blockPlayer.setSize(1, 1);       // prevent spawning full sized from previous spawn
                 mirrorPlayer(null);
+                movePlayerGraphicsTo(maze.currentNode);
+                blockPlayer.setVisible(true);
             }
 
             @Override
@@ -165,17 +232,34 @@ public class MazeContainer {
                 // resize
                 float progress = (float)tcSpawnPlayer.frame / tcSpawnPlayer.frames;
                 int size = (int)((Config.blockSize - 2) * progress);
-                player.setSize(size, size);
+                blockPlayer.setSize(size, size);
             
                 movePlayerGraphicsTo(maze.currentNode);
             }
 
             @Override
-            public void onFinish() { updateMirror(); }
+            public void onFinish() {
+                updateMirror();
+                onSkip();
+            }
+
+            @Override
+            public void onSkip() {
+
+                if (maze.currentNode == null) {
+                    return;
+                }
+
+                mirrorPlayer(null);
+                movePlayerGraphicsTo(maze.startNode);
+                blockPlayer.setVisible(true);
+
+                setStatus(statusAfterAnimation);
+            }
         };
 
         tcSpawnPlayer.finished = true;
-
+        tcSpawnPlayer.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
     }
 
     private void setupTimerNewMaze() {
@@ -189,7 +273,6 @@ public class MazeContainer {
 
             public void onTick() {
                 Node node = nodesToChange.get(frame-1);
-                // maze.set(node, newMaze.get(node));
                 
                 if (frame > 1) {
                     // remove border from last node
@@ -198,7 +281,7 @@ public class MazeContainer {
                 }
                 
                 if (node.equals(oldMaze.currentNode)) {
-                    player.setVisible(false);
+                    blockPlayer.setVisible(false);
                 }
 
                 refreshBlockGraphics(node);
@@ -207,33 +290,54 @@ public class MazeContainer {
 
             @Override
             public void onFinish() {
-                Node node = nodesToChange.get(frame-1);   // since last node should be changed twice
+                onReset();
+
+                if (maze.currentNode == null) {
+                    if (Config.multiplayer) {
+                        if (playerRole.isP1()) {
+                            setStatus(Status.MAZE_EMPTY);
+                        }
+                        else {
+                            if (OnlineClient.connected) {
+                                setStatus(Status.WAITING_FOR_HOST_TO_GENERATE);
+                            }
+                            else {
+                                setStatus(Status.WAITING_FOR_HOST_TO_OPEN);
+                            }
+                        }
+                    }
+                }
+                else {
+                    tcSpawnPlayer.start();
+                }
+            }
+            
+            @Override
+            public void onReset() {
+                if (nodesToChange.size() == 0) {
+                    return;
+                }
+                Node node;
+                if (frame == 0) {
+                    node = nodesToChange.get(0);
+                }
+                else {
+                    node = nodesToChange.get(frame-1);
+                }
                 blocks[node.Y][node.X].setBorder(null);
-                
-                Main.textStatus.setVisible(false);  // NOTE: is hidden twice if multiplayer
-                tcSpawnPlayer.start();
+            }
+
+            @Override
+            public void onSkip() {
+                for (Node node : nodesToChange) {
+                    refreshBlockGraphics(node);
+                }
+                tcSpawnPlayer.skip();
             }
         };
 
         tcNewMaze.finished = true;
-    }
-
-    public void dispose() {
-
-        for (int y=0; y<maze.height; y++) {
-            for (int x=0; x<maze.width; x++) {
-                Block block = blocks[y][x];
-                if (block.tcWater != null) {
-                    block.tcWater.reset();
-                }
-            }
-        }
-
-        sprites.removeAll();
-
-        tcReset.reset();
-        tcNewMaze.reset();
-        tcSpawnPlayer.reset();
+        tcNewMaze.skipOnStart = !Config.Host.SHOW_ANIMATIONS.enabled;
     }
 
     private boolean playerMustMove(Maze.Direction dir) {
@@ -253,67 +357,84 @@ public class MazeContainer {
     private void mirrorPlayer(Maze.Direction dir) {
 
         if (dir == null) {
-            player.setMirrored(!maze.walkable(maze.currentNode.getNeighbor(Maze.Direction.LEFT)));
+            blockPlayer.setMirrored(!maze.walkable(maze.currentNode.getNeighbor(Maze.Direction.LEFT)));
         }
 
         else if (playerMustMove(Maze.Direction.LEFT)) {
-            player.setMirrored(false);
+            blockPlayer.setMirrored(false);
         }
         else if (playerMustMove(Maze.Direction.RIGHT)) {
-            player.setMirrored(true);
+            blockPlayer.setMirrored(true);
         }
         else if (dir == Maze.Direction.LEFT) {
-            player.setMirrored(false);
+            blockPlayer.setMirrored(false);
         }
         else if (dir == Maze.Direction.RIGHT) {
-            player.setMirrored(true);
+            blockPlayer.setMirrored(true);
         }
         
     }
 
-    public void showHint() {
+    public boolean showHint() {
 
-        if (!allowInput() || maze.currentNode == null) {
-            return;
+        if (!status.allowsHints()) {
+            return false;
         }
 
-        sprites.setVisible(false);
+        int hintsLength = (int)(Config.Host.HINT_LENGTH.number * maze.creationPath.size());
         
-        // reset old hint blocks
-        for (JLabel hintLabel : hints.keySet()) {
-            sprites.remove(hintLabel);
+        if (solver.longestPath.size() - maze.pathHistory.size() < hintsLength) {
+            hintsLength = solver.longestPath.size() - maze.pathHistory.size();
         }
 
-        hints.clear();
+        if (hintsLength - hints.size() == 0) {
+            return false;
+        }
 
-        // gets solution based on current node
-        LinkedList<Node> path = Config.hintTypeLongest ? solver.findLongestPath() : solver.findShortestPath();
+        hintsUsed += hintsLength - hints.size();
+        updateTextPoints();
 
-        Node removedFirst = path.removeFirst();
+        panelMaze.setVisible(false);
 
-        for (int hint=0; hint<Config.hintMax && hint<path.size(); hint++) {
+        removeHintLabels();
+
+        // TODO: doesnt work with shortestpath
+        LinkedList<Node> path = Config.hintTypeLongest ? solver.longestPath : solver.findShortestPath();
+
+        int iStart = maze.pathHistory.size();
+
+        for (int hint=iStart; hint<iStart+hintsLength && hint<path.size(); hint++) {
             Node step = path.get(hint);
             
-            JLabel label = new JLabel(String.valueOf(hint+1));
+            JLabel label = new JLabel(String.valueOf(hint-iStart+1));
             label.setHorizontalAlignment(JLabel.CENTER);
             label.setForeground(new Color(100, 100, 100));
             label.setFont(Main.hintFont);
-            
             label.setSize(Config.blockSize, Config.blockSize);
+
+            label.setLocation(getBlockPosition(step));
+            panelMaze.add(label);
+            hints.put(step, label);
+            panelMaze.setComponentZOrder(label, 1);
+
             int pathFirstAppearance = path.indexOf(step);
+
+            if (pathFirstAppearance < iStart) {
+                continue;
+            }
             if (pathFirstAppearance != hint) {
                 // second step on double
                 Node nodeBeforeFirstStep;
                 JLabel labelFirstStep;
 
-                Object[] labels = hints.keySet().toArray();
-                if (pathFirstAppearance == 0) {
-                    nodeBeforeFirstStep = removedFirst;
-                    labelFirstStep = (JLabel) labels[pathFirstAppearance];
+                Object[] labels = hints.values().toArray();
+                if (pathFirstAppearance == iStart - 1) {
+                    nodeBeforeFirstStep = path.get(iStart);
+                    labelFirstStep = (JLabel) labels[pathFirstAppearance-1];
                 }
                 else {
                     nodeBeforeFirstStep = path.get(pathFirstAppearance-1);
-                    labelFirstStep = (JLabel) labels[pathFirstAppearance];
+                    labelFirstStep = (JLabel) labels[pathFirstAppearance-iStart];
                 }
                 if (nodeBeforeFirstStep.X < step.X) {
                     labelFirstStep.setHorizontalAlignment(JLabel.LEFT);
@@ -325,26 +446,25 @@ public class MazeContainer {
                 }
 
             }
-            label.setLocation(getBlockPosition(step));
-            
-            sprites.add(label);
-
-            hints.put(label, step);
-            sprites.setComponentZOrder(label, 1);
         }
 
-        sprites.setVisible(true);
+        panelMaze.setVisible(true);
+        return true;
         
     }
 
+    private void updateTextUserPosition() {
+        textUser.setLocation(Window.getXCenteredMaze(textUser), panelMaze.getY() + panelMaze.getHeight() + 10);
+    }
+
     public void zoom(int ch) {
-        player.velocity += ch;
-            
-        startY = (Window.height - Config.blockSize * maze.height) / 2;
-        startX = (Window.mazeWidth - Config.blockSize * maze.width) / 2;
+        blockPlayer.velocity += ch;
+          
+        panelMaze.setSize(Config.blockSize * maze.width, Config.blockSize * maze.height);
+        setStartPosition();
 
         if (maze.currentNode != null) {
-            player.setSize(player.getWidth() + ch, player.getHeight() + ch);
+            blockPlayer.setSize(blockPlayer.getWidth() + ch, blockPlayer.getHeight() + ch);
             movePlayerGraphicsTo(maze.currentNode);
         }
         
@@ -355,217 +475,365 @@ public class MazeContainer {
             }
         }
         
-        for (JLabel label : hints.keySet()) {
+        for (Node step : hints.keySet()) {
+            JLabel label = hints.get(step);
             label.setSize(Config.blockSize, Config.blockSize);
             label.setFont(Main.hintFont);
-            label.setLocation(getBlockPosition(hints.get(label)));
+            label.setLocation(getBlockPosition(step));
         }
+
+        updateTextUserPosition();
+        textPoints.setLocation(textPoints.getX(), panelMaze.getY() - textPoints.getHeight() - 10);
+        
     }
 
     // also resets maze
-    public void resetMazeGraphics() {
-        
-        if (!allowReset()) {
-            return;
+    public boolean resetMazeGraphics() {
+
+        if (!status.allowsReset()) {
+            return false;
+        }
+        else if (!Config.Host.ALLOW_RESETTING.enabled) {
+            return false;
+        }
+        else if (maze.pathHistory.size() == 1) {
+            // history is empty, no reason to reset
+            return false;
         }
 
-        gameOver = false;
+        statusAfterAnimation = Status.PLAYING;
+        setStatus(Status.RESETTING);
 
-        textStatus.setVisible(false);
-        removeHintTexts();
+        removeHintLabels();
 
-        if (Main.ENABLE_ANIMATIONS) {
-            tcReset.start();
-        }
-        else {
-            ArrayList<Node> changed = new ArrayList<>(maze.pathHistory);
-            maze.reset();
+        tcReset.start();
 
-            for (Node node : changed) {
-                refreshBlockGraphics(node);
-            }
-
-            movePlayerGraphicsTo(maze.currentNode);
-            mirrorPlayer(null);
-        }
+        return true;
     }
 
     public void testGameOver() {
-        if (Config.showUnsolvable && solver.findShortestPath().size() == 0) {
+        
+        // first maze hasn't been set yet
+        if (solver == null) {
+            return;
+        }
+        
+        if (maze.get(maze.currentNode) == Node.Type.END) {
+            setStatus(Status.INCOMPLETE);   // if GAME_WON, testGameOver() would never have been called --> must be INCOMPLETE
+            return;
+        }
+
+        if (Config.Host.SHOW_UNSOLVABLE.enabled) {
+
+            if (!solver.longestPath.get(maze.pathHistory.size()-1).equals(maze.currentNode)) {
+                // update longestPath since user stepped differently
+
+                longestPathOld = new LinkedList<Node>(solver.longestPath);
+                solver.findLongestPath();
+
+                // prepend pathHistory (not including currentNode)
+                for (int i=maze.pathHistory.size()-2; i>=0; i--) {
+                    solver.longestPath.addFirst(maze.pathHistory.get(i));
+                }
+                
+                if (solver.longestPath.size() < maze.creationPath.size()) {
+                    setStatus(Status.UNSOLVABLE);
+                    solver.longestPath.clear();
+                }
+            }
+        }
+
+    }
+
+    private void updateMoveGraphics(Maze.Direction dir, Node lastNode) {
+        updateTextPoints();
+
+        blockPlayer.move(dir);
+        mirrorPlayer(dir);
+        refreshBlockGraphics(lastNode);
+
+        if (hints.size() > 0) {
+
+            Object[] nodes = hints.keySet().toArray();
             
-            if (maze.get(maze.currentNode) == Node.Type.END) {
-                updateTextStatus(Status.INCOMPLETE);
+            if (maze.currentNode.equals(nodes[0])) {
+                JLabel label = hints.get(nodes[0]);
+                panelMaze.remove((JLabel)label);
+                hints.remove(nodes[0]);
             }
             else {
-                updateTextStatus(Status.UNSOLVABLE);
+                removeHintLabels();
             }
-            gameOver = true;
         }
     }
 
-    public void tryToMove(Maze.Direction dir) {
+    public boolean tryToMove(Maze.Direction dir) {
 
-        if (!allowInput()) {
-            return;
+        if (!status.allowsMove()) {
+            return false;
         }
 
         Node lastNode = maze.currentNode;
 
         if (maze.userMove(dir)) {
 
-            updateTextSteps();
+            updateMoveGraphics(dir, lastNode);
 
-            player.move(dir);
-            mirrorPlayer(dir);
-            refreshBlockGraphics(lastNode);
-
-            if (hints.size() > 0) {
-
-                Object[] labels = hints.keySet().toArray();
-                
-                if (maze.currentNode.equals(hints.get(labels[0]))) {
-                    sprites.remove((JLabel)labels[0]);
-                    hints.remove(labels[0]);
-                }
-                else {
-                    for (JLabel hintLabel : hints.keySet()) {
-                        sprites.remove(hintLabel);
-                    }
-                    hints.clear();
-                    sprites.repaint();   // some labels are still visible
-                }
-            }
-
-            int stepsMax = Main.mazeLeft.maze.creationPath.size();     // both have same max steps
+            int stepsMax = maze.creationPath.size();
 
             if (maze.pathHistory.size() == stepsMax) {
+                
+                MazeContainer other = playerRole.isP1() ? Main.mazeRight : Main.mazeLeft;
 
-                if (Config.multiplayer) {
-                    int winner = this == Main.mazeLeft ? 1 : 2;
-                    Main.updateTextStatus("Winner: player " + winner);
+                if (hintsUsed <= other.hintsUsed || !Config.multiplayer) {
+                    setStatus(Status.GAME_WON);
+                    gamesWon++;
+                    updateLabelGamesWon();
+                    other.setStatus(Status.GAME_LOST);
                 }
                 else {
-                    updateTextStatus(Status.COMPLETE);
+                    if (other.status == Status.POTENTIALLY_WON) {
+                        setStatus(Status.GAME_LOST);
+                        other.setStatus(Status.GAME_WON);
+                        other.gamesWon++;
+                        other.updateLabelGamesWon();
+                    }
+                    else {
+                        setStatus(Status.POTENTIALLY_WON);
+                    }
                 }
-                Main.firstMazeCreated = false;  // prevents moving
+
+                // enable UI
+                for (Component comp : UI.buttons.getComponents()) {
+                    comp.setEnabled(true);
+                }
             }
             else {
                 testGameOver();
             }
+
+            return true;
         }
+
+        return false;
 
     }
 
-    public void step(int direction, boolean checkAllowInput) {
+    public boolean step(int direction) {
 
-        if (!gameOver && checkAllowInput && !allowInput()) {
-            return;
+        if (!status.allowsStep()) {
+            return false;
         }
-        
+        else if (status != Status.RESETTING && !Config.Host.ALLOW_UNDO_AND_REDO.enabled) {
+            return false;
+        }
+
         Node lastNode = maze.currentNode;
 
         Maze.Direction dir = maze.step(direction);
 
         if (dir != null) {
             
-            updateTextSteps();
-
-            removeHintTexts();
-            player.move(dir);
-            mirrorPlayer(dir);
-            refreshBlockGraphics(lastNode);
+            updateMoveGraphics(dir, lastNode);
 
             if (direction == -1) {
 
-                if (gameOver) {
-                    gameOver = false;
-                    textStatus.setVisible(false);
+                if (status == Status.INCOMPLETE || status == Status.UNSOLVABLE) {
+                    setStatus(Status.PLAYING);
+                    solver.longestPath = new LinkedList<Node>(longestPathOld);
                 }
                 refreshBlockGraphics(maze.currentNode);
             }
             else {
                 testGameOver();
             }
+
+            return true;
         }
+
+        return false;
         
     }
 
-    private void updateTextSteps() {
-        int steps = maze.pathHistory.size();
+    private void updateTextPoints() {
+        int points = maze.pathHistory.size() - hintsUsed;
         int max = maze.creationPath.size();
-        textSteps.setText("Steps: " + steps + "/" + max);
-        textSteps.setSize(textSteps.getPreferredSize());
-        textSteps.setLocation(Window.getXCenteredMaze(textSteps), 10);
+        textPoints.setText("Points: " + points + "/" + max);
+        textPoints.setSize(textPoints.getPreferredSize());
+        textPoints.setLocation(Window.getXCenteredMaze(textPoints), textPoints.getY());
     }
 
-    private void updateTextStatus(Status status) {
-        textStatus.setText(status.toString());
+    public void setStatus(Status status) {
+        if (status == null) {
+            this.status = null;
+            panelStatus.setVisible(false);
+            statusAfterAnimation = null;
+            return;
+        }
+
+        if (status == statusAfterAnimation) {
+            if (animationsFinished()) {
+                statusAfterAnimation = null;
+            }
+            else {
+                return;
+            }
+        }
+
+        this.status = status;
+
+        String result = Status.HTML_START;
+
+        if (status.stringStatus != null) {
+            result += status.stringStatus + "<br>";
+        }
+        textStatus.revalidate();        // since `panelStatus` and `textHelp` may have been resized
+
+        if (playerRole.isP1()) {
+            if (status.stringsP1.size() > 0) {
+                for (String str : status.stringsP1) {
+                    if (playerRole == PlayerRole.P1_CLIENT && str.equals(Status.stringNewMaze)) {
+                        // stringNewMaze is only allowed by P1 host, not P1 client
+                        continue;
+                    }
+                    else if (!Config.Host.ALLOW_UNDO_AND_REDO.enabled && (str.equals(Status.stringUndoP1) || str.equals(Status.stringRedoP1))) {
+                        continue;
+                    }
+                    result += str + "<br>";
+                }
+            }
+        }
+        else if (playerRole.isP2()) {
+            if (status.stringsP2.size() > 0 ) {
+                for (String str : status.stringsP2) {
+                    if (!Config.Host.ALLOW_UNDO_AND_REDO.enabled && (str.equals(Status.stringUndoP2) || str.equals(Status.stringRedoP2))) {
+                        continue;
+                    }
+                    result += str + "<br>";
+                }
+            }
+        }
+        // else: is opponent, don't show any help
+
+        if (result.endsWith("<br>")) {
+            result = result.substring(0, result.length()-4);
+        }
+
+        result += Status.HTML_END;
+
+        textStatus.setText(result);
         textStatus.setForeground(status.color);
         textStatus.setSize(textStatus.getPreferredSize());
-        textStatus.setLocation(Window.getXCenteredMaze(textStatus), textSteps.getY() + textSteps.getHeight() + 10);
         textStatus.setVisible(true);
+
+        panelStatus.setSize(panelStatus.getPreferredSize());
+        panelStatus.setLocation(Window.getXCenteredMaze(panelStatus), 10);
+        panelStatus.setVisible(true);
     }
 
     public void updateMirror() {
 
-        if (this == Main.mazeRight && Config.mirrorRightMaze != isMirrored) {
+        if (maze.currentNode == null) {
+            return;
+        }
 
-            if (animationsFinished() && Main.firstMazeCreated) {
+        if (playerRole.isP2() && Config.Host.MIRROR_OPPONENT.enabled != isMirrored) {
+
+            if (animationsFinished()) {
+                if (!Status.ANIMATIONS.contains(status)) {
+                    statusAfterAnimation = status;
+                }
+                setStatus(Status.MIRRORING);
                 setMaze(maze);
-                Main.updateTextStatus("Mirroring...");
-                isMirrored = Config.mirrorRightMaze;
+                isMirrored = Config.Host.MIRROR_OPPONENT.enabled;
             }
         }
-        else {
-            Main.textStatus.setVisible(false);
+    }
+
+    // used to clear mazeRight when opponent disconnects
+    public void clearMaze() {
+        
+        tcNewMaze.reset();
+        tcSpawnPlayer.reset();
+        tcReset.reset();
+
+        tcNewMaze.finished = true;
+        tcSpawnPlayer.finished = true;
+        tcReset.finished = true;
+        
+        for (int y=0; y<maze.height; y++) {
+            for (int x=0; x<maze.width; x++) {
+                blocks[y][x].clearFrost(new Node(x, y));
+                blocks[y][x].setType(Node.Type.WALL);
+            }
         }
+
+        maze = new Maze(maze.width, maze.height, Node.Type.WALL);
+        oldMaze = new Maze(maze);
+
+        blockPlayer.setVisible(false);
+        removeHintLabels();
     }
 
     // also resets texts
     public void setMaze(Maze maze) {
-        
-        if (!animationsFinished() || (this == Main.mazeRight && !Config.multiplayer)) {
-            return;
+
+        if (!tcNewMaze.finished) {
+            tcNewMaze.reset();
+        }
+        else if (!tcSpawnPlayer.finished) {
+            tcSpawnPlayer.reset();
         }
 
         oldMaze = this.maze;
         this.maze = new Maze(maze);
 
-        if (this == Main.mazeRight) {
-            if (Config.mirrorRightMaze) {
+        if (playerRole.isP2()) {
+            if (Config.Host.MIRROR_OPPONENT.enabled) {
                 // mirror first time
                 this.maze.mirror();
-                isMirrored = Config.mirrorRightMaze;
+                isMirrored = Config.Host.MIRROR_OPPONENT.enabled;
+                if (!Status.ANIMATIONS.contains(status)) {
+                    statusAfterAnimation = status;
+                }
             }
-            else if (Config.mirrorRightMaze != isMirrored) {
+            else if (Config.Host.MIRROR_OPPONENT.enabled != isMirrored) {
                 // revert mirror (parameter `maze` is already mirrored, called from updateMirror())
                 this.maze.mirror();
+                if (!Status.ANIMATIONS.contains(status)) {
+                    statusAfterAnimation = status;
+                }
             }
         }
 
-        textStatus.setVisible(false);
-        removeHintTexts();
-        gameOver = false;
-        
-        updateTextSteps();
+        removeHintLabels();
+        hintsUsed = 0;
+        updateTextPoints();
 
         solver = new MazeSolver(this.maze);
+        solver.longestPath = new LinkedList<>(this.maze.creationPath);  // instead of solver.findLongestPath()
 
         if (this.maze.width != oldMaze.width || this.maze.height != oldMaze.height) {
+            
+            panelMaze.setVisible(false);
+
             for (Block[] row : blocks) {
                 for (Block spr : row) {
-                    sprites.remove(spr);
+                    panelMaze.remove(spr);
                 }
             }
-            sprites.repaint();      // some old blocks are still visible
+            panelMaze.setSize(maze.width * Config.blockSize, maze.height * Config.blockSize);
             setStartPosition();
             
             blocks = new Block[this.maze.height][this.maze.width];
             oldMaze = new Maze(this.maze.width, this.maze.height, Node.Type.WALL);
 
-            player.setVisible(false);
+            blockPlayer.setVisible(false);
             createWallBlocks();
+            panelMaze.setVisible(true);
         }
+
+        updateTextUserPosition();
 
         // determine which nodes should change
         nodesToChange.clear();
@@ -580,46 +848,34 @@ public class MazeContainer {
             }
         }
 
-        if (nodesToChange.size() == 0) {
-            // when switching to multiplayer without any maze generated
-            textStatus.setVisible(false);
+        if (nodesToChange.size() == 0 || (nodesToChange.size() == 1 && nodesToChange.getFirst().equals(oldMaze.currentNode))) {
+            if (status != Status.MIRRORING) {
+                tcSpawnPlayer.onFinish();
+            }
             return;
         }
 
-        if (Main.ENABLE_ANIMATIONS) {
-            tcNewMaze.start();
-        }
-        else {
-            Main.textStatus.setVisible(false);
-            player.setVisible(true);
-            movePlayerGraphicsTo(this.maze.startNode);
-            mirrorPlayer(null);
-
-            for (Node node : nodesToChange) {
-                refreshBlockGraphics(node);
-            }
-            
-        }
+        tcNewMaze.start();
             
     }
 
-    private void removeHintTexts() {
-        for (JLabel hint : hints.keySet()) {
-            sprites.remove(hint);
+    private void removeHintLabels() {
+        for (JLabel hint : hints.values()) {
+            panelMaze.remove(hint);
         }
         hints.clear();
 
-        sprites.repaint();   // some hints are still visible
+        panelMaze.repaint();   // some hints are still visible
     }
 
     public void movePlayerGraphicsTo(Node node) {
-        int blockX = startX + node.X * Config.blockSize;
-        int blockY = startY + node.Y * Config.blockSize;
+        int blockX = node.X * Config.blockSize;
+        int blockY = node.Y * Config.blockSize;
     
-        int centeredX = blockX + (Config.blockSize - player.getWidth()) / 2;
-        int centeredY = blockY + (Config.blockSize - player.getHeight()) / 2;
+        int centeredX = blockX + (Config.blockSize - blockPlayer.getWidth()) / 2;
+        int centeredY = blockY + (Config.blockSize - blockPlayer.getHeight()) / 2;
 
-        player.setLocation(centeredX, centeredY);
+        blockPlayer.setLocation(centeredX, centeredY);
     }
 
     private void refreshBlockGraphics(Node node) {
@@ -640,24 +896,32 @@ public class MazeContainer {
 
         for (int y=0; y<maze.height; y++) {
             for (int x=0; x<maze.width; x++) {
-                Block block = new Block("src/textures/wall.png", Config.blockSize);
+                Block block = new Block("textures/wall.png", Config.blockSize);
                 blocks[y][x] = block;
                 block.setLocation(getBlockPosition(new Node(x, y)));
-                sprites.add(block);
+                panelMaze.add(block);
             }
         }
     }
 
     private void setStartPosition() {
-        startY = (Window.height - Config.blockSize * maze.height) / 2;
-        startX = (Window.mazeWidth - Config.blockSize * maze.width) / 2;
+        int startX = (Window.mazeWidth - Config.blockSize * maze.width) / 2;
+        int startY = (Window.height - Config.blockSize * maze.height) / 2;
+        panelMaze.setLocation(startX, startY);
     }
 
     public Point getBlockPosition(Node node) {
-        int posX = startX + node.X * Config.blockSize;
-        int posY = startY + node.Y * Config.blockSize;
+        int posX = node.X * Config.blockSize;
+        int posY = node.Y * Config.blockSize;
         return new Point(posX, posY);
     }
 
+
+    public void resetAll() {
+        clearMaze();
+        setStatus(null);
+        gamesWon = 0;
+        updateLabelGamesWon();
+    }
 
 }

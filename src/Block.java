@@ -28,19 +28,10 @@ public class Block extends JComponent {
     private static Random rand = new Random();
 
     public Block(Node.Type type, int size) {
-        createBlock(typeToPath(type), size);
+        this(typeToPath(type), size);
     }
 
     public Block(String path, int size) {
-        createBlock(path, size);
-    }
-
-    private String typeToPath(Node.Type type) {
-        return "src/textures/" + type.name().toLowerCase() + ".png";
-    }
-
-    private void createBlock(String path, int size) {
-
         this.path = path;
 
         bottomImage = Image.resize(path, size, size);
@@ -50,6 +41,10 @@ public class Block extends JComponent {
         setBounds(0, 0, size, size);
 
         beginAnimation();
+    }
+
+    private static String typeToPath(Node.Type type) {
+        return "textures/" + type.name().toLowerCase() + ".png";
     }
 
     // moving water animation
@@ -93,6 +88,14 @@ public class Block extends JComponent {
         beginAnimation();
     }
 
+    public void clearFrost(Node node) {
+        for (int i=0; i<frostImages.length; i++) {
+            frostImages[i] = null;
+        }
+
+        combineFrost();
+    }
+
     public void setFrost(Node thisNode, Node frostNeighbor, boolean visible) {
         int i;
         if (thisNode.Y < frostNeighbor.Y) i = 0;
@@ -103,7 +106,7 @@ public class Block extends JComponent {
         int degrees = rotateDegrees[i];
 
         if (visible) {
-            BufferedImage frost = Image.resize("src/textures/frost.png", getWidth(), getHeight());
+            BufferedImage frost = Image.resize("textures/frost.png", getWidth(), getHeight());
             frostImages[i] = Image.rotate(frost, degrees);
         }
         else {
@@ -140,7 +143,7 @@ public class Block extends JComponent {
         for (int i=0; i<frostImages.length; i++) {
             BufferedImage frost = frostImages[i];
             if (frost != null) {
-                frost = Image.resize("src/textures/frost.png", width, height);
+                frost = Image.resize("textures/frost.png", width, height);
                 frostImages[i] = Image.rotate(frost, rotateDegrees[i]);
             }
         }

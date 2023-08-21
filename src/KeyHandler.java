@@ -20,6 +20,8 @@ public class KeyHandler extends KeyAdapter {
         P1_MAZE_HINT(KeyEvent.VK_H),
         P1_MAZE_STEP_UNDO(KeyEvent.VK_Q),
         P1_MAZE_STEP_REDO(KeyEvent.VK_E),
+        P1_READY(KeyEvent.VK_R),
+        P1_SURRENDER(KeyEvent.VK_T),
         
         P2_MOVE_UP(KeyEvent.VK_UP),
         P2_MOVE_DOWN(KeyEvent.VK_DOWN),
@@ -29,20 +31,33 @@ public class KeyHandler extends KeyAdapter {
         P2_MAZE_HINT(KeyEvent.VK_NUMPAD1),
         P2_MAZE_STEP_UNDO(KeyEvent.VK_NUMPAD4),
         P2_MAZE_STEP_REDO(KeyEvent.VK_NUMPAD6),
+        P2_READY(KeyEvent.VK_NUMPAD2),
+        P2_SURRENDER(KeyEvent.VK_NUMPAD3),
 
         // not user-specific
         MAZE_NEW(KeyEvent.VK_SPACE),
         ZOOM_IN(KeyEvent.VK_PLUS),
-        ZOOM_OUT(KeyEvent.VK_MINUS),
-        START(KeyEvent.VK_ENTER);
+        ZOOM_OUT(KeyEvent.VK_MINUS);
+
+        public int keyCode;
+        private Runnable defaultCallback = () -> { System.out.println("not implemented: action \"" + this + "\""); };
+        public Runnable callback = defaultCallback;
+        private static final HashSet<Action> P2_ACTIONS = new HashSet<>() {{
+            add(P2_MOVE_UP);
+            add(P2_MOVE_DOWN);
+            add(P2_MOVE_LEFT);
+            add(P2_MOVE_RIGHT);
+            add(P2_MAZE_RESET);
+            add(P2_MAZE_HINT);
+            add(P2_MAZE_STEP_UNDO);
+            add(P2_MAZE_STEP_REDO);
+            add(P2_READY);
+            add(P2_SURRENDER);
+        }};
 
         private Action(int keyCode) {
             this.keyCode = keyCode;
         }
-
-        public int keyCode;
-        private Runnable defaultCallback = () -> { System.out.println("not implemented: action \"" + this + "\""); };
-        private Runnable callback = defaultCallback;
         
         /**
          * Gets an Action based on the key code.
@@ -82,6 +97,10 @@ public class KeyHandler extends KeyAdapter {
         // if the key has an action, or if (ctrl and +) or (ctrl and -) is pressed
         if (action != null ||
             (e.isControlDown() && (action == Action.ZOOM_IN || action == Action.ZOOM_OUT))) {
+            
+            if (Action.P2_ACTIONS.contains(action) && !Config.multiplayerOffline) {
+                return;     // allows for setting callbacks without pressing the button
+            }
             keysPressed.add(keyCode);
             action.callback.run();          // executes corresponding action
         }

@@ -1,7 +1,9 @@
+import java.io.Serializable;
+
 /**
  * Represents a node in the maze.
  */
-public class Node {
+public class Node implements Serializable {
 
     public enum Type {
         WALL("-"),

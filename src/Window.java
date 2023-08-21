@@ -77,6 +77,8 @@ public class Window {
         int frameH = height + ins.top + ins.bottom;
         frame.setSize(frameW, frameH);
         sprites.setSize(width, height);
+
+        Main.onResize();
     }
 
 }

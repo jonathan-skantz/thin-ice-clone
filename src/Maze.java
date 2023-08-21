@@ -1,10 +1,11 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
-public class Maze {
+public class Maze implements Serializable {
     
     // keep track of the user's path, in order to be able to backtrack
     public Stack<Node> pathHistory = new Stack<>();
@@ -84,6 +85,39 @@ public class Maze {
             typesOriginal[y] = maze.typesOriginal[y].clone();
         }
 
+    }
+
+    // true if same dimensions, same types and same currentNode
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null || obj.getClass() != getClass()) {
+            return false;
+        }
+
+        Maze cast = (Maze)obj;
+
+        if (cast.width != width || cast.height != height) {
+            return false;
+        }
+
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                if (types[y][x] != cast.types[y][x]) {
+                    return false;
+                }
+            }
+        }
+
+        if (cast.currentNode != currentNode) {      // false if both are null
+            if (!cast.currentNode.equals(currentNode)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public void printTypes() {
@@ -215,7 +249,7 @@ public class Maze {
 
         startNode = creationPath.getFirst();
         endNode = creationPath.getLast();
-        currentNode = startNode;
+        currentNode = pathHistory.peek();
 
         return true;
     }

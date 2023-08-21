@@ -12,10 +12,13 @@ public class TimedCounter {
     private Timer onFinishTimer = new Timer(0, null);
 
     public boolean finished;
+    public boolean skipOnStart;
 
     public void onStart() {}
     public void onTick() {}
     public void onFinish() {}
+    public void onReset() {}
+    public void onSkip() {}
 
     public TimedCounter(int fps) {
         setup(0, fps);
@@ -111,7 +114,12 @@ public class TimedCounter {
     }
 
     public void start() {
-        // NOTE: auto-stops
+        // NOTE: auto-stops when finished
+
+        if (skipOnStart) {
+            skip();
+            return;
+        }
 
         timer.stop();
         onFinishTimer.stop();
@@ -126,8 +134,21 @@ public class TimedCounter {
         timer.stop();
         onFinishTimer.stop();
 
+        onReset();  // NOTE: frame is not reset yet
+
         frame = 0;
         finished = false;
+    }
+
+    // calling this is the same as waiting all frames (override onSkip to compensate for withdrawn tick() calls)
+    public void skip() {
+        timer.stop();
+        onFinishTimer.stop();
+
+        onSkip();
+
+        frame = frames;
+        finished = true;
     }
 
 }
