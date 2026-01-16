@@ -1,53 +1,45 @@
-# DD1349 INDA project
+# Thin Ice Clone
 
-### Authors: Jonathan Skantz & Elias Hollstrand
+A clone and extended version of the Club Penguin game "Thin Ice" using Java and Swing. Play as a penguin and traverse all ice blocks exactly once or twice, depending on block thickness. Levels are randomly generated from a config, often enabling multiple solutions. 
 
-![gif](https://gits-15.sys.kth.se/jskantz/projinda/blob/main/src/images/thin-ice-gameplay.gif)
+## Demo
 
-### Description
-A clone of the Club Penguin game "Thin Ice", with the addition of a self-playing mode where the computer calculates the correct solution.
+![Demo](docs/demo.gif)
 
-The course consists of ice blocks that the player walks on. The player should from point A to point B and cannot walk on a block they have already walked on. All blocks must not be walked on but the more blocks the more points. Courses are randomly generated.
+## Original Thin Ice
 
-Screenshot of "Thin Ice":
+![image](docs/thin_ice_orig.png)
 
-![image](https://gits-15.sys.kth.se/storage/user/17035/files/b38e07ce-7d9e-4858-b7c3-dcd0d1d06004)
+Gameplay video: [YouTube](https://youtu.be/H8I29P8eiio)
 
-Video of "Thin Ice": https://youtu.be/H8I29P8eiio
+## Features
 
-### Language
-Java
+- Configurable levels:
+  - Number of single-step blocks, double-step blocks, and walls
+  - Level width and height
+- Random level generation from config
+- Singleplayer and multiplayer (local or LAN)
+- Multiple solutions possible per level
+- Configurable key controls
+- Undo and redo moves, and reset level
 
-### Framework
-Swing
+## Controls
 
-### How to play the game
+- Default: **W, A, S, D** to move the player
+- Configurable via GUI
 
-The goal is to reach the pink block by stepping on as many blocks as possible, turning them into ice (blue).
-#### Controls
-* Move up: W
-* Move down: S
-* Move right: D
-* Move left: A
-* Get hint: H
-* Generate new level: SPACE
+## Requirements
 
-### How to run this game
+- Java 21
+- Gradle (for building)
 
-1. Download this repo by cloning it using `git clone https://gits-15.sys.kth.se/jskantz/projinda.git`
-2. Navigate to `projinda/src/`
-3. Compile all of the files with the command `javac *.java`
-4. Run the file `Main.java` using the command `java Main`
+## Build and Run
 
-### MVP (minimum viable product)
-* One level
-* Level is represented by squares of different color
-* Player should be able to move between squares and complete the level
-* Squares that have been walked on cannot be walked on again
-* Squares that the player has walked on should change color to blue
+```bash
+./gradlew run
+```
 
-### Code and commit message formatting
-* Imperative form
-* Refer to issues fixed at the end of each commit message
+## Credits
 
-For example: `Add player sprite. Fix #21`
+Originally developed in 2023 by Jonathan Skantz and Elias Hollstrand in the course "Project in Introduction to Computer Science" (DD1349) at KTH. Extended further by Jonathan.
+
